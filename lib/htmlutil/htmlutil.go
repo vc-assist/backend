@@ -36,7 +36,7 @@ func getTextRecursive(node *html.Node, buffer *bytes.Buffer) {
 
 type Anchor struct {
 	Name string
-	Url  *url.URL
+	Href string
 }
 
 func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
@@ -62,10 +62,9 @@ func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 
 		anchors = append(anchors, Anchor{
 			Name: GetText(n),
-			Url:  link,
+			Href: link.String(),
 		})
 	}
 
 	return anchors
 }
-
