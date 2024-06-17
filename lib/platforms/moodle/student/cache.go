@@ -3,8 +3,9 @@ package moodlestudent
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
+	"encoding/gob"
 	"net/url"
+	"time"
 	"vcassist-backend/lib/htmlutil"
 
 	"github.com/PuerkitoBio/purell"
@@ -17,11 +18,10 @@ import (
 var errWebpageNotFound = badger.ErrKeyNotFound
 
 type webpage struct {
-	contents []byte
-	anchors  []htmlutil.Anchor
+	Contents []byte
+	Anchors  []htmlutil.Anchor
 
-	createdAt int64
-	lifetime  int64
+	ExpiresAt int64
 }
 
 type webpageCache struct {
@@ -38,7 +38,9 @@ func (c webpageCache) key(clientId, endpoint string) (string, error) {
 		full,
 		purell.FlagsSafe|
 			purell.FlagsUsuallySafeNonGreedy|
-			purell.FlagsUnsafeNonGreedy,
+			purell.FlagRemoveDirectoryIndex|
+			purell.FlagRemoveFragment|
+			purell.FlagSortQuery,
 	)
 	key := clientId + ":" + normalized
 	return key, nil
@@ -77,24 +79,46 @@ func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpa
 		return webpage{}, err
 	}
 
+	decoder := gob.NewDecoder(bytes.NewBuffer(serialized))
+
 	var cached webpage
-	err = binary.Read(bytes.NewBuffer(serialized), binary.BigEndian, &cached)
+	err = decoder.Decode(&cached)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to deserialize cached item")
 		return webpage{}, err
 	}
 
+	if time.Now().Unix() >= cached.ExpiresAt {
+		span.AddEvent("delete expired cache key", trace.WithAttributes(attribute.KeyValue{
+			Key:   "custom.key",
+			Value: attribute.StringValue(key),
+		}))
+
+		tx := c.db.NewTransaction(true)
+		defer tx.Commit()
+
+		err = tx.Delete([]byte(key))
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to delete expired key")
+			return webpage{}, errWebpageNotFound
+		}
+
+		span.SetStatus(codes.Ok, "CACHE EXPIRED")
+		return webpage{}, errWebpageNotFound
+	}
+
 	span.AddEvent(
-		"Successfully returned cached webpage.",
+		"successfully returned cached webpage",
 		trace.WithAttributes(
 			attribute.KeyValue{
 				Key:   "custom.contentlength",
-				Value: attribute.IntValue(len(cached.contents)),
+				Value: attribute.IntValue(len(cached.Contents)),
 			},
 			attribute.KeyValue{
 				Key:   "custom.anchorlength",
-				Value: attribute.IntValue(len(cached.anchors)),
+				Value: attribute.IntValue(len(cached.Anchors)),
 			},
 		),
 	)
@@ -118,7 +142,8 @@ func (c webpageCache) set(ctx context.Context, clientId, endpoint string, page w
 	})
 
 	serialized := bytes.NewBuffer(nil)
-	err = binary.Write(serialized, binary.BigEndian, page)
+	encoder := gob.NewEncoder(serialized)
+	err = encoder.Encode(page)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to serialize webpage")
