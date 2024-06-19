@@ -1,4 +1,4 @@
-package moodlestudent
+package moodle_student
 
 import (
 	"context"

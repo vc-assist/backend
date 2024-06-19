@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package lib.platforms.powerschool;
+
+message Bulletin {
+	string title = 1 [json_name = "title"];
+	string start_date = 2 [json_name = "startDate"];
+	string end_date = 3 [json_name = "endDate"];
+	string body = 4 [json_name = "body"];
+}
+
+message StudentProfile {
+	string guid = 1 [json_name = "guid"];
+	string current_gpa = 2 [json_name = "currentGPA"];
+	string first_name = 3 [json_name = "firstName"];
+	string last_name = 4 [json_name = "lastName"];
+	int32 grade_level = 5 [json_name = "gradeLevel"];
+	repeated Bulletin bulletins = 6 [json_name = "bulletins"];
+}
+
+message AllStudents {
+	repeated StudentProfile students = 1 [json_name = "students"];
+}
+
+message GetAllStudentsInput {}
+

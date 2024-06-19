@@ -35,28 +35,8 @@ fragment bulletinData on BulletinType {
   body
 }`
 
-type Bulletin struct {
-	Title     string `json:"title"`
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
-	Body      string `json:"body"`
-}
-
-type StudentProfile struct {
-	Guid       string     `json:"guid"`
-	CurrentGpa string     `json:"currentGPA"`
-	FirstName  string     `json:"firstName"`
-	LastName   string     `json:"lastName"`
-	GradeLevel int        `json:"gradeLevel"`
-	Bulletins  []Bulletin `json:"bulletins"`
-}
-
-type AllStudents struct {
-	Students []StudentProfile `json:"students"`
-}
-
-func (c *Client) GetAllStudents(ctx context.Context) (AllStudents, error) {
-	return graphqlQuery[struct{}, AllStudents](
-		ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery, struct{}{},
+func (c *Client) GetAllStudents(ctx context.Context) (*AllStudents, error) {
+	return graphqlQuery[*GetAllStudentsInput, *AllStudents](
+		ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery, &GetAllStudentsInput{},
 	)
 }

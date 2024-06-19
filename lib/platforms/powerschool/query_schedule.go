@@ -19,22 +19,8 @@ fragment sectionMeetingData on SectionMeetingType {
   stop
 }`
 
-type CourseMeeting struct {
-	SectionGuid string `json:"sectionGuid"`
-	Start       string `json:"start"`
-	Stop        string `json:"stop"`
-}
-
-type CourseMeetingList = []CourseMeeting
-
-type GetCourseMeetingListInput struct {
-	CourseIds []string `json:"sectionGuids"`
-	Start     string   `json:"start"`
-	Stop      string   `json:"stop"`
-}
-
-func (c *Client) GetCourseMeetingList(ctx context.Context, input GetCourseMeetingListInput) (CourseMeetingList, error) {
-	return graphqlQuery[GetCourseMeetingListInput, CourseMeetingList](
+func (c *Client) GetCourseMeetingList(ctx context.Context, input *GetCourseMeetingListInput) (*CourseMeetingList, error) {
+	return graphqlQuery[*GetCourseMeetingListInput, *CourseMeetingList](
 		ctx, c.http, "SectionMeetings", scheduleQuery, input,
 	)
 }
