@@ -4,9 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
-
-	"github.com/bitfield/script"
+	"os/exec"
 )
 
 func printScripts() {
@@ -33,19 +31,33 @@ func main() {
 	fn()
 }
 
+func cmd(name string, args ...string) {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	fullCmd := name
+	for _, a := range args {
+		fullCmd += " "
+		fullCmd += a
+	}
+
+	fmt.Printf("$ %s\n", fullCmd)
+	err := cmd.Run()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
 var scriptMap = map[string]func(){
 	"dev:apply_db_schema": migrateDb,
 }
 
 func migrateDb() {
-	script.Exec(strings.Join(
-		[]string{
-			"atlas schema apply",
-			"-u 'sqlite://cmd/powerschool_api/state.db'",
-			"--to 'file://cmd/powerschool_api/db/schema.sql'",
-			"--dev-url 'sqlite://dev?mode=memory'",
-		},
-		" ",
-	)).
-		Stdout()
+	cmd(
+		"atlas", "schema", "apply",
+		"-u", "sqlite://cmd/powerschool_api/state.db",
+		"--to", "file://cmd/powerschool_api/db/schema.sql",
+		"--dev-url", "sqlite://dev?mode=memory",
+	)
 }

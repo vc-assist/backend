@@ -31,3 +31,7 @@
 safe, generated boilerplate is also ensured to be type safe.
 3. Other tools can also be used in tandem with sqlc to produce migrations/etc...
 
+### Why tabs and not spaces for go files?
+
+1. Not my choice, side effect of the go formatter.
+

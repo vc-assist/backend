@@ -28,15 +28,15 @@ func (d *OAuthDaemon) refreshToken(ctx context.Context, token db.OAuthToken) err
 
 	span.SetAttributes(
 		attribute.KeyValue{
-			Key:   "custom.student_id",
+			Key:   "student_id",
 			Value: attribute.StringValue(token.Studentid),
 		},
 		attribute.KeyValue{
-			Key:   "custom.expires_at",
+			Key:   "expires_at",
 			Value: attribute.Int64Value(token.Expiresat),
 		},
 		attribute.KeyValue{
-			Key:   "custom.token",
+			Key:   "token",
 			Value: attribute.StringValue(token.Token),
 		},
 	)

@@ -22,13 +22,13 @@ func main() {
 	config := MustLoadConfig(context.Background(), *cfg)
 
 	slog.Info("setting up telemetry...")
-	t, err := telemetry.Setup(context.Background(), config.Telemetry)
+	tel, err := telemetry.SetupFromEnv(context.Background(), "powerschool_api")
 	if err != nil {
 		slog.Error("failed to setup telemetry", "err", err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		err := t.Shutdown(context.Background())
+		err := tel.Shutdown(context.Background())
 		if err != nil {
 			slog.Error("failed to shutdown telemetry", "err", err.Error())
 		}
@@ -47,7 +47,7 @@ func main() {
 
 	slog.Info("setting up telemetry objects...")
 
-	oauthdMeter := t.MeterProvider.Meter("oauthd")
+	oauthdMeter := tel.MeterProvider.Meter("oauthd")
 	refreshCounter, err := oauthdMeter.Int64Counter("refresh_token")
 	if err != nil {
 		slog.Error("failed to create counter for refresh_token", "err", err.Error())
@@ -60,7 +60,7 @@ func main() {
 		qry:            qry,
 		db:             database,
 		config:         config.OAuth,
-		tracer:         t.TracerProvider.Tracer("oauthd"),
+		tracer:         tel.TracerProvider.Tracer("oauthd"),
 		refreshCounter: refreshCounter,
 	}
 	oauthd.Start(context.Background())
@@ -71,8 +71,8 @@ func main() {
 		baseUrl: config.BaseUrl,
 		qry:     qry,
 		db:      database,
-		tracer:  t.TracerProvider.Tracer("service"),
-		meter:   t.MeterProvider.Meter("service"),
+		tracer:  tel.TracerProvider.Tracer("service"),
+		meter:   tel.MeterProvider.Meter("service"),
 	}
 
 	mux := http.NewServeMux()

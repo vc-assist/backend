@@ -66,18 +66,18 @@ func graphqlQuery[Input, Output protoreflect.ProtoMessage](
 	defer span.End()
 
 	span.SetAttributes(attribute.KeyValue{
-		Key:   "custom.name",
+		Key:   "name",
 		Value: attribute.StringValue(name),
 	})
 	serialized, err := json.Marshal(variables)
 	if err == nil {
 		span.SetAttributes(attribute.KeyValue{
-			Key:   "custom.variables",
+			Key:   "variables",
 			Value: attribute.StringValue(string(serialized)),
 		})
 	} else {
 		span.SetAttributes(attribute.KeyValue{
-			Key:   "custom.variables",
+			Key:   "variables",
 			Value: attribute.StringValue("ERROR: failed to serialize variables."),
 		})
 	}

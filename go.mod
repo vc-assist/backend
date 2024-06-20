@@ -6,9 +6,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/PuerkitoBio/purell v1.2.1
-	github.com/bitfield/script v0.22.1
 	github.com/dgraph-io/badger/v4 v4.2.0
-	github.com/dubonzi/otelresty v1.3.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/google/go-cmp v0.6.0
 	github.com/stretchr/testify v1.9.0
@@ -44,8 +42,6 @@ require (
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
-	github.com/itchyny/gojq v0.12.13 // indirect
-	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/klauspost/compress v1.12.3 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20240327125255-dbf53b6cbf06 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -61,5 +57,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	mvdan.cc/sh/v3 v3.7.0 // indirect
 )

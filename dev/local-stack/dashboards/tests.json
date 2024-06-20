@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -50,44 +50,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Name"
-            },
-            "properties": [
-              {
-                "id": "width",
-                "value": 255
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Start time"
-            },
-            "properties": [
-              {
-                "id": "width",
-                "value": 161
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Trace ID"
-            },
-            "properties": [
-              {
-                "id": "width",
-                "value": 162
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -107,8 +70,7 @@
           "show": false
         },
         "frameIndex": 1,
-        "showHeader": true,
-        "sortBy": []
+        "showHeader": true
       },
       "pluginVersion": "11.0.0",
       "targets": [
@@ -119,7 +81,7 @@
           },
           "filters": [
             {
-              "id": "5a086a18",
+              "id": "ca70fefc",
               "operator": "=",
               "scope": "span"
             },
@@ -129,22 +91,24 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "powerschool_api"
+                "test:vcsnet"
               ],
               "valueType": "string"
             },
             {
-              "id": "status",
+              "id": "span-name",
               "operator": "=",
-              "scope": "intrinsic",
-              "tag": "status",
-              "value": "error",
-              "valueType": "keyword"
+              "scope": "span",
+              "tag": "name",
+              "value": [
+                "fetchEvents"
+              ],
+              "valueType": "string"
             }
           ],
           "groupBy": [
             {
-              "id": "e75dcfb4",
+              "id": "85da6f14",
               "scope": "span"
             }
           ],
@@ -154,7 +118,7 @@
           "tableType": "traces"
         }
       ],
-      "title": "Errors",
+      "title": "TEST: vcsnet/fetchEvents",
       "transformations": [
         {
           "id": "filterByRefId",
@@ -166,8 +130,8 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Service": true,
-              "nested": false
+              "Name": true,
+              "Service": true
             },
             "includeByName": {},
             "indexByName": {},
@@ -190,8 +154,8 @@
   "timeRangeUpdatedDuringEditOrView": false,
   "timepicker": {},
   "timezone": "browser",
-  "title": "Powerschool API",
-  "uid": "adpastbnx4hs0f",
-  "version": 3,
+  "title": "Tests",
+  "uid": "cdpdk9gxo4l4wd",
+  "version": 2,
   "weekStart": ""
 }

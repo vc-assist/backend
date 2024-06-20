@@ -57,7 +57,7 @@ func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpa
 		return webpage{}, err
 	}
 	span.SetAttributes(attribute.KeyValue{
-		Key:   "custom.cache_key",
+		Key:   "cache_key",
 		Value: attribute.StringValue(key),
 	})
 
@@ -91,7 +91,7 @@ func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpa
 
 	if time.Now().Unix() >= cached.ExpiresAt {
 		span.AddEvent("delete expired cache key", trace.WithAttributes(attribute.KeyValue{
-			Key:   "custom.key",
+			Key:   "key",
 			Value: attribute.StringValue(key),
 		}))
 
@@ -113,11 +113,11 @@ func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpa
 		"successfully returned cached webpage",
 		trace.WithAttributes(
 			attribute.KeyValue{
-				Key:   "custom.contentlength",
+				Key:   "contentlength",
 				Value: attribute.IntValue(len(cached.Contents)),
 			},
 			attribute.KeyValue{
-				Key:   "custom.anchorlength",
+				Key:   "anchorlength",
 				Value: attribute.IntValue(len(cached.Anchors)),
 			},
 		),
@@ -137,7 +137,7 @@ func (c webpageCache) set(ctx context.Context, clientId, endpoint string, page w
 		return err
 	}
 	span.SetAttributes(attribute.KeyValue{
-		Key:   "custom.cache_key",
+		Key:   "cache_key",
 		Value: attribute.StringValue(key),
 	})
 

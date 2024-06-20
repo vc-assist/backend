@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
+	"path"
+	"path/filepath"
 	"time"
 
+	"github.com/titanous/json5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -36,8 +40,6 @@ func (t Telemetry) Shutdown(ctx context.Context) error {
 }
 
 type Config struct {
-	ServiceName string `json:"service_name"`
-
 	TracesOtlpGrpcEndpoint string `json:"traces_otlp_grpc_endpoint"`
 	TracesOtlpHttpEndpoint string `json:"traces_otlp_http_endpoint"`
 
@@ -45,8 +47,40 @@ type Config struct {
 	MetricsOtlpHttpEndpoint string `json:"metrics_otlp_http_endpoint"`
 }
 
-func Setup(ctx context.Context, config Config) (Telemetry, error) {
-	tracerProvider, err := newTraceProvider(ctx, config)
+// searches up the filesystem from the cwd to find a file
+// called telemetry.json5, once found it will then use it
+// as a config to setup telemetry
+func SetupFromEnv(ctx context.Context, serviceName string) (Telemetry, error) {
+	current, err := os.Getwd()
+	if err != nil {
+		return Telemetry{}, err
+	}
+	current = path.Clean(current)
+
+	for current != "/" {
+		contents, err := os.ReadFile(path.Join(current, "telemetry.json5"))
+		if os.IsNotExist(err) {
+			current = filepath.Join(current, "..")
+			continue
+		}
+		if err != nil {
+			return Telemetry{}, err
+		}
+
+		config := Config{}
+		err = json5.Unmarshal(contents, &config)
+		if err != nil {
+			return Telemetry{}, err
+		}
+
+		return Setup(ctx, serviceName, config)
+	}
+
+	return Telemetry{}, os.ErrNotExist
+}
+
+func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, error) {
+	tracerProvider, err := newTraceProvider(ctx, serviceName, config)
 	if err != nil {
 		return Telemetry{}, err
 	}
@@ -64,12 +98,12 @@ func Setup(ctx context.Context, config Config) (Telemetry, error) {
 	}, nil
 }
 
-func newTraceProvider(ctx context.Context, config Config) (*trace.TracerProvider, error) {
+func newTraceProvider(ctx context.Context, serviceName string, config Config) (*trace.TracerProvider, error) {
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName(config.ServiceName),
+			semconv.ServiceName(serviceName),
 		),
 	)
 	if err != nil {

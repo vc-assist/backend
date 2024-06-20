@@ -1,6 +1,7 @@
 package moodle_student
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,10 +10,10 @@ import (
 	"strings"
 	"time"
 	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/lib/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/dubonzi/otelresty"
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -20,15 +21,16 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("platform/moodle/student")
+var tracer = otel.Tracer("platforms/moodle/student")
 
 var InvalidCredentials = errors.New("Incorrect username or password.")
 
 type Client struct {
 	ClientId string
 	BaseUrl  *url.URL
-	http     *resty.Client
-	cache    webpageCache
+
+	http  *resty.Client
+	cache webpageCache
 }
 
 type ClientOptions struct {
@@ -41,6 +43,10 @@ type ClientOptions struct {
 }
 
 func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
+	if tracer == nil {
+		panic("you must call SetupTracing before calling any library methods")
+	}
+
 	baseUrl, err := url.Parse(opts.BaseUrl)
 	if err != nil {
 		return nil, err
@@ -54,10 +60,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	}
 	client.SetCookieJar(jar)
 
-	otelresty.TraceClient(
-		client,
-		otelresty.WithTracerName("moodle-http"),
-	)
+	telemetry.InstrumentResty(client, "platform/moodle/http")
 
 	cache := webpageCache{
 		db:      opts.Cache,
@@ -67,8 +70,9 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	return &Client{
 		ClientId: opts.ClientId,
 		BaseUrl:  baseUrl,
-		http:     client,
-		cache:    cache,
+
+		http:  client,
+		cache: cache,
 	}, nil
 }
 
@@ -83,7 +87,7 @@ func (c *Client) LoginUsernamePassword(ctx context.Context, username, password s
 		span.SetStatus(codes.Error, "failed to fetch (1)")
 		return err
 	}
-	doc, err := goquery.NewDocumentFromReader(res.RawBody())
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to parse html (1)")
 		return err
@@ -155,7 +159,7 @@ func (c *Client) Courses(ctx context.Context) ([]Course, error) {
 		span.SetStatus(codes.Error, "failed to fetch")
 		return nil, err
 	}
-	doc, err := goquery.NewDocumentFromReader(res.RawBody())
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse html")
@@ -187,7 +191,7 @@ func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error)
 
 	endpoint := course.Href
 	span.SetAttributes(attribute.KeyValue{
-		Key:   "custom.url",
+		Key:   "url",
 		Value: attribute.StringValue(endpoint),
 	})
 
@@ -205,7 +209,7 @@ func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error)
 		span.SetStatus(codes.Error, "failed to fetch")
 		return nil, err
 	}
-	doc, err := goquery.NewDocumentFromReader(res.RawBody())
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse html")
@@ -237,7 +241,7 @@ func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, er
 
 	endpoint := section.Href
 	span.SetAttributes(attribute.KeyValue{
-		Key:   "custom.url",
+		Key:   "url",
 		Value: attribute.StringValue(endpoint),
 	})
 
@@ -255,7 +259,7 @@ func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, er
 		span.SetStatus(codes.Error, "failed to fetch")
 		return nil, err
 	}
-	doc, err := goquery.NewDocumentFromReader(res.RawBody())
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse html")
@@ -287,7 +291,7 @@ func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, er
 
 	endpoint := resource.Href
 	span.SetAttributes(attribute.KeyValue{
-		Key:   "custom.url",
+		Key:   "url",
 		Value: attribute.StringValue(endpoint),
 	})
 
@@ -305,7 +309,7 @@ func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, er
 		span.SetStatus(codes.Error, "failed to fetch")
 		return nil, err
 	}
-	doc, err := goquery.NewDocumentFromReader(res.RawBody())
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse html")

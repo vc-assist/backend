@@ -9,13 +9,13 @@ import (
 	"net/http/cookiejar"
 	"time"
 	"vcassist-backend/lib/oauth"
+	"vcassist-backend/lib/telemetry"
 
-	"github.com/dubonzi/otelresty"
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("platform/powerschool")
+var tracer = otel.Tracer("platforms/powerschool")
 
 type Client struct {
 	http *resty.Client
@@ -29,11 +29,7 @@ func NewClient(baseUrl string) (*Client, error) {
 		return nil, err
 	}
 	client.SetCookieJar(jar)
-
-	otelresty.TraceClient(
-		client,
-		otelresty.WithTracerName("powerschool-http"),
-	)
+	telemetry.InstrumentResty(client, "platform/powerschool/http")
 
 	return &Client{http: client}, nil
 }
@@ -82,7 +78,7 @@ func (o OAuthConfig) LoginUrl(ctx context.Context) (string, error) {
 		CodeVerifier: hex.EncodeToString(nonce),
 	}
 
-	return req.GetLoginUrl(o.BaseLoginUrl)
+	return req.GetLoginUrl(ctx, o.BaseLoginUrl)
 }
 
 func (o OAuthConfig) Refresh(ctx context.Context, token string) (string, time.Time, error) {
