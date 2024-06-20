@@ -1,9 +1,9 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "cmd/server/query.sql"
-    schema: "cmd/server/schema.sql"
+    queries: "cmd/powerschool_api/db/query.sql"
+    schema: "cmd/powerschool_api/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "cmd/server"
+        out: "cmd/powerschool_api/db"

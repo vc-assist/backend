@@ -1,0 +1,5 @@
+cmd/powerschool_api/powerschool_api
+
+*.db
+*.db-*
+

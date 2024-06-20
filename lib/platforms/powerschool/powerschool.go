@@ -57,19 +57,14 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error
 		SetHeader("profileUri", openidToken.IdToken).
 		SetHeader("ServerURL", c.http.BaseURL)
 
-	_, err = c.GetAllStudents(ctx)
-	if err != nil {
-		return time.Now(), err
-	}
-
 	expiresAt := time.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
 	return expiresAt, nil
 }
 
 type OAuthConfig struct {
-	BaseLoginUrl string
-	RefreshUrl   string
-	ClientId     string
+	BaseLoginUrl string `json:"base_login_url"`
+	RefreshUrl   string `json:"refresh_url"`
+	ClientId     string `json:"client_id"`
 }
 
 func (o OAuthConfig) LoginUrl(ctx context.Context) (string, error) {
@@ -90,21 +85,21 @@ func (o OAuthConfig) LoginUrl(ctx context.Context) (string, error) {
 	return req.GetLoginUrl(o.BaseLoginUrl)
 }
 
-func (o OAuthConfig) Refresh(ctx context.Context, token string) (time.Time, error) {
+func (o OAuthConfig) Refresh(ctx context.Context, token string) (string, time.Time, error) {
 	ctx, span := tracer.Start(ctx, "refreshOAuth2")
 	defer span.End()
 
 	var openidToken oauth.OpenIdToken
 	err := json.Unmarshal([]byte(token), &openidToken)
 	if err != nil {
-		return time.Now(), err
+		return "", time.Now(), err
 	}
 
-	idToken, err := openidToken.Refresh(ctx, o.RefreshUrl, o.ClientId)
+	refreshed, idToken, err := openidToken.Refresh(ctx, o.RefreshUrl, o.ClientId)
 	if err != nil {
-		return time.Now(), err
+		return "", time.Now(), err
 	}
 
 	expiresAt := time.Now().Add(time.Duration(idToken.ExpiresIn) * time.Second)
-	return expiresAt, nil
+	return refreshed, expiresAt, nil
 }

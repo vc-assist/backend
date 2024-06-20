@@ -1,0 +1,16 @@
+{
+	base_url: "https://vcsnet.powerschool.com",
+	oauth: {
+		base_login_url: "https://accounts.google.com/o/oauth2/v2/auth",
+		refresh_url: "https://oauth2.googleapis.com/token",
+		client_id: "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
+	},
+	database: {
+		file: "./state.db"
+	},
+	telemetry: {
+		service_name: "powerschool_api",
+		traces_otlp_grpc_endpoint: "http://127.0.0.1:4317",
+		metrics_otlp_http_endpoint: "http://127.0.0.1:9090/api/v1/otlp/v1/metrics",
+	}
+}

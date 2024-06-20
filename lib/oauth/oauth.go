@@ -76,7 +76,7 @@ type OpenIdToken struct {
 	TokenType    string `json:"token_type"`
 }
 
-func (token OpenIdToken) Refresh(ctx context.Context, baseRefreshUrl, clientId string) (OpenIdToken, error) {
+func (token OpenIdToken) Refresh(ctx context.Context, baseRefreshUrl, clientId string) (string, OpenIdToken, error) {
 	ctx, span := tracer.Start(ctx, "openidtoken:refresh")
 	defer span.End()
 
@@ -104,10 +104,12 @@ func (token OpenIdToken) Refresh(ctx context.Context, baseRefreshUrl, clientId s
 		SetBody(body).
 		Post(baseRefreshUrl)
 	if err != nil {
-		return OpenIdToken{}, err
+		return "", OpenIdToken{}, err
 	}
 
+	resToken := res.Body()
+
 	var tokenResponse OpenIdToken
-	err = json.Unmarshal(res.Body(), &tokenResponse)
-	return tokenResponse, err
+	err = json.Unmarshal(resToken, &tokenResponse)
+	return string(resToken), tokenResponse, err
 }

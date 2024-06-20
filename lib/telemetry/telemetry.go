@@ -3,116 +3,133 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/log/global"
-	"go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
 
-// setupOTelSDK bootstraps the OpenTelemetry pipeline.
-// If it does not return an error, make sure to call shutdown for proper cleanup.
-func Setup(ctx context.Context) (shutdown func(context.Context) error, err error) {
-	var shutdownFuncs []func(context.Context) error
-
-	// shutdown calls cleanup functions registered via shutdownFuncs.
-	// The errors from the calls are joined.
-	// Each registered cleanup will be invoked once.
-	shutdown = func(ctx context.Context) error {
-		var err error
-		for _, fn := range shutdownFuncs {
-			err = errors.Join(err, fn(ctx))
-		}
-		shutdownFuncs = nil
-		return err
-	}
-
-	// handleErr calls shutdown for cleanup and makes sure that all errors are returned.
-	handleErr := func(inErr error) {
-		err = errors.Join(inErr, shutdown(ctx))
-	}
-
-	// Set up trace provider.
-	tracerProvider, err := newTraceProvider()
-	if err != nil {
-		handleErr(err)
-		return
-	}
-	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
-	otel.SetTracerProvider(tracerProvider)
-
-	// Set up meter provider.
-	meterProvider, err := newMeterProvider()
-	if err != nil {
-		handleErr(err)
-		return
-	}
-	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
-	otel.SetMeterProvider(meterProvider)
-
-	// Set up logger provider.
-	loggerProvider, err := newLoggerProvider()
-	if err != nil {
-		handleErr(err)
-		return
-	}
-	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
-	global.SetLoggerProvider(loggerProvider)
-
-	return
+type Telemetry struct {
+	TracerProvider *trace.TracerProvider
+	MeterProvider  *metric.MeterProvider
 }
 
-func newTraceProvider() (*trace.TracerProvider, error) {
+func (t Telemetry) Shutdown(ctx context.Context) error {
+	errlist := []error{}
+	err := t.TracerProvider.Shutdown(ctx)
+	if err != nil {
+		errlist = append(errlist, err)
+	}
+	err = t.MeterProvider.Shutdown(ctx)
+	if err != nil {
+		errlist = append(errlist, err)
+	}
+	return errors.Join(errlist...)
+}
+
+type Config struct {
+	ServiceName string `json:"service_name"`
+
+	TracesOtlpGrpcEndpoint string `json:"traces_otlp_grpc_endpoint"`
+	TracesOtlpHttpEndpoint string `json:"traces_otlp_http_endpoint"`
+
+	MetricsOtlpGrpcEndpoint string `json:"metrics_otlp_grpc_endpoint"`
+	MetricsOtlpHttpEndpoint string `json:"metrics_otlp_http_endpoint"`
+}
+
+func Setup(ctx context.Context, config Config) (Telemetry, error) {
+	tracerProvider, err := newTraceProvider(ctx, config)
+	if err != nil {
+		return Telemetry{}, err
+	}
+	otel.SetTracerProvider(tracerProvider)
+
+	meterProvider, err := newMeterProvider(ctx, config)
+	if err != nil {
+		return Telemetry{}, err
+	}
+	otel.SetMeterProvider(meterProvider)
+
+	return Telemetry{
+		TracerProvider: tracerProvider,
+		MeterProvider:  meterProvider,
+	}, nil
+}
+
+func newTraceProvider(ctx context.Context, config Config) (*trace.TracerProvider, error) {
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("Backend"),
+			semconv.ServiceName(config.ServiceName),
 		),
 	)
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
-	traceExporter, err := stdouttrace.New(
-		stdouttrace.WithPrettyPrint())
+	slog.Info("setting up trace exporter...")
+	exporter, err := otlpTracerExportFromConfig(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
 	traceProvider := trace.NewTracerProvider(
-		trace.WithBatcher(traceExporter),
+		trace.WithBatcher(exporter),
 		trace.WithResource(r),
 	)
 	return traceProvider, nil
 }
 
-func newMeterProvider() (*metric.MeterProvider, error) {
-	metricExporter, err := stdoutmetric.New()
+func newMeterProvider(ctx context.Context, config Config) (*metric.MeterProvider, error) {
+	slog.Info("setting up meter exporter...")
+	exporter, err := otlpMeterExportFromConfig(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
 	meterProvider := metric.NewMeterProvider(
-		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
+		metric.WithReader(metric.NewPeriodicReader(exporter)),
 	)
 	return meterProvider, nil
 }
 
-func newLoggerProvider() (*log.LoggerProvider, error) {
-	logExporter, err := stdoutlog.New()
-	if err != nil {
-		return nil, err
-	}
+func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExporter, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
 
-	loggerProvider := log.NewLoggerProvider(
-		log.WithProcessor(log.NewBatchProcessor(logExporter)),
+	if c.TracesOtlpGrpcEndpoint != "" {
+		return otlptracegrpc.New(
+			ctx,
+			otlptracegrpc.WithEndpointURL(c.TracesOtlpGrpcEndpoint),
+		)
+	}
+	return otlptracehttp.New(
+		ctx,
+		otlptracehttp.WithEndpointURL(c.TracesOtlpHttpEndpoint),
 	)
-	return loggerProvider, nil
+}
+
+func otlpMeterExportFromConfig(ctx context.Context, c Config) (metric.Exporter, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	if c.MetricsOtlpGrpcEndpoint != "" {
+		return otlpmetricgrpc.New(
+			ctx,
+			otlpmetricgrpc.WithEndpointURL(c.MetricsOtlpGrpcEndpoint),
+		)
+	}
+	return otlpmetrichttp.New(
+		ctx,
+		otlpmetrichttp.WithEndpointURL(c.MetricsOtlpHttpEndpoint),
+	)
 }

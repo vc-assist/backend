@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package cmd.powerschool_api.api;
+
+import "lib/platforms/powerschool/query_all_students.proto";
+import "lib/platforms/powerschool/query_schedule.proto";
+import "lib/platforms/powerschool/query_student_data.proto";
+
+// GetOAuth
+message GetOAuthRequest {
+	string student_id = 1;
+}
+message GetOAuthResponse {
+	bool has_token = 1;
+}
+
+// ProvideOAuth
+message ProvideOAuthRequest {
+	string student_id = 1;
+	string token = 2;
+}
+message ProvideOAuthResponse {
+	bool success = 1;
+	string message = 2;
+}
+
+// GetStudentData
+message GetStudentDataRequest {
+	string student_id = 1;
+}
+message GetStudentDataResponse {
+	lib.platforms.powerschool.StudentProfile profile = 1;
+	lib.platforms.powerschool.CourseMeetingList meetings = 2;
+	repeated lib.platforms.powerschool.CourseData course_data = 3;
+}
+
+service PowerschoolService {
+	rpc GetOAuth(GetOAuthRequest) returns (GetOAuthResponse);
+	rpc ProvideOAuth(ProvideOAuthRequest) returns (ProvideOAuthResponse);
+	rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
+}
+
