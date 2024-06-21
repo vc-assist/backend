@@ -1,4 +1,4 @@
-package main
+package powerschoolapi
 
 import (
 	"context"
@@ -144,10 +144,12 @@ func (s PowerschoolService) GetStudentData(
 
 	// get oauth token & login
 	token, err := s.qry.GetOAuthToken(ctx, req.Msg.StudentId)
-	if err != nil {
+	if err == sql.ErrNoRows {
 		// if we are to support other auth methods in the future
-		// you would add additional code to handle it in the
-		// if err == sql.ErrNoRows ... branch
+		// you would add additional code to handle it in this branch
+		return nil, fmt.Errorf("you don't have any credentials that can request student data")
+	}
+	if err != nil {
 		return nil, err
 	}
 	if token.Expiresat < time.Now().Unix() {

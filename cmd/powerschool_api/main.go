@@ -1,4 +1,4 @@
-package main
+package powerschoolapi
 
 import (
 	"context"
@@ -36,12 +36,12 @@ func main() {
 
 	slog.Info("setting up database...")
 
-	database, err := OpenDB(config.Database)
+	sqlite, err := OpenDB(config.Database)
 	if err != nil {
 		slog.Error("failed to open libsql connector", "err", err.Error())
 		os.Exit(1)
 	}
-	qry := db.New(database)
+	qry := db.New(sqlite)
 
 	slog.Info("running db migrations...")
 
@@ -58,7 +58,7 @@ func main() {
 
 	oauthd := OAuthDaemon{
 		qry:            qry,
-		db:             database,
+		db:             sqlite,
 		config:         config.OAuth,
 		tracer:         tel.TracerProvider.Tracer("oauthd"),
 		refreshCounter: refreshCounter,
@@ -70,7 +70,7 @@ func main() {
 	service := PowerschoolService{
 		baseUrl: config.BaseUrl,
 		qry:     qry,
-		db:      database,
+		db:      sqlite,
 		tracer:  tel.TracerProvider.Tracer("service"),
 		meter:   tel.MeterProvider.Meter("service"),
 	}
