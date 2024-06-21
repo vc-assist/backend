@@ -43,6 +43,7 @@ func (req AuthCodeRequest) GetLoginUrl(ctx context.Context, baseLoginUrl string)
 	values.Add("access_type", req.AccessType)
 	values.Add("scope", req.Scope)
 	values.Add("code_challenge", req.CodeVerifier)
+	values.Add("redirect_uri", req.RedirectUri)
 
 	span.SetAttributes(
 		attribute.KeyValue{
@@ -60,6 +61,10 @@ func (req AuthCodeRequest) GetLoginUrl(ctx context.Context, baseLoginUrl string)
 		attribute.KeyValue{
 			Key:   "code_challenge",
 			Value: attribute.StringValue(req.CodeVerifier),
+		},
+		attribute.KeyValue{
+			Key:   "redirect_uri",
+			Value: attribute.StringValue(req.RedirectUri),
 		},
 	)
 
