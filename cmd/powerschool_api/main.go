@@ -8,6 +8,7 @@ import (
 	"os"
 	"vcassist-backend/cmd/powerschool_api/api/apiconnect"
 	"vcassist-backend/cmd/powerschool_api/db"
+	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/telemetry"
 
 	"golang.org/x/net/http2"
@@ -19,9 +20,15 @@ func main() {
 	flag.Parse()
 
 	slog.Info("loading config...")
-	config := MustLoadConfig(context.Background(), *cfg)
+
+	config, err := configuration.ReadConfig[Config](*cfg)
+	if err != nil {
+		slog.Error("failed to load configuration", "err", err.Error())
+		os.Exit(1)
+	}
 
 	slog.Info("setting up telemetry...")
+
 	tel, err := telemetry.SetupFromEnv(context.Background(), "powerschool_api")
 	if err != nil {
 		slog.Error("failed to setup telemetry", "err", err.Error())
@@ -42,8 +49,6 @@ func main() {
 		os.Exit(1)
 	}
 	qry := db.New(sqlite)
-
-	slog.Info("running db migrations...")
 
 	slog.Info("setting up telemetry objects...")
 

@@ -1,0 +1,74 @@
+package configuration
+
+import (
+	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+
+	mergestruct "github.com/geraldo-labs/merge-struct"
+	"github.com/titanous/json5"
+)
+
+func splitExt(f string) (string, string) {
+	for i := len(f) - 1; i >= 0; i-- {
+		if f[i] == '.' {
+			return f[0:i], f[i+1:]
+		}
+	}
+	return f, ""
+}
+
+// reads a configuration file, `name` should come with a file extension,
+// it will automatically be lopped off to produce the other extensions.
+// this function will merge the following files, where higher number is more prioritized.
+// 1. <name>.<ext>
+// 2. <name>.local.<ext>
+func ReadConfig[T any](name string) (T, error) {
+	var out T
+	allNotFound := true
+
+	dirname := filepath.Dir(name)
+	basename := filepath.Base(name)
+	prefixname, ext := splitExt(basename)
+
+	defaultFile, err := os.ReadFile(name)
+	if err != nil && !os.IsNotExist(err) {
+		return out, err
+	}
+	if len(defaultFile) > 0 {
+		err = json5.Unmarshal(defaultFile, &out)
+		if err != nil {
+			return out, err
+		}
+		allNotFound = false
+	}
+
+	localFile, err := os.ReadFile(
+		path.Join(
+			dirname,
+			fmt.Sprintf("%s.local.%s", prefixname, ext),
+		),
+	)
+	if err != nil && !os.IsNotExist(err) {
+		return out, err
+	}
+	if len(localFile) > 0 {
+		var override T
+		err = json5.Unmarshal(localFile, &override)
+		if err != nil {
+			return out, err
+		}
+		_, err = mergestruct.Struct(&out, override)
+		if err != nil {
+			return out, err
+		}
+		allNotFound = false
+	}
+
+	if allNotFound {
+		return out, os.ErrNotExist
+	}
+
+	return out, nil
+}

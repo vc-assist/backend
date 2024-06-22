@@ -1,14 +1,10 @@
 package powerschoolapi
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
-	"os"
 	"vcassist-backend/lib/platforms/powerschool"
 
-	"github.com/titanous/json5"
 	"github.com/tursodatabase/go-libsql"
 )
 
@@ -22,23 +18,6 @@ type Config struct {
 	BaseUrl  string                  `json:"base_url"`
 	OAuth    powerschool.OAuthConfig `json:"oauth"`
 	Database DatabaseConfig          `json:"database"`
-}
-
-func MustLoadConfig(ctx context.Context, path string) Config {
-	cfgFile, err := os.ReadFile(path)
-	if err != nil {
-		slog.Error("failed to open config file", "err", err.Error())
-		os.Exit(1)
-	}
-
-	config := Config{}
-	err = json5.Unmarshal(cfgFile, &config)
-	if err != nil {
-		slog.Error("failed to parse config file", "err", err.Error())
-		os.Exit(1)
-	}
-
-	return config
 }
 
 func OpenDB(config DatabaseConfig) (*sql.DB, error) {

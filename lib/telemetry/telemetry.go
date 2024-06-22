@@ -8,8 +8,8 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+	"vcassist-backend/lib/configuration"
 
-	"github.com/titanous/json5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -58,17 +58,11 @@ func SetupFromEnv(ctx context.Context, serviceName string) (Telemetry, error) {
 	current = path.Clean(current)
 
 	for current != "/" {
-		contents, err := os.ReadFile(path.Join(current, "telemetry.json5"))
+		config, err := configuration.ReadConfig[Config](path.Join(current, "telemetry.json5"))
 		if os.IsNotExist(err) {
 			current = filepath.Join(current, "..")
 			continue
 		}
-		if err != nil {
-			return Telemetry{}, err
-		}
-
-		config := Config{}
-		err = json5.Unmarshal(contents, &config)
 		if err != nil {
 			return Telemetry{}, err
 		}
