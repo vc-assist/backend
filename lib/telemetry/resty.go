@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
@@ -68,6 +69,33 @@ func onAfterResponse(_ *resty.Client, res *resty.Response) error {
 			attrs = append(attrs, attribute.KeyValue{
 				Key:   attribute.Key(fmt.Sprintf("response/header: %s (%d)", header, i)),
 				Value: attribute.StringValue(v),
+			})
+		}
+	}
+
+	reqbodyReader, err := res.Request.RawRequest.GetBody()
+	if err != nil {
+		span.SetAttributes(attribute.KeyValue{
+			Key: "request/body",
+			Value: attribute.StringValue(fmt.Sprintf(
+				"failed to get request body: %s",
+				err.Error(),
+			)),
+		})
+	} else {
+		reqbody, err := io.ReadAll(reqbodyReader)
+		if err != nil {
+			span.SetAttributes(attribute.KeyValue{
+				Key: "request/body",
+				Value: attribute.StringValue(fmt.Sprintf(
+					"failed to read request body: %s",
+					err.Error(),
+				)),
+			})
+		} else {
+			span.SetAttributes(attribute.KeyValue{
+				Key:   "request/body",
+				Value: attribute.StringValue(string(reqbody)),
 			})
 		}
 	}

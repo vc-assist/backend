@@ -12,6 +12,9 @@ fragment studentData on StudentType {
   firstName
   lastName
   gradeLevel
+  schools {
+    ...schoolData
+  }
   bulletins {
     ...bulletinData
   }
@@ -36,7 +39,7 @@ fragment bulletinData on BulletinType {
 }`
 
 func (c *Client) GetAllStudents(ctx context.Context) (*AllStudents, error) {
-	return graphqlQuery[*GetAllStudentsInput, *AllStudents](
-		ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery, &GetAllStudentsInput{},
-	)
+	res := &AllStudents{}
+	err := graphqlQuery(ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery, &GetAllStudentsInput{}, res)
+	return res, err
 }

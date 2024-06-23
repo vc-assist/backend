@@ -8,9 +8,11 @@ import (
 	"vcassist-backend/cmd/powerschool_api/api"
 	"vcassist-backend/cmd/powerschool_api/api/apiconnect"
 	"vcassist-backend/cmd/powerschool_api/db"
+	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/platforms/powerschool"
 
 	"connectrpc.com/connect"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -22,35 +24,47 @@ type PowerschoolService struct {
 	qry     *db.Queries
 	db      *sql.DB
 
+	oauth  OAuthConfig
 	meter  metric.Meter
 	tracer trace.Tracer
 
 	apiconnect.UnimplementedPowerschoolServiceHandler
 }
 
-func (s PowerschoolService) GetOAuth(
+func NewPowerschoolService(database *sql.DB, config Config) PowerschoolService {
+	return PowerschoolService{
+		baseUrl: config.BaseUrl,
+		oauth:   config.OAuth,
+		qry:     db.New(database),
+		db:      database,
+		tracer:  otel.GetTracerProvider().Tracer("service"),
+		meter:   otel.GetMeterProvider().Meter("service"),
+	}
+}
+
+func (s PowerschoolService) GetAuthStatus(
 	ctx context.Context,
-	req *connect.Request[api.GetOAuthRequest],
-) (*connect.Response[api.GetOAuthResponse], error) {
+	req *connect.Request[api.GetAuthStatusRequest],
+) (*connect.Response[api.GetAuthStatusResponse], error) {
 	ctx, span := s.tracer.Start(ctx, "service:getOAuth")
 	defer span.End()
 
-	token, err := s.qry.GetOAuthToken(ctx, req.Msg.StudentId)
+	token, err := s.qry.GetOAuthToken(ctx, req.Msg.GetStudentId())
 	if token.Expiresat < time.Now().Unix() {
 		span.SetStatus(codes.Ok, "got expired token")
 
-		return &connect.Response[api.GetOAuthResponse]{
-			Msg: &api.GetOAuthResponse{
-				HasToken: false,
+		return &connect.Response[api.GetAuthStatusResponse]{
+			Msg: &api.GetAuthStatusResponse{
+				IsAuthenticated: false,
 			},
 		}, nil
 	}
 	if err == sql.ErrNoRows {
 		span.SetStatus(codes.Ok, "token not found")
 
-		return &connect.Response[api.GetOAuthResponse]{
-			Msg: &api.GetOAuthResponse{
-				HasToken: false,
+		return &connect.Response[api.GetAuthStatusResponse]{
+			Msg: &api.GetAuthStatusResponse{
+				IsAuthenticated: false,
 			},
 		}, nil
 	}
@@ -59,9 +73,39 @@ func (s PowerschoolService) GetOAuth(
 	}
 
 	span.SetStatus(codes.Ok, "token found")
-	return &connect.Response[api.GetOAuthResponse]{
-		Msg: &api.GetOAuthResponse{
-			HasToken: token.Token != "",
+	return &connect.Response[api.GetAuthStatusResponse]{
+		Msg: &api.GetAuthStatusResponse{
+			IsAuthenticated: token.Token != "",
+		},
+	}, nil
+}
+
+func (s PowerschoolService) GetAuthFlow(
+	ctx context.Context,
+	req *connect.Request[api.GetAuthFlowRequest],
+) (*connect.Response[api.GetAuthFlowResponse], error) {
+	if (s.oauth == OAuthConfig{}) {
+		return nil, fmt.Errorf("non-oauth authentication is not supported yet")
+	}
+
+	codeVerifier, err := oauth.GenerateCodeVerifier()
+	if err != nil {
+		return nil, err
+	}
+
+	return &connect.Response[api.GetAuthFlowResponse]{
+		Msg: &api.GetAuthFlowResponse{
+			Flow: &api.GetAuthFlowResponse_Oauth{
+				Oauth: &api.OAuthFlow{
+					BaseLoginUrl:    s.oauth.BaseLoginUrl,
+					AccessType:      "offline",
+					Scope:           "openid email profile",
+					RedirectUri:     "com.powerschool.portal://",
+					CodeVerifier:    codeVerifier,
+					ClientId:        s.oauth.ClientId,
+					TokenRequestUrl: "https://oauth2.googleapis.com/token",
+				},
+			},
 		},
 	}, nil
 }
@@ -78,21 +122,12 @@ func (s PowerschoolService) ProvideOAuth(
 		return nil, err
 	}
 
-	expiresAt, err := client.LoginOAuth(ctx, req.Msg.Token)
+	expiresAt, err := client.LoginOAuth(ctx, req.Msg.GetToken())
 	if err != nil {
 		return &connect.Response[api.ProvideOAuthResponse]{
 			Msg: &api.ProvideOAuthResponse{
 				Success: false,
 				Message: fmt.Sprintf("failed to login: %s", err.Error()),
-			},
-		}, nil
-	}
-	_, err = client.GetAllStudents(ctx)
-	if err != nil {
-		return &connect.Response[api.ProvideOAuthResponse]{
-			Msg: &api.ProvideOAuthResponse{
-				Success: false,
-				Message: fmt.Sprintf("session invalid: %s", err.Error()),
 			},
 		}, nil
 	}
@@ -114,13 +149,13 @@ func (s PowerschoolService) ProvideOAuth(
 
 	qry := s.qry.WithTx(tx)
 
-	err = qry.CreateStudent(ctx, req.Msg.StudentId)
+	err = qry.CreateStudent(ctx, req.Msg.GetStudentId())
 	if err != nil {
 		return nil, err
 	}
 	err = qry.CreateOrUpdateOAuthToken(ctx, db.CreateOrUpdateOAuthTokenParams{
-		Studentid: req.Msg.StudentId,
-		Token:     req.Msg.Token,
+		Studentid: req.Msg.GetStudentId(),
+		Token:     req.Msg.GetToken(),
 		Expiresat: expiresAt.Unix(),
 	})
 	if err != nil {
@@ -143,7 +178,7 @@ func (s PowerschoolService) GetStudentData(
 	defer span.End()
 
 	// get oauth token & login
-	token, err := s.qry.GetOAuthToken(ctx, req.Msg.StudentId)
+	token, err := s.qry.GetOAuthToken(ctx, req.Msg.GetStudentId())
 	if err == sql.ErrNoRows {
 		// if we are to support other auth methods in the future
 		// you would add additional code to handle it in this branch
@@ -169,22 +204,30 @@ func (s PowerschoolService) GetStudentData(
 	if err != nil {
 		return nil, err
 	}
-	if len(allStudents.Students) == 0 {
+	if len(allStudents.GetStudents()) == 0 {
 		return nil, fmt.Errorf("could not find student profile, are your powerschool credentials expired?")
 	}
 
-	psStudent := allStudents.Students[0]
+	psStudent := allStudents.GetStudents()[0]
 	studentData, err := client.GetStudentData(ctx, &powerschool.GetStudentDataInput{
-		Guid: psStudent.Guid,
+		Guid: psStudent.GetGuid(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	courseList := studentData.Student.Sections
 
+	if studentData.Student == nil {
+		return &connect.Response[api.GetStudentDataResponse]{
+			Msg: &api.GetStudentDataResponse{
+				Profile: psStudent,
+			},
+		}, nil
+	}
+
+	courseList := studentData.GetStudent().GetSections()
 	guids := make([]string, len(courseList))
 	for i, course := range courseList {
-		guids[i] = course.Guid
+		guids[i] = course.GetGuid()
 	}
 
 	courseMeetingList, err := client.GetCourseMeetingList(ctx, &powerschool.GetCourseMeetingListInput{
@@ -196,7 +239,7 @@ func (s PowerschoolService) GetStudentData(
 
 	// cache and return response
 	response := &api.GetStudentDataResponse{
-		Profile:    allStudents.Students[0],
+		Profile:    psStudent,
 		CourseData: courseList,
 		Meetings:   courseMeetingList,
 	}

@@ -34,34 +34,33 @@ func serializeGraphqlQueryObject(name, query string, variables protoreflect.Prot
 	), nil
 }
 
-func deserializeGraphqlResponseObject[T protoreflect.ProtoMessage](response []byte) (T, error) {
-	var out T
+func deserializeGraphqlResponseObject(response []byte, out protoreflect.ProtoMessage) error {
 	var result struct {
 		Data any `json:"data"`
 	}
 
 	err := json.Unmarshal(response, &result)
 	if err != nil {
-		return out, err
+		return err
 	}
 
 	// this is extremely inefficient, please fix this later
 	dataResult, err := json.Marshal(result.Data)
 	if err != nil {
-		return out, err
+		return err
 	}
 
-	err = protojson.Unmarshal(dataResult, out)
-	return out, err
+	return protojson.Unmarshal(dataResult, out)
 }
 
-func graphqlQuery[Input, Output protoreflect.ProtoMessage](
+func graphqlQuery(
 	ctx context.Context,
 	client *resty.Client,
 	name,
 	query string,
-	variables Input,
-) (Output, error) {
+	variables protoreflect.ProtoMessage,
+	output protoreflect.ProtoMessage,
+) error {
 	ctx, span := tracer.Start(ctx, fmt.Sprintf("graphql:%s", name))
 	defer span.End()
 
@@ -82,29 +81,30 @@ func graphqlQuery[Input, Output protoreflect.ProtoMessage](
 		})
 	}
 
-	var defaultOut Output
-
 	body, err := serializeGraphqlQueryObject(name, query, variables)
 	if err != nil {
+		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to serialize json query")
-		return defaultOut, err
+		return err
 	}
 
 	res, err := client.R().
 		SetContext(ctx).
 		SetHeader("content-type", "application/json").
 		SetBody(body).
-		Post("/v3.0/graphql")
+		Post("https://mobile.powerschool.com/v3.0/graphql")
 	if err != nil {
+		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to fetch")
-		return defaultOut, err
+		return err
 	}
 
-	result, err := deserializeGraphqlResponseObject[Output](res.Body())
+	err = deserializeGraphqlResponseObject(res.Body(), output)
 	if err != nil {
+		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse json response")
-		return defaultOut, err
+		return err
 	}
 
-	return result, nil
+	return nil
 }

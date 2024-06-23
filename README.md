@@ -18,6 +18,7 @@
 
 ### commands
 
+- `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent segmentation faults when chaining stuff together
 - `sqlc generate` - generate sql wrapper code
 - `buf generate` - generate protobuf files
 - `buf lint` - lint protobuf files
@@ -28,6 +29,7 @@
 
 - `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
+- `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
 - [altas](https://atlasgo.io/getting-started#installation)
 
 ### may add?

@@ -20,7 +20,7 @@ fragment sectionMeetingData on SectionMeetingType {
 }`
 
 func (c *Client) GetCourseMeetingList(ctx context.Context, input *GetCourseMeetingListInput) (*CourseMeetingList, error) {
-	return graphqlQuery[*GetCourseMeetingListInput, *CourseMeetingList](
-		ctx, c.http, "SectionMeetings", scheduleQuery, input,
-	)
+	res := &CourseMeetingList{}
+	err := graphqlQuery(ctx, c.http, "SectionMeetings", scheduleQuery, input, res)
+	return res, err
 }

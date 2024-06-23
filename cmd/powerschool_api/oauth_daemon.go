@@ -3,10 +3,12 @@ package powerschoolapi
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 	"vcassist-backend/cmd/powerschool_api/db"
-	"vcassist-backend/lib/platforms/powerschool"
+	"vcassist-backend/lib/oauth"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
@@ -14,44 +16,70 @@ import (
 )
 
 type OAuthDaemon struct {
-	qry    *db.Queries
-	db     *sql.DB
-	config powerschool.OAuthConfig
-
+	qry            *db.Queries
+	db             *sql.DB
+	config         OAuthConfig
 	tracer         trace.Tracer
 	refreshCounter metric.Int64Counter
 }
 
-func (d *OAuthDaemon) refreshToken(ctx context.Context, token db.OAuthToken) error {
+func NewOAuthDaemon(database *sql.DB, config OAuthConfig) (OAuthDaemon, error) {
+	oauthdMeter := otel.GetMeterProvider().Meter("oauthd")
+	refreshCounter, err := oauthdMeter.Int64Counter("refresh_token")
+	if err != nil {
+		return OAuthDaemon{}, err
+	}
+	return OAuthDaemon{
+		db:             database,
+		qry:            db.New(database),
+		config:         config,
+		tracer:         otel.GetTracerProvider().Tracer("oauthd"),
+		refreshCounter: refreshCounter,
+	}, nil
+}
+
+func (d OAuthDaemon) refreshToken(ctx context.Context, original db.OAuthToken) error {
 	ctx, span := d.tracer.Start(ctx, "daemon:refreshToken")
 	defer span.End()
 
 	span.SetAttributes(
 		attribute.KeyValue{
 			Key:   "student_id",
-			Value: attribute.StringValue(token.Studentid),
+			Value: attribute.StringValue(original.Studentid),
 		},
 		attribute.KeyValue{
 			Key:   "expires_at",
-			Value: attribute.Int64Value(token.Expiresat),
+			Value: attribute.Int64Value(original.Expiresat),
 		},
 		attribute.KeyValue{
 			Key:   "token",
-			Value: attribute.StringValue(token.Token),
+			Value: attribute.StringValue(original.Token),
 		},
 	)
 
-	refreshed, expiresAt, err := d.config.Refresh(ctx, token.Token)
+	var originalToken oauth.OpenIdToken
+	err := json.Unmarshal([]byte(original.Token), &originalToken)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to deserialize original token")
+		return err
+	}
+
+	newToken, newTokenObject, err := oauth.Refresh(
+		ctx, originalToken, d.config.RefreshUrl, d.config.ClientId,
+	)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to refresh oauth token")
 		return err
 	}
 
+	expiresAt := time.Now().Add(time.Duration(newTokenObject.ExpiresIn))
+
 	err = d.qry.CreateOrUpdateOAuthToken(ctx, db.CreateOrUpdateOAuthTokenParams{
-		Studentid: token.Studentid,
+		Studentid: original.Studentid,
 		Expiresat: expiresAt.Unix(),
-		Token:     refreshed,
+		Token:     newToken,
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -62,7 +90,7 @@ func (d *OAuthDaemon) refreshToken(ctx context.Context, token db.OAuthToken) err
 	return nil
 }
 
-func (d *OAuthDaemon) refreshAllTokens(ctx context.Context) {
+func (d OAuthDaemon) refreshAllTokens(ctx context.Context) {
 	ctx, span := d.tracer.Start(ctx, "oauth_daemon:refreshAllTokens")
 	defer span.End()
 
@@ -83,7 +111,7 @@ func (d *OAuthDaemon) refreshAllTokens(ctx context.Context) {
 	}
 }
 
-func (d *OAuthDaemon) deleteExpiredTokens(ctx context.Context) {
+func (d OAuthDaemon) deleteExpiredTokens(ctx context.Context) {
 	ctx, span := d.tracer.Start(ctx, "oauth_daemon:deleteExpiredTokens")
 	defer span.End()
 
@@ -94,7 +122,7 @@ func (d *OAuthDaemon) deleteExpiredTokens(ctx context.Context) {
 	}
 }
 
-func (d *OAuthDaemon) refreshDaemon(ctx context.Context) {
+func (d OAuthDaemon) refreshDaemon(ctx context.Context) {
 	timer := time.NewTimer(time.Minute * 1)
 	d.refreshAllTokens(ctx)
 	for {
@@ -108,7 +136,7 @@ func (d *OAuthDaemon) refreshDaemon(ctx context.Context) {
 	}
 }
 
-func (d *OAuthDaemon) deletionDaemon(ctx context.Context) {
+func (d OAuthDaemon) deletionDaemon(ctx context.Context) {
 	timer := time.NewTimer(time.Minute * 30)
 	d.deleteExpiredTokens(ctx)
 	for {
@@ -122,7 +150,7 @@ func (d *OAuthDaemon) deletionDaemon(ctx context.Context) {
 	}
 }
 
-func (d *OAuthDaemon) Start(ctx context.Context) {
+func (d OAuthDaemon) Start(ctx context.Context) {
 	go d.refreshDaemon(ctx)
 	go d.deletionDaemon(ctx)
 }

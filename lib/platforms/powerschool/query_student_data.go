@@ -50,7 +50,7 @@ fragment finalGradeData on FinalGradeType {
 }`
 
 func (c *Client) GetStudentData(ctx context.Context, input *GetStudentDataInput) (*StudentData, error) {
-	return graphqlQuery[*GetStudentDataInput, *StudentData](
-		ctx, c.http, "AllStudentData", studentDataQuery, input,
-	)
+	res := &StudentData{}
+	err := graphqlQuery(ctx, c.http, "AllStudentData", studentDataQuery, input, res)
+	return res, err
 }

@@ -1,5 +1,10 @@
 cmd/powerschool_api/powerschool_api
+cmd/powerschool_api/test_token
 
 *.db
 *.db-*
+
+node_modules
+
+*.local.json5
 

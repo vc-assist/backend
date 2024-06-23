@@ -26,15 +26,14 @@ type AuthCodeRequest struct {
 	ClientId     string
 }
 
-func (req AuthCodeRequest) GetLoginUrl(ctx context.Context, baseLoginUrl string) (string, error) {
-	ctx, span := tracer.Start(ctx, "AuthCodeRequest:getLoginUrl")
+func GetLoginUrl(ctx context.Context, req AuthCodeRequest, baseLoginUrl string) (string, error) {
+	ctx, span := tracer.Start(ctx, "getLoginUrl")
 	defer span.End()
 
 	endpoint, err := url.Parse(baseLoginUrl)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse base login url")
-
 		return "", err
 	}
 
@@ -149,7 +148,7 @@ type OpenIdToken struct {
 	TokenType    string `json:"token_type"`
 }
 
-func (token OpenIdToken) Refresh(ctx context.Context, baseRefreshUrl, clientId string) (string, OpenIdToken, error) {
+func Refresh(ctx context.Context, token OpenIdToken, baseRefreshUrl, clientId string) (string, OpenIdToken, error) {
 	ctx, span := tracer.Start(ctx, "OpenIdToken:refresh")
 	defer span.End()
 
@@ -185,4 +184,55 @@ func (token OpenIdToken) Refresh(ctx context.Context, baseRefreshUrl, clientId s
 	var tokenResponse OpenIdToken
 	err = json.Unmarshal(resToken, &tokenResponse)
 	return string(resToken), tokenResponse, err
+}
+
+type TokenRequest struct {
+	ClientId     string `json:"client_id"`
+	Scope        string `json:"scope"`
+	AuthCode     string `json:"code"`
+	CodeVerifier string `json:"code_verifier,omitempty"`
+	RedirectUri  string `json:"redirect_uri"`
+	GrantType    string `json:"grant_type"`
+}
+
+// note: the GrantType field only exists as part of the json request, it should not be set
+func GetToken(ctx context.Context, req TokenRequest, tokenRequestUrl string) (string, OpenIdToken, error) {
+	ctx, span := tracer.Start(ctx, "getToken")
+	defer span.End()
+
+	req.GrantType = "authorization_code"
+	body, err := json.Marshal(req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to marshal token request")
+		return "", OpenIdToken{}, err
+	}
+
+	res, err := globalClient.R().
+		SetBody(body).
+		Post(tokenRequestUrl)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch token")
+		return "", OpenIdToken{}, err
+	}
+
+	var token OpenIdToken
+	err = json.Unmarshal(res.Body(), &token)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to unmarshal token json")
+		return "", OpenIdToken{}, err
+	}
+
+	return res.String(), token, nil
+}
+
+func GenerateCodeVerifier() (string, error) {
+	nonce := make([]byte, 32)
+	_, err := rand.Read(nonce)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(nonce), nil
 }
