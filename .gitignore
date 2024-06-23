@@ -1,5 +1,5 @@
 cmd/powerschool_api/powerschool_api
-cmd/powerschool_api/test_token
+cmd/powerschool_api/callback_url
 
 *.db
 *.db-*
