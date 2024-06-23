@@ -78,7 +78,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 }
 
 func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
-	ctx, span := tracer.Start(ctx, "client:authenticate")
+	ctx, span := tracer.Start(ctx, "client:LoginUsernamePassword")
 	defer span.End()
 
 	res, err := c.http.R().
@@ -135,7 +135,7 @@ type Course = htmlutil.Anchor
 const COURSE_LIST_LIFETIME = int64((time.Hour / time.Second) * 24 * 30 * 6)
 
 func (c *Client) Courses(ctx context.Context) ([]Course, error) {
-	ctx, span := tracer.Start(ctx, "client:getCourses")
+	ctx, span := tracer.Start(ctx, "client:Courses")
 	defer span.End()
 
 	page, err := c.cache.get(ctx, c.ClientId, "/index.php")
@@ -187,7 +187,7 @@ type Section = htmlutil.Anchor
 const SECTION_LIST_LIFETIME = int64(time.Hour / time.Second * 24)
 
 func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "client:getSections")
+	ctx, span := tracer.Start(ctx, "client:Sections")
 	defer span.End()
 
 	endpoint := course.Href
@@ -237,7 +237,7 @@ type Resource = htmlutil.Anchor
 const RESOURCE_LIST_LIFETIME = int64(time.Minute * 15 / time.Second)
 
 func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, error) {
-	ctx, span := tracer.Start(ctx, "client:getResources")
+	ctx, span := tracer.Start(ctx, "client:Resources")
 	defer span.End()
 
 	endpoint := section.Href
@@ -287,7 +287,7 @@ type Chapter = htmlutil.Anchor
 const CHAPTER_LIST_LIFETIME = int64(time.Minute * 15 / time.Second)
 
 func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, error) {
-	ctx, span := tracer.Start(ctx, "client:getBooks")
+	ctx, span := tracer.Start(ctx, "client:Chapters")
 	defer span.End()
 
 	endpoint := resource.Href

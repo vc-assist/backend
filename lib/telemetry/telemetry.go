@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"os"
-	"path"
-	"path/filepath"
 	"time"
 	"vcassist-backend/lib/configuration"
 
@@ -51,26 +48,11 @@ type Config struct {
 // called telemetry.json5, once found it will then use it
 // as a config to setup telemetry
 func SetupFromEnv(ctx context.Context, serviceName string) (Telemetry, error) {
-	current, err := os.Getwd()
+	config, err := configuration.ReadRecursively[Config]("telemetry.json5")
 	if err != nil {
 		return Telemetry{}, err
 	}
-	current = path.Clean(current)
-
-	for current != "/" {
-		config, err := configuration.ReadConfig[Config](path.Join(current, "telemetry.json5"))
-		if os.IsNotExist(err) {
-			current = filepath.Join(current, "..")
-			continue
-		}
-		if err != nil {
-			return Telemetry{}, err
-		}
-
-		return Setup(ctx, serviceName, config)
-	}
-
-	return Telemetry{}, os.ErrNotExist
+	return Setup(ctx, serviceName, config)
 }
 
 func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, error) {

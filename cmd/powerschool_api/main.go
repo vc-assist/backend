@@ -38,7 +38,7 @@ func main() {
 	}()
 
 	slog.Info("opening database...")
-	sqlite, err := OpenDB(config.Database)
+	sqlite, err := config.Libsql.OpenDB()
 	if err != nil {
 		fatalerr("failed to open libsql connector", err)
 	}

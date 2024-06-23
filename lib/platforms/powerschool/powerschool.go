@@ -35,7 +35,7 @@ func NewClient(baseUrl string) (*Client, error) {
 }
 
 func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error) {
-	ctx, span := tracer.Start(ctx, "client:loginOAuth")
+	ctx, span := tracer.Start(ctx, "client:LoginOAuth")
 	defer span.End()
 
 	var openidToken oauth.OpenIdToken

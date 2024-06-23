@@ -46,7 +46,7 @@ func (s PowerschoolService) GetAuthStatus(
 	ctx context.Context,
 	req *connect.Request[api.GetAuthStatusRequest],
 ) (*connect.Response[api.GetAuthStatusResponse], error) {
-	ctx, span := s.tracer.Start(ctx, "service:getOAuth")
+	ctx, span := s.tracer.Start(ctx, "service:GetAuthStatus")
 	defer span.End()
 
 	token, err := s.qry.GetOAuthToken(ctx, req.Msg.GetStudentId())
@@ -114,7 +114,7 @@ func (s PowerschoolService) ProvideOAuth(
 	ctx context.Context,
 	req *connect.Request[api.ProvideOAuthRequest],
 ) (*connect.Response[api.ProvideOAuthResponse], error) {
-	ctx, span := s.tracer.Start(ctx, "service:provideOAuth")
+	ctx, span := s.tracer.Start(ctx, "service:ProvideOAuth")
 	defer span.End()
 
 	client, err := powerschool.NewClient(s.baseUrl)
@@ -174,7 +174,7 @@ func (s PowerschoolService) GetStudentData(
 	ctx context.Context,
 	req *connect.Request[api.GetStudentDataRequest],
 ) (*connect.Response[api.GetStudentDataResponse], error) {
-	ctx, span := s.tracer.Start(ctx, "service:getStudentData")
+	ctx, span := s.tracer.Start(ctx, "service:GetStudentData")
 	defer span.End()
 
 	// get oauth token & login

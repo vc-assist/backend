@@ -72,3 +72,29 @@ func ReadConfig[T any](name string) (T, error) {
 
 	return out, nil
 }
+
+// ReadConfig but it recursively goes up the filesystem until the root
+// to find a configuration file matching the name.
+func ReadRecursively[T any](name string) (T, error) {
+	var defaultOut T
+	current, err := os.Getwd()
+	if err != nil {
+		return defaultOut, err
+	}
+	current = path.Clean(current)
+
+	for current != "/" {
+		config, err := ReadConfig[T](path.Join(current, name))
+		if os.IsNotExist(err) {
+			current = filepath.Join(current, "..")
+			continue
+		}
+		if err != nil {
+			return defaultOut, err
+		}
+
+		return config, nil
+	}
+
+	return defaultOut, os.ErrNotExist
+}

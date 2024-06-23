@@ -20,7 +20,6 @@ func InstrumentResty(client *resty.Client, tracerName string) {
 	client.OnBeforeRequest(onBeforeRequest(tracer))
 	client.OnAfterResponse(onAfterResponse)
 	client.OnError(onError)
-
 }
 
 func onBeforeRequest(tracer trace.Tracer) resty.RequestMiddleware {

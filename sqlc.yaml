@@ -7,3 +7,10 @@ sql:
       go:
         package: "db"
         out: "cmd/powerschool_api/db"
+  - engine: "sqlite"
+    queries: "lib/auth/db/query.sql"
+    schema: "lib/auth/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "lib/auth/db"

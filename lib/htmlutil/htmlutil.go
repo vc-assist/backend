@@ -40,7 +40,7 @@ type Anchor struct {
 }
 
 func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
-	ctx, span := tracer.Start(ctx, "getAnchors")
+	ctx, span := tracer.Start(ctx, "GetAnchors")
 	defer span.End()
 
 	anchors := []Anchor{}

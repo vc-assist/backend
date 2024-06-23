@@ -71,7 +71,7 @@ func init() {
 }
 
 func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
-	ctx, span := tracer.Start(ctx, "fetchEvents")
+	ctx, span := tracer.Start(ctx, "FetchEvents")
 	defer span.End()
 
 	span.SetAttributes(

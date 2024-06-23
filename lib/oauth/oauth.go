@@ -27,7 +27,7 @@ type AuthCodeRequest struct {
 }
 
 func GetLoginUrl(ctx context.Context, req AuthCodeRequest, baseLoginUrl string) (string, error) {
-	ctx, span := tracer.Start(ctx, "getLoginUrl")
+	ctx, span := tracer.Start(ctx, "GetLoginUrl")
 	defer span.End()
 
 	endpoint, err := url.Parse(baseLoginUrl)
@@ -108,7 +108,7 @@ type RefreshRequest struct {
 }
 
 func (req RefreshRequest) FormData(ctx context.Context, out io.Writer) {
-	ctx, span := tracer.Start(ctx, "RefreshRequest:formData")
+	ctx, span := tracer.Start(ctx, "RefreshRequest:FormData")
 	defer span.End()
 
 	writer := multipart.NewWriter(out)
@@ -149,7 +149,7 @@ type OpenIdToken struct {
 }
 
 func Refresh(ctx context.Context, token OpenIdToken, baseRefreshUrl, clientId string) (string, OpenIdToken, error) {
-	ctx, span := tracer.Start(ctx, "OpenIdToken:refresh")
+	ctx, span := tracer.Start(ctx, "OpenIdToken:Refresh")
 	defer span.End()
 
 	span.SetAttributes(
@@ -197,7 +197,7 @@ type TokenRequest struct {
 
 // note: the GrantType field only exists as part of the json request, it should not be set
 func GetToken(ctx context.Context, req TokenRequest, tokenRequestUrl string) (string, OpenIdToken, error) {
-	ctx, span := tracer.Start(ctx, "getToken")
+	ctx, span := tracer.Start(ctx, "GetToken")
 	defer span.End()
 
 	req.GrantType = "authorization_code"
