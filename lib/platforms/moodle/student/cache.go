@@ -1,4 +1,4 @@
-package moodlestudent
+package student
 
 import (
 	"bytes"

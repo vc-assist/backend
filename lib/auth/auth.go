@@ -10,6 +10,7 @@ import (
 	"time"
 	"vcassist-backend/lib/auth/db"
 
+	"github.com/jordan-wright/email"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/net/context"
@@ -17,21 +18,25 @@ import (
 
 var tracer = otel.Tracer("auth")
 
+type EmailConfig struct {
+	Server       string `json:"server"`
+	Port         int    `json:"port"`
+	EmailAddress string `json:"email_address"`
+	Password     string `json:"password"`
+}
+
 type AuthService struct {
 	db    *sql.DB
 	qry   *db.Queries
 	email EmailConfig
 }
 
-func NewAuthService(config Config) (AuthService, error) {
-	sqlite, err := config.Libsql.OpenDB()
-	if err != nil {
-		return AuthService{}, err
-	}
+func NewAuthService(database *sql.DB, email EmailConfig) AuthService {
 	return AuthService{
-		qry:   db.New(sqlite),
-		email: config.Email,
-	}, nil
+		db:    database,
+		qry:   db.New(database),
+		email: email,
+	}
 }
 
 var InvalidToken = fmt.Errorf("invalid token")
@@ -90,60 +95,37 @@ func (s AuthService) createVerificationCode(ctx context.Context, txqry *db.Queri
 	return code, nil
 }
 
-func (s AuthService) sendVerificationCode(ctx context.Context, email, code string) error {
+func (s AuthService) sendVerificationCode(ctx context.Context, userEmail, code string) error {
 	ctx, span := tracer.Start(ctx, "auth:sendVerificationCode")
 	defer span.End()
 
-	auth := smtp.PlainAuth("", s.email.Address, s.email.Password, s.email.Server)
-	client, err := smtp.Dial(fmt.Sprintf("%s:%d", s.email.Server, s.email.Port))
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to connect to SMTP server")
-		return err
-	}
-	defer client.Close()
-
-	err = client.Auth(auth)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to authenticate email client")
-		return err
-	}
-	err = client.Rcpt(email)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to set client recipient")
-		return err
-	}
-	writer, err := client.Data()
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to open body writer")
-		return err
-	}
+	mail := email.NewEmail()
+	mail.From = fmt.Sprintf("VC Assist <%s>", s.email.EmailAddress)
+	mail.To = []string{userEmail}
+	mail.Subject = "Verification Code"
 
 	body := fmt.Sprintf(`Please enter the following verification code for you VC Assist account when prompted.
 
 %s
 
 If you don't recognize this account, please ignore this email.`, code)
-	_, err = writer.Write([]byte(body))
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to write body")
-		return err
-	}
-	err = writer.Close()
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to close body")
-		return err
-	}
+	mail.Text = []byte(body)
 
-	err = client.Quit()
+	err := mail.Send(
+		fmt.Sprintf("%s:%d", s.email.Server, s.email.Port),
+		smtp.PlainAuth("", s.email.EmailAddress, s.email.Password, s.email.Server),
+	)
+	if strings.Contains(err.Error(), "server doesn't support AUTH") {
+		err = mail.Send(fmt.Sprintf("%s:%d", s.email.Server, s.email.Port), nil)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to send email")
+			return err
+		}
+	}
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to close client")
+		span.SetStatus(codes.Error, "failed to send email")
 		return err
 	}
 

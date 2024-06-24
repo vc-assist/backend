@@ -23,9 +23,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/encoding/protojson"
 	_ "modernc.org/sqlite"
 )
+
+var tracer = otel.Tracer("service_test")
 
 func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) {
 	switch runtime.GOOS {
@@ -52,9 +55,9 @@ func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) 
 	}
 }
 
-func getOAuthFlow(t testing.TB, service powerschoolapi.PowerschoolService) *api.OAuthFlow {
+func getOAuthFlow(t testing.TB, ctx context.Context, service powerschoolapi.PowerschoolService) *api.OAuthFlow {
 	authFlow, err := service.GetAuthFlow(
-		context.Background(),
+		ctx,
 		&connect.Request[api.GetAuthFlowRequest]{Msg: &api.GetAuthFlowRequest{}},
 	)
 	if err != nil {
@@ -64,9 +67,9 @@ func getOAuthFlow(t testing.TB, service powerschoolapi.PowerschoolService) *api.
 	return oauthFlow
 }
 
-func getLoginUrl(t testing.TB, oauthFlow *api.OAuthFlow) string {
+func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAuthFlow) string {
 	loginUrl, err := oauth.GetLoginUrl(
-		context.Background(),
+		ctx,
 		oauth.AuthCodeRequest{
 			AccessType:   oauthFlow.GetAccessType(),
 			Scope:        oauthFlow.GetScope(),
@@ -82,7 +85,7 @@ func getLoginUrl(t testing.TB, oauthFlow *api.OAuthFlow) string {
 	return loginUrl
 }
 
-func tokenFromCallbackUrl(t testing.TB, oauthFlow *api.OAuthFlow, callbackUrl string) string {
+func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAuthFlow, callbackUrl string) string {
 	parsed, err := url.Parse(strings.Trim(string(callbackUrl), " \n\t"))
 	if err != nil {
 		t.Fatal("failed to parse callback url", callbackUrl, err)
@@ -94,7 +97,7 @@ func tokenFromCallbackUrl(t testing.TB, oauthFlow *api.OAuthFlow, callbackUrl st
 	}
 
 	token, _, err := oauth.GetToken(
-		context.Background(),
+		ctx,
 		oauth.TokenRequest{
 			ClientId:     oauthFlow.GetClientId(),
 			CodeVerifier: oauthFlow.GetCodeVerifier(),
@@ -111,7 +114,7 @@ func tokenFromCallbackUrl(t testing.TB, oauthFlow *api.OAuthFlow, callbackUrl st
 	return token
 }
 
-func promptForToken(t testing.TB, service powerschoolapi.PowerschoolService) (string, func(t testing.TB)) {
+func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.PowerschoolService) (string, func(t testing.TB)) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -120,8 +123,8 @@ func promptForToken(t testing.TB, service powerschoolapi.PowerschoolService) (st
 	os.Remove(callbackFilepath)
 
 	cleanupProtocol := createPSProtocolHandler(t, callbackFilepath)
-	oauthFlow := getOAuthFlow(t, service)
-	loginUrl := getLoginUrl(t, oauthFlow)
+	oauthFlow := getOAuthFlow(t, ctx, service)
+	loginUrl := getLoginUrl(t, ctx, oauthFlow)
 
 	slog.Info("login to your powerschool account:")
 	fmt.Println(loginUrl)
@@ -136,7 +139,7 @@ func promptForToken(t testing.TB, service powerschoolapi.PowerschoolService) (st
 			t.Fatal(err)
 		}
 
-		token := tokenFromCallbackUrl(t, oauthFlow, string(callbackUrl))
+		token := tokenFromCallbackUrl(t, ctx, oauthFlow, string(callbackUrl))
 		return token, cleanupProtocol
 	}
 }
@@ -186,8 +189,8 @@ func setupTelemetry(t testing.TB) func(t testing.TB) {
 	}
 }
 
-func provideNewToken(t testing.TB, service powerschoolapi.PowerschoolService, id string) {
-	token, cleanup := promptForToken(t, service)
+func provideNewToken(t testing.TB, ctx context.Context, service powerschoolapi.PowerschoolService, id string) {
+	token, cleanup := promptForToken(t, ctx, service)
 	defer cleanup(t)
 
 	fmt.Println("====== TEST TOKEN =====")
@@ -195,7 +198,7 @@ func provideNewToken(t testing.TB, service powerschoolapi.PowerschoolService, id
 	fmt.Println("=======================")
 
 	providedOAuth, err := service.ProvideOAuth(
-		context.Background(),
+		ctx,
 		&connect.Request[api.ProvideOAuthRequest]{
 			Msg: &api.ProvideOAuthRequest{
 				StudentId: id,
@@ -210,7 +213,7 @@ func provideNewToken(t testing.TB, service powerschoolapi.PowerschoolService, id
 	require.True(t, providedOAuth.Msg.GetSuccess())
 
 	foundToken, err := service.GetAuthStatus(
-		context.Background(),
+		ctx,
 		&connect.Request[api.GetAuthStatusRequest]{
 			Msg: &api.GetAuthStatusRequest{
 				StudentId: id,
@@ -229,10 +232,13 @@ func TestOAuth(t *testing.T) {
 	service, cleanup := setupService(t, "oauth_test_state.db")
 	defer cleanup(t)
 
+	ctx, span := tracer.Start(context.Background(), "TestOAuth")
+	defer span.End()
+
 	studentId := "student_id"
 
 	hasAuth, err := service.GetAuthStatus(
-		context.Background(),
+		ctx,
 		&connect.Request[api.GetAuthStatusRequest]{
 			Msg: &api.GetAuthStatusRequest{
 				StudentId: studentId,
@@ -240,11 +246,11 @@ func TestOAuth(t *testing.T) {
 		},
 	)
 	if err != nil || !hasAuth.Msg.GetIsAuthenticated() {
-		provideNewToken(t, service, studentId)
+		provideNewToken(t, ctx, service, studentId)
 	}
 
 	foundStudentData, err := service.GetStudentData(
-		context.Background(),
+		ctx,
 		&connect.Request[api.GetStudentDataRequest]{
 			Msg: &api.GetStudentDataRequest{
 				StudentId: studentId,
@@ -278,10 +284,13 @@ func TestBasicNotFound(t *testing.T) {
 	service, cleanup := setupService(t, ":memory:")
 	defer cleanup(t)
 
+	ctx, span := tracer.Start(context.Background(), "TestBasicNotFound")
+	defer span.End()
+
 	id := "any_student_id"
 
 	res, err := service.GetAuthStatus(
-		context.Background(),
+		ctx,
 		&connect.Request[api.GetAuthStatusRequest]{
 			Msg: &api.GetAuthStatusRequest{
 				StudentId: id,
@@ -294,7 +303,7 @@ func TestBasicNotFound(t *testing.T) {
 	require.False(t, res.Msg.GetIsAuthenticated())
 
 	_, err = service.GetStudentData(
-		context.Background(),
+		ctx,
 		&connect.Request[api.GetStudentDataRequest]{
 			Msg: &api.GetStudentDataRequest{
 				StudentId: id,
