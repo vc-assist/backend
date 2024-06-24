@@ -119,7 +119,7 @@ func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.Po
 	if err != nil {
 		t.Fatal(err)
 	}
-	callbackFilepath := path.Join(cwd, "callback_url")
+	callbackFilepath := path.Join(cwd, "callback_url.tmp")
 	os.Remove(callbackFilepath)
 
 	cleanupProtocol := createPSProtocolHandler(t, callbackFilepath)
