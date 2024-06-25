@@ -3,7 +3,6 @@ package configuration
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	mergestruct "github.com/geraldo-labs/merge-struct"
@@ -45,7 +44,7 @@ func ReadConfig[T any](name string) (T, error) {
 	}
 
 	localFile, err := os.ReadFile(
-		path.Join(
+		filepath.Join(
 			dirname,
 			fmt.Sprintf("%s.local.%s", prefixname, ext),
 		),
@@ -77,14 +76,18 @@ func ReadConfig[T any](name string) (T, error) {
 // to find a configuration file matching the name.
 func ReadRecursively[T any](name string) (T, error) {
 	var defaultOut T
+
+	root, err := filepath.Abs("/")
+	if err != nil {
+		return defaultOut, err
+	}
 	current, err := os.Getwd()
 	if err != nil {
 		return defaultOut, err
 	}
-	current = path.Clean(current)
 
-	for current != "/" {
-		config, err := ReadConfig[T](path.Join(current, name))
+	for current != root {
+		config, err := ReadConfig[T](filepath.Join(current, name))
 		if os.IsNotExist(err) {
 			current = filepath.Join(current, "..")
 			continue

@@ -2,7 +2,6 @@ package vcsnet
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 	"vcassist-backend/lib/telemetry"
@@ -37,8 +36,6 @@ func TestFetchEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	fmt.Println(events)
 
 	require.Greater(t, len(events), 0)
 }

@@ -3,7 +3,7 @@
 *.db
 *.db-*
 
-node_modules
+dev/.state
 
 *.local.json5
 

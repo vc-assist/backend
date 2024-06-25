@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"time"
 	"vcassist-backend/lib/configuration"
 
@@ -86,7 +85,6 @@ func newTraceProvider(ctx context.Context, serviceName string, config Config) (*
 		return nil, err
 	}
 
-	slog.Info("setting up trace exporter...")
 	exporter, err := otlpTracerExportFromConfig(ctx, config)
 	if err != nil {
 		return nil, err
@@ -100,7 +98,6 @@ func newTraceProvider(ctx context.Context, serviceName string, config Config) (*
 }
 
 func newMeterProvider(ctx context.Context, config Config) (*metric.MeterProvider, error) {
-	slog.Info("setting up meter exporter...")
 	exporter, err := otlpMeterExportFromConfig(ctx, config)
 	if err != nil {
 		return nil, err
@@ -113,7 +110,7 @@ func newMeterProvider(ctx context.Context, config Config) (*metric.MeterProvider
 }
 
 func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExporter, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
 	if c.TracesOtlpGrpcEndpoint != "" {
@@ -129,7 +126,7 @@ func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExport
 }
 
 func otlpMeterExportFromConfig(ctx context.Context, c Config) (metric.Exporter, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
 	if c.MetricsOtlpGrpcEndpoint != "" {

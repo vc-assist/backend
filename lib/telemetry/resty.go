@@ -81,7 +81,7 @@ func onAfterResponse(_ *resty.Client, res *resty.Response) error {
 				err.Error(),
 			)),
 		})
-	} else {
+	} else if reqbodyReader != nil {
 		reqbody, err := io.ReadAll(reqbodyReader)
 		if err != nil {
 			span.SetAttributes(attribute.KeyValue{

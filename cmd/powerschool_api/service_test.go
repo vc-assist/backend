@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -24,7 +24,6 @@ import (
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
-	"google.golang.org/protobuf/encoding/protojson"
 	_ "modernc.org/sqlite"
 )
 
@@ -119,7 +118,7 @@ func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.Po
 	if err != nil {
 		t.Fatal(err)
 	}
-	callbackFilepath := path.Join(cwd, "callback_url.tmp")
+	callbackFilepath := filepath.Join(cwd, "callback_url.tmp")
 	os.Remove(callbackFilepath)
 
 	cleanupProtocol := createPSProtocolHandler(t, callbackFilepath)
@@ -260,12 +259,6 @@ func TestOAuth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	foundStudentDataJson, err := protojson.Marshal(foundStudentData.Msg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(string(foundStudentDataJson))
 
 	require.NotNil(t, foundStudentData.Msg.GetProfile())
 	require.NotEmpty(t, foundStudentData.Msg.GetProfile().GetGuid())
