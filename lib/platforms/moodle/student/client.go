@@ -3,19 +3,12 @@ package student
 import (
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
-	"net/http"
-	"net/http/cookiejar"
-	"net/url"
-	"strings"
 	"time"
 	"vcassist-backend/lib/htmlutil"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/platforms/moodle/core"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -24,122 +17,29 @@ import (
 
 var tracer = otel.Tracer("platforms/moodle/student")
 
-var InvalidCredentials = errors.New("Incorrect username or password.")
-
 type Client struct {
 	ClientId string
-	BaseUrl  *url.URL
-
-	http  *resty.Client
-	cache webpageCache
+	Core     *core.Client
+	cache    webpageCache
 }
 
 type ClientOptions struct {
-	BaseUrl  string
-	Username string
-	Password string
-	Cache    *badger.DB
 	// a unique id for this client, used for cache
 	ClientId string
+	Cache    *badger.DB
 }
 
-func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
-	if tracer == nil {
-		panic("you must call SetupTracing before calling any library methods")
-	}
-
-	baseUrl, err := url.Parse(opts.BaseUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	client := resty.New()
-	client.SetBaseURL(opts.BaseUrl)
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-	client.SetCookieJar(jar)
-	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-	client.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(baseUrl.Hostname()))
-
-	telemetry.InstrumentResty(client, "platform/moodle/http")
-
+func NewClient(ctx context.Context, coreClient *core.Client, opts ClientOptions) (*Client, error) {
 	cache := webpageCache{
 		db:      opts.Cache,
-		baseUrl: baseUrl,
+		baseUrl: coreClient.BaseUrl,
 	}
-
 	c := &Client{
 		ClientId: opts.ClientId,
-		BaseUrl:  baseUrl,
-
-		http:  client,
-		cache: cache,
+		Core:     coreClient,
+		cache:    cache,
 	}
 	return c, nil
-}
-
-func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
-	ctx, span := tracer.Start(ctx, "client:LoginUsernamePassword")
-	defer span.End()
-
-	res, err := c.http.R().
-		SetContext(ctx).
-		Get("/login/index.php")
-	if err != nil {
-		span.SetStatus(codes.Error, "failed to fetch (1)")
-		return err
-	}
-	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
-	if err != nil {
-		span.SetStatus(codes.Error, "failed to parse html (1)")
-		return err
-	}
-	logintoken := doc.Find("input[name=logintoken]").AttrOr("value", "")
-	if logintoken == "" {
-		span.SetStatus(codes.Error, "failed to find login token")
-		return fmt.Errorf("could not find login token")
-	}
-
-	values := url.Values{
-		"logintoken": {logintoken},
-		"username":   {username},
-		"password":   {password},
-	}
-
-	redirects := 0
-	var loginSuccess = errors.New("login successful")
-	c.http.SetRedirectPolicy(
-		resty.RedirectPolicyFunc(func(req *http.Request, via []*http.Request) error {
-			redirects++
-			if req.URL.Query().Get("testsession") != "" {
-				return loginSuccess
-			}
-			return nil
-		}),
-	)
-	defer c.http.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(c.BaseUrl.Hostname()))
-
-	res, err = c.http.R().
-		SetContext(ctx).
-		SetBody(values.Encode()).
-		SetHeader("Content-Type", "application/x-www-form-urlencoded").
-		Post("/login/index.php")
-	if err == nil {
-		if redirects == 0 {
-			span.SetStatus(codes.Error, "Something went wrong, response didn't redirect (is cloudflare adapting?")
-			return fmt.Errorf("Something went wrong, response didn't redirect (is cloudflare adapting?")
-		}
-		span.SetStatus(codes.Error, InvalidCredentials.Error())
-		return InvalidCredentials
-	}
-
-	if strings.Contains(err.Error(), "login successful") {
-		return nil
-	}
-	span.SetStatus(codes.Error, "failed to post login request")
-	return err
 }
 
 type Course = htmlutil.Anchor
@@ -164,7 +64,7 @@ func (c *Client) Courses(ctx context.Context) ([]Course, error) {
 		}))
 	}
 
-	res, err := c.http.R().
+	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get("/index.php")
 	if err != nil {
@@ -214,7 +114,7 @@ func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error)
 		return page.Anchors, nil
 	}
 
-	res, err := c.http.R().
+	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
@@ -264,7 +164,7 @@ func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, er
 		return page.Anchors, nil
 	}
 
-	res, err := c.http.R().
+	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
@@ -314,7 +214,7 @@ func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, er
 		return page.Anchors, nil
 	}
 
-	res, err := c.http.R().
+	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {

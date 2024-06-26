@@ -9,6 +9,7 @@ import (
 	"testing"
 	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/lib/platforms/moodle/core"
 	"vcassist-backend/lib/telemetry"
 
 	"github.com/dgraph-io/badger/v4"
@@ -41,9 +42,8 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := NewClient(ctx, ClientOptions{
-		Cache:    cache,
-		ClientId: config.Username,
+
+	core, err := core.NewClient(ctx, core.ClientOptions{
 		BaseUrl:  config.BaseUrl,
 		Username: config.Username,
 		Password: config.Password,
@@ -51,8 +51,15 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = core.LoginUsernamePassword(ctx, config.Username, config.Password)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	err = client.LoginUsernamePassword(ctx, config.Username, config.Password)
+	client, err := NewClient(ctx, core, ClientOptions{
+		Cache:    cache,
+		ClientId: config.Username,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +101,7 @@ func TestClient(t *testing.T) {
 
 		for _, s := range sections {
 			wg.Add(1)
-			go func(a htmlutil.Anchor) {
+			go func(s htmlutil.Anchor) {
 				defer wg.Done()
 
 				resources, err := client.Resources(ctx, s)
