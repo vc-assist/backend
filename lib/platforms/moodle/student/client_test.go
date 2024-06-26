@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	devenv "vcassist-backend/dev/setup"
+	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/htmlutil"
 	"vcassist-backend/lib/telemetry"
 

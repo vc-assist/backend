@@ -1,14 +1,35 @@
-package devenv
+package main
 
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"strings"
+	devenv "vcassist-backend/dev/env"
 
 	"github.com/tcnksm/go-input"
 )
+
+func cmd(name string, args ...string) {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	fullCmd := name
+	for _, a := range args {
+		fullCmd += " "
+		fullCmd += a
+	}
+
+	fmt.Printf("$ %s\n", fullCmd)
+	err := cmd.Run()
+	if err != nil {
+		os.Exit(1)
+	}
+}
 
 func CreatePowerschoolApiDevDB() error {
 	db, err := sql.Open("sqlite", "cmd/powerschool_api/state.db")
@@ -34,13 +55,6 @@ func CreateLocalStack() error {
 	}
 	cmd("docker", "compose", "up", "-d")
 	return os.Chdir("../..")
-}
-
-type MoodleTestConfig struct {
-	BaseUrl        string `json:"base_url"`
-	Username       string `json:"username"`
-	Password       string `json:"password"`
-	SpecificCourse string `json:"specific_course"`
 }
 
 func SetupMoodleTests() error {
@@ -73,7 +87,7 @@ func SetupMoodleTests() error {
 		return err
 	}
 
-	config := MoodleTestConfig{
+	config := devenv.MoodleTestConfig{
 		BaseUrl:        baseUrl,
 		Username:       username,
 		Password:       password,

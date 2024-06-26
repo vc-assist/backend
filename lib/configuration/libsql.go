@@ -3,6 +3,7 @@ package configuration
 import (
 	"database/sql"
 	"fmt"
+	devenv "vcassist-backend/dev/env"
 
 	"github.com/tursodatabase/go-libsql"
 )
@@ -15,7 +16,11 @@ type Libsql struct {
 
 func (config Libsql) OpenDB() (*sql.DB, error) {
 	if config.Url == "" {
-		return sql.Open("libsql", fmt.Sprintf("file:%s", config.File))
+		dbpath, err := devenv.ResolvePath(config.File)
+		if err != nil {
+			return nil, err
+		}
+		return sql.Open("libsql", fmt.Sprintf("file:%s", dbpath))
 	}
 
 	var opts []libsql.Option

@@ -6,6 +6,6 @@
 		client_id: "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 	},
 	database: {
-		file: "./state.db"
+		file: "<dev_state>/powerschool_api.db"
 	}
 }

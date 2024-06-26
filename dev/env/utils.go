@@ -3,28 +3,10 @@ package devenv
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
-
-func cmd(name string, args ...string) {
-	cmd := exec.Command(name, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	fullCmd := name
-	for _, a := range args {
-		fullCmd += " "
-		fullCmd += a
-	}
-
-	fmt.Printf("$ %s\n", fullCmd)
-	err := cmd.Run()
-	if err != nil {
-		os.Exit(1)
-	}
-}
 
 var modName = regexp.MustCompile(`(?m)^module *([\w\-_]+)$`)
 
@@ -72,4 +54,19 @@ func GetStateFile(path string) ([]byte, error) {
 		return nil, fmt.Errorf("no file at %s", configPath)
 	}
 	return contents, err
+}
+
+func ResolvePath(path string) (string, error) {
+	if strings.HasPrefix(path, "<dev_state>") {
+		root, err := GetWorkspaceRoot()
+		if err != nil {
+			return "", err
+		}
+
+		subpath := strings.Replace(path, "<dev_state>/", "", 1)
+		statepath := filepath.Join(root, "dev/.state", subpath)
+
+		return statepath, nil
+	}
+	return path, nil
 }

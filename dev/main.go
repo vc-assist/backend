@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	setup "vcassist-backend/dev/setup"
 
 	_ "modernc.org/sqlite"
 )
@@ -23,15 +22,15 @@ func create(recreate bool) error {
 		}
 	}
 
-	err = setup.CreateLocalStack()
+	err = CreateLocalStack()
 	if err != nil {
 		return err
 	}
-	err = setup.CreatePowerschoolApiDevDB()
+	err = CreatePowerschoolApiDevDB()
 	if err != nil {
 		return err
 	}
-	err = setup.SetupMoodleTests()
+	err = SetupMoodleTests()
 	if err != nil {
 		return err
 	}
