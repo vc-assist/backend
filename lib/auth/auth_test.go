@@ -3,12 +3,12 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"io"
 	"log"
 	"regexp"
 	"testing"
 	"vcassist-backend/lib/telemetry"
 
-	"github.com/docker/docker/pkg/ioutils"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -58,7 +58,7 @@ func setupService(t testing.TB) (AuthService, func(t testing.TB)) {
 	}
 
 	// suppress logging
-	testcontainers.Logger = log.New(&ioutils.NopWriter{}, "", 0)
+	testcontainers.Logger = log.New(io.Discard, "", 0)
 
 	smtp, err := testcontainers.GenericContainer(
 		context.Background(),

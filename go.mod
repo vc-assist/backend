@@ -7,12 +7,14 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/PuerkitoBio/purell v1.2.1
 	github.com/dgraph-io/badger/v4 v4.2.0
+	github.com/docker/docker v25.0.5+incompatible
 	github.com/geraldo-labs/merge-struct v1.0.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/google/go-cmp v0.6.0
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lqr471814/protocolreg v0.0.0-20240622012959-6b8849437838
 	github.com/stretchr/testify v1.9.0
+	github.com/tcnksm/go-input v0.0.0-20180404061846-548a7d7a8ee8
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/titanous/json5 v1.0.0
 	github.com/tursodatabase/go-libsql v0.0.0-20240429120401-651096bbee0b
@@ -45,7 +47,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
-	github.com/docker/docker v25.0.5+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -83,7 +84,6 @@ require (
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/tcnksm/go-input v0.0.0-20180404061846-548a7d7a8ee8 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
