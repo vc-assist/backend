@@ -25,14 +25,14 @@ type EmailConfig struct {
 	Password     string `json:"password"`
 }
 
-type AuthService struct {
+type Service struct {
 	db    *sql.DB
 	qry   *db.Queries
 	email EmailConfig
 }
 
-func NewAuthService(database *sql.DB, email EmailConfig) AuthService {
-	return AuthService{
+func NewService(database *sql.DB, email EmailConfig) Service {
+	return Service{
 		db:    database,
 		qry:   db.New(database),
 		email: email,
@@ -41,7 +41,7 @@ func NewAuthService(database *sql.DB, email EmailConfig) AuthService {
 
 var InvalidToken = fmt.Errorf("invalid token")
 
-func (s AuthService) VerifyToken(ctx context.Context, token string) (db.User, error) {
+func (s Service) VerifyToken(ctx context.Context, token string) (db.User, error) {
 	ctx, span := tracer.Start(ctx, "auth:VerifyToken")
 	defer span.End()
 
@@ -71,7 +71,7 @@ func generateVerificationCode() (string, error) {
 	)), nil
 }
 
-func (s AuthService) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
+func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
 	ctx, span := tracer.Start(ctx, "auth:createVerificationCode")
 	defer span.End()
 
@@ -95,7 +95,7 @@ func (s AuthService) createVerificationCode(ctx context.Context, txqry *db.Queri
 	return code, nil
 }
 
-func (s AuthService) sendVerificationCode(ctx context.Context, userEmail, code string) error {
+func (s Service) sendVerificationCode(ctx context.Context, userEmail, code string) error {
 	ctx, span := tracer.Start(ctx, "auth:sendVerificationCode")
 	defer span.End()
 
@@ -132,7 +132,7 @@ If you don't recognize this account, please ignore this email.`, code)
 	return nil
 }
 
-func (s AuthService) StartLogin(ctx context.Context, email string) error {
+func (s Service) StartLogin(ctx context.Context, email string) error {
 	ctx, span := tracer.Start(ctx, "auth:CreateOrLogin")
 	defer span.End()
 
@@ -175,7 +175,7 @@ func (s AuthService) StartLogin(ctx context.Context, email string) error {
 	return nil
 }
 
-func (s AuthService) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
+func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
 	ctx, span := tracer.Start(ctx, "auth:verifyAndDeleteCode")
 	defer span.End()
 
@@ -199,7 +199,7 @@ func (s AuthService) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries,
 	return nil
 }
 
-func (s AuthService) createToken(ctx context.Context, txqry *db.Queries, email string) (string, error) {
+func (s Service) createToken(ctx context.Context, txqry *db.Queries, email string) (string, error) {
 	ctx, span := tracer.Start(ctx, "auth:createToken")
 	defer span.End()
 
@@ -224,7 +224,7 @@ func (s AuthService) createToken(ctx context.Context, txqry *db.Queries, email s
 	return token, nil
 }
 
-func (s AuthService) ConsumeVerificationCode(ctx context.Context, email, providedCode string) (token string, err error) {
+func (s Service) ConsumeVerificationCode(ctx context.Context, email, providedCode string) (token string, err error) {
 	ctx, span := tracer.Start(ctx, "auth:ConsumeVerificationCode")
 	defer span.End()
 

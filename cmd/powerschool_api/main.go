@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"vcassist-backend/cmd/powerschool_api/api/apiconnect"
+	"vcassist-backend/lib/auth"
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/telemetry"
 
+	"connectrpc.com/connect"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -50,10 +52,20 @@ func main() {
 	}
 	oauthd.Start(context.Background())
 
+	slog.Info("setting up auth interceptor...")
+	authService, err := auth.ServiceFromEnv()
+	if err != nil {
+		fatalerr("failed to create auth service", err)
+	}
+	authInterceptor := NewAuthInterceptor(authService)
+
 	slog.Info("setting up grpc service handler...")
 	service := NewPowerschoolService(sqlite, config)
 	mux := http.NewServeMux()
-	mux.Handle(apiconnect.NewPowerschoolServiceHandler(service))
+	mux.Handle(apiconnect.NewPowerschoolServiceHandler(
+		service,
+		connect.WithInterceptors(authInterceptor),
+	))
 
 	slog.Info("listening to gRPC...", "port", 9000)
 	err = http.ListenAndServe(

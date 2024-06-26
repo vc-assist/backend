@@ -34,7 +34,7 @@ func TestGenerateCode(t *testing.T) {
 //go:embed db/schema.sql
 var schemaSql string
 
-func setup(t testing.TB) (AuthService, func()) {
+func setup(t testing.TB) (Service, func()) {
 	cleanup := telemetry.SetupForTesting(t, "test:auth")
 
 	sqlite, err := sql.Open("sqlite", ":memory:")
@@ -64,7 +64,7 @@ func setup(t testing.TB) (AuthService, func()) {
 		t.Fatal(err)
 	}
 
-	service := NewAuthService(sqlite, EmailConfig{
+	service := NewService(sqlite, EmailConfig{
 		Server:       "localhost",
 		Port:         1025,
 		EmailAddress: "alice@email.com",
