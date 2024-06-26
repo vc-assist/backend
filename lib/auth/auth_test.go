@@ -31,23 +31,12 @@ func TestGenerateCode(t *testing.T) {
 	require.True(t, codeRegex.MatchString(code))
 }
 
-func setupTelemetry(t testing.TB) func(testing.TB) {
-	tel, err := telemetry.SetupFromEnv(context.Background(), "test:auth")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return func(t testing.TB) {
-		err := tel.Shutdown(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
 //go:embed db/schema.sql
 var schemaSql string
 
-func setupService(t testing.TB) (AuthService, func(t testing.TB)) {
+func setup(t testing.TB) (AuthService, func()) {
+	cleanup := telemetry.SetupForTesting(t, "test:auth")
+
 	sqlite, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +71,8 @@ func setupService(t testing.TB) (AuthService, func(t testing.TB)) {
 		Password:     "default",
 	})
 
-	return service, func(t testing.TB) {
+	return service, func() {
+		cleanup()
 		err := smtp.Terminate(context.Background())
 		if err != nil {
 			t.Fatal(err)
@@ -103,10 +93,8 @@ func getVerificationCodeFromEmail(t testing.TB) string {
 }
 
 func TestLoginFlow(t *testing.T) {
-	cleanup := setupTelemetry(t)
-	defer cleanup(t)
-	service, cleanup := setupService(t)
-	defer cleanup(t)
+	service, cleanup := setup(t)
+	defer cleanup()
 
 	tracer := otel.Tracer("service_test")
 	ctx, span := tracer.Start(context.Background(), "TestLoginFlow")

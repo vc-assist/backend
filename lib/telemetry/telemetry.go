@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"testing"
 	"time"
 	"vcassist-backend/lib/configuration"
 
@@ -41,6 +42,27 @@ type Config struct {
 
 	MetricsOtlpGrpcEndpoint string `json:"metrics_otlp_grpc_endpoint"`
 	MetricsOtlpHttpEndpoint string `json:"metrics_otlp_http_endpoint"`
+}
+
+var setupTestEnvironments = map[string]bool{}
+
+// sets up telemetry in a testing environment, ensuring that it isn't
+// set up more than once
+func SetupForTesting(t testing.TB, serviceName string) func() {
+	_, setupAlready := setupTestEnvironments[serviceName]
+	if setupAlready {
+		return func() {}
+	}
+	tel, err := SetupFromEnv(context.Background(), serviceName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return func() {
+		err := tel.Shutdown(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 // searches up the filesystem from the cwd to find a file

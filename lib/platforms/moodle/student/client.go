@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
@@ -60,6 +61,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	}
 	client.SetCookieJar(jar)
 	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+	client.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(baseUrl.Hostname()))
 
 	telemetry.InstrumentResty(client, "platform/moodle/http")
 
@@ -68,13 +70,14 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 		baseUrl: baseUrl,
 	}
 
-	return &Client{
+	c := &Client{
 		ClientId: opts.ClientId,
 		BaseUrl:  baseUrl,
 
 		http:  client,
 		cache: cache,
-	}, nil
+	}
+	return c, nil
 }
 
 func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
@@ -105,29 +108,38 @@ func (c *Client) LoginUsernamePassword(ctx context.Context, username, password s
 		"password":   {password},
 	}
 
-	c.http.SetRedirectPolicy(resty.NoRedirectPolicy())
+	redirects := 0
+	var loginSuccess = errors.New("login successful")
+	c.http.SetRedirectPolicy(
+		resty.RedirectPolicyFunc(func(req *http.Request, via []*http.Request) error {
+			redirects++
+			if req.URL.Query().Get("testsession") != "" {
+				return loginSuccess
+			}
+			return nil
+		}),
+	)
+	defer c.http.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(c.BaseUrl.Hostname()))
+
 	res, err = c.http.R().
 		SetContext(ctx).
 		SetBody(values.Encode()).
 		SetHeader("Content-Type", "application/x-www-form-urlencoded").
 		Post("/login/index.php")
-	c.http.SetRedirectPolicy(resty.FlexibleRedirectPolicy(10))
-	if err != nil {
-		span.SetStatus(codes.Error, "failed to post login")
-		return err
-	}
-
-	location := res.Header().Get("location")
-	if res.StatusCode() != 303 || location == "" {
-		span.SetStatus(codes.Error, "Something went wrong, response didn't redirect (is cloudflare adapting?")
-		return fmt.Errorf("Something went wrong, response didn't redirect (is cloudflare adapting?")
-	}
-	if !strings.Contains(location, "testsession") {
+	if err == nil {
+		if redirects == 0 {
+			span.SetStatus(codes.Error, "Something went wrong, response didn't redirect (is cloudflare adapting?")
+			return fmt.Errorf("Something went wrong, response didn't redirect (is cloudflare adapting?")
+		}
 		span.SetStatus(codes.Error, InvalidCredentials.Error())
 		return InvalidCredentials
 	}
 
-	return nil
+	if strings.Contains(err.Error(), "login successful") {
+		return nil
+	}
+	span.SetStatus(codes.Error, "failed to post login request")
+	return err
 }
 
 type Course = htmlutil.Anchor
@@ -217,7 +229,7 @@ func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error)
 		return nil, err
 	}
 
-	anchors := htmlutil.GetAnchors(ctx, doc.Filter(".course-content a.nav-link"))
+	anchors := htmlutil.GetAnchors(ctx, doc.Find(".course-content a.nav-link"))
 
 	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
 		Contents:  res.Body(),
@@ -267,7 +279,7 @@ func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, er
 		return nil, err
 	}
 
-	anchors := htmlutil.GetAnchors(ctx, doc.Filter("li.activity a"))
+	anchors := htmlutil.GetAnchors(ctx, doc.Find("li.activity a"))
 
 	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
 		Contents:  res.Body(),
@@ -317,7 +329,7 @@ func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, er
 		return nil, err
 	}
 
-	tableOfContents := htmlutil.GetAnchors(ctx, doc.Filter("div.columnleft li a"))
+	tableOfContents := htmlutil.GetAnchors(ctx, doc.Find("div.columnleft li a"))
 
 	currentContents, err := doc.Find("div[role=main] div.box").Html()
 	if err != nil {

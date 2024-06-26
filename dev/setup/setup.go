@@ -37,9 +37,10 @@ func CreateLocalStack() error {
 }
 
 type MoodleTestConfig struct {
-	BaseUrl  string `json:"base_url"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	BaseUrl        string `json:"base_url"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	SpecificCourse string `json:"specific_course"`
 }
 
 func SetupMoodleTests() error {
@@ -55,23 +56,28 @@ func SetupMoodleTests() error {
 		Mask:    false,
 		Loop:    true,
 	}
-	baseUrl, err := ui.Ask("moodle base url:", opts)
+	baseUrl, err := ui.Ask("moodle tests' base url:", opts)
 	if err != nil {
 		return err
 	}
-	username, err := ui.Ask("moodle username:", opts)
+	username, err := ui.Ask("moodle tests' username:", opts)
 	if err != nil {
 		return err
 	}
-	password, err := ui.Ask("moodle password:", opts)
+	password, err := ui.Ask("moodle tests' password:", opts)
+	if err != nil {
+		return err
+	}
+	specificCourse, err := ui.Ask("specific course (lowercase name) to target in moodle tests:", opts)
 	if err != nil {
 		return err
 	}
 
 	config := MoodleTestConfig{
-		BaseUrl:  baseUrl,
-		Username: username,
-		Password: password,
+		BaseUrl:        baseUrl,
+		Username:       username,
+		Password:       password,
+		SpecificCourse: specificCourse,
 	}
 	cached, err := json.Marshal(config)
 	if err != nil {

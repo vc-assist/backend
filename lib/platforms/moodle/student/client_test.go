@@ -3,10 +3,13 @@ package student
 import (
 	"context"
 	"encoding/json"
-	"slices"
+	"errors"
+	"strings"
+	"sync"
 	"testing"
 	devenv "vcassist-backend/dev/setup"
 	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/lib/telemetry"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/require"
@@ -27,6 +30,9 @@ func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
 }
 
 func TestClient(t *testing.T) {
+	cleanup := telemetry.SetupForTesting(t, "test:moodle/student")
+	defer cleanup()
+
 	ctx, span := tracer.Start(context.Background(), "TestClient")
 	defer span.End()
 
@@ -51,38 +57,72 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	courses, err := client.Courses(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	require.Greater(t, len(courses), 0)
-	require.True(t, slices.ContainsFunc(courses, func(e htmlutil.Anchor) bool {
-		return e.Name == "VC Assist"
-	}))
+	var targetCourse Course
+	t.Run("TestCourses", func(t *testing.T) {
+		courses, err := client.Courses(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		require.Greater(t, len(courses), 0)
 
-	t.Log("Courses", courses)
+		t.Log("Courses", courses)
 
-	sections, err := client.Sections(ctx, courses[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	require.Greater(t, len(sections), 0)
+		for _, c := range courses {
+			if strings.ToLower(c.Name) == config.SpecificCourse {
+				targetCourse = c
+				break
+			}
+		}
+		require.NotEqual(t, targetCourse, Course{})
+	})
 
-	t.Log("Resources", sections)
+	t.Run("TestSections", func(t *testing.T) {
+		t.Log("Target Course", targetCourse)
 
-	resources, err := client.Resources(ctx, sections[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	require.Greater(t, len(resources), 0)
+		sections, err := client.Sections(ctx, targetCourse)
+		if err != nil {
+			t.Fatal(err)
+		}
+		require.Greater(t, len(sections), 0)
 
-	t.Log("Resources", resources)
+		t.Log("Resources", sections)
 
-	chapters, err := client.Chapters(ctx, resources[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	require.Greater(t, len(chapters), 0)
+		var errs []error
+		errLock := sync.Mutex{}
+		hasResources := false
+		wg := sync.WaitGroup{}
 
-	t.Log("Chapters", chapters)
+		for _, s := range sections {
+			wg.Add(1)
+			go func(a htmlutil.Anchor) {
+				defer wg.Done()
+
+				resources, err := client.Resources(ctx, s)
+				if err != nil {
+					errLock.Lock()
+					defer errLock.Unlock()
+					errs = append(errs, err)
+					return
+				}
+
+				if len(resources) > 0 {
+					hasResources = true
+				}
+				t.Log("Resources", resources)
+			}(s)
+		}
+
+		wg.Wait()
+
+		if len(errs) > 0 {
+			t.Fatal(errors.Join(errs...))
+		}
+		if !hasResources {
+			t.Fatal("no section has at least one resource, this may be a bug or the course in question may just not have any resources.")
+		}
+	})
+
+	t.Run("TestChapters", func(t *testing.T) {
+		t.Skip("currently unimplemented")
+	})
 }

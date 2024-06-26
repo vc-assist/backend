@@ -24,8 +24,8 @@ func setupTelemetry(t testing.TB) func(testing.TB) {
 }
 
 func TestFetchEvents(t *testing.T) {
-	teardown := setupTelemetry(t)
-	defer teardown(t)
+	cleanup := telemetry.SetupForTesting(t, "test:vcsnet")
+	defer cleanup()
 
 	tz, err := time.LoadLocation("America/Los_Angeles")
 	if err != nil {

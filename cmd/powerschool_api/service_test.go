@@ -146,7 +146,9 @@ func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.Po
 //go:embed db/schema.sql
 var schemaSql string
 
-func setupService(t testing.TB, dbname string) (powerschoolapi.PowerschoolService, func(t testing.TB)) {
+func setup(t testing.TB, dbname string) (powerschoolapi.PowerschoolService, func()) {
+	cleanupTel := telemetry.SetupForTesting(t, "test:powerschool_api")
+
 	sqlite, err := sql.Open("sqlite", dbname)
 	if err != nil {
 		t.Fatal(err)
@@ -170,21 +172,9 @@ func setupService(t testing.TB, dbname string) (powerschoolapi.PowerschoolServic
 
 	service := powerschoolapi.NewPowerschoolService(sqlite, config)
 
-	return service, func(t testing.TB) {
+	return service, func() {
 		cancelOAuthd()
-	}
-}
-
-func setupTelemetry(t testing.TB) func(t testing.TB) {
-	tel, err := telemetry.SetupFromEnv(context.Background(), "test:powerschool_api")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return func(t testing.TB) {
-		err := tel.Shutdown(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
+		cleanupTel()
 	}
 }
 
@@ -226,10 +216,8 @@ func provideNewToken(t testing.TB, ctx context.Context, service powerschoolapi.P
 }
 
 func TestOAuth(t *testing.T) {
-	cleanup := setupTelemetry(t)
-	defer cleanup(t)
-	service, cleanup := setupService(t, "oauth_test_state.db")
-	defer cleanup(t)
+	service, cleanup := setup(t, "oauth_test_state.db")
+	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestOAuth")
 	defer span.End()
@@ -272,10 +260,8 @@ func TestOAuth(t *testing.T) {
 }
 
 func TestBasicNotFound(t *testing.T) {
-	cleanup := setupTelemetry(t)
-	defer cleanup(t)
-	service, cleanup := setupService(t, ":memory:")
-	defer cleanup(t)
+	service, cleanup := setup(t, ":memory:")
+	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestBasicNotFound")
 	defer span.End()

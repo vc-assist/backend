@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel"
@@ -61,7 +62,7 @@ func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 		}
 
 		anchors = append(anchors, Anchor{
-			Name: GetText(n),
+			Name: strings.Trim(GetText(n), " \t\n"),
 			Href: link.String(),
 		})
 	}

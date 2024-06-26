@@ -53,5 +53,5 @@ here are some commands relating to linting and code generation that will probabl
 ### testing
 
 - `go test ./lib/...` - runs all tests in shared packages
-- `go test ./cmd/powerschool_api` - runs the tests for the Powerschool API, this is kept separately from `go test lib/...` because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test ./cmd/powerschool_api` - runs the tests for the Powerschool API, this is kept separately from `go test ./lib/...` because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 
