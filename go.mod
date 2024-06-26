@@ -7,7 +7,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/PuerkitoBio/purell v1.2.1
 	github.com/dgraph-io/badger/v4 v4.2.0
-	github.com/docker/docker v25.0.5+incompatible
 	github.com/geraldo-labs/merge-struct v1.0.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/google/go-cmp v0.6.0
@@ -47,6 +46,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
+	github.com/docker/docker v25.0.5+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
