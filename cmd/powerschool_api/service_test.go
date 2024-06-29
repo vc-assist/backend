@@ -16,6 +16,7 @@ import (
 	"vcassist-backend/cmd/powerschool_api/api"
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/oauth"
+	"vcassist-backend/lib/platforms/powerschool"
 	"vcassist-backend/lib/telemetry"
 
 	_ "embed"
@@ -253,9 +254,29 @@ func TestOAuth(t *testing.T) {
 	require.NotEmpty(t, foundStudentData.Msg.GetProfile().GetFirstName())
 	require.NotEmpty(t, foundStudentData.Msg.GetProfile().GetLastName())
 
-	require.Greater(t, len(foundStudentData.Msg.GetProfile().GetSchools()), 0)
+	require.Greater(t, len(foundStudentData.Msg.GetProfile().GetSchools()), 0, "provided powerschool account must be a part of at least one school")
 	for _, school := range foundStudentData.Msg.GetProfile().GetSchools() {
 		require.NotEmpty(t, school.GetName())
+	}
+
+	courses := foundStudentData.Msg.GetCourseData()
+	if len(courses) > 0 {
+		for _, course := range courses {
+			require.NotEmpty(t, course.GetGuid())
+			require.NotEmpty(t, course.GetName())
+			require.NotEmpty(t, course.GetPeriod())
+		}
+	}
+
+	meetings := foundStudentData.Msg.GetMeetings().SectionMeetings
+	if len(meetings) > 0 {
+		for _, meeting := range meetings {
+			require.NotEmpty(t, meeting.GetSectionGuid())
+			_, err = powerschool.DecodeSectionMeetingTimestamp(meeting.GetStart())
+			require.Nil(t, err)
+			_, err = powerschool.DecodeSectionMeetingTimestamp(meeting.GetStop())
+			require.Nil(t, err)
+		}
 	}
 }
 

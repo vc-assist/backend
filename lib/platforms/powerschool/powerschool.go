@@ -56,3 +56,8 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error
 	expiresAt := time.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
 	return expiresAt, nil
 }
+
+func DecodeSectionMeetingTimestamp(tstr string) (time.Time, error) {
+	// aka. parse by ISO timestamp
+	return time.Parse(time.RFC3339, tstr)
+}
