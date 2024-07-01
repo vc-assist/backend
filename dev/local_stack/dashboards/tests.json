@@ -198,7 +198,7 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "test:moodle/student"
+                "test:moodle/core"
               ],
               "valueType": "string"
             }
@@ -215,7 +215,233 @@
           "tableType": "traces"
         }
       ],
-      "title": "test:moodle/student",
+      "title": "test:moodle/core",
+      "transformations": [
+        {
+          "id": "filterByRefId",
+          "options": {
+            "include": "traces"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Service": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 1,
+        "showHeader": true
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "filters": [
+            {
+              "id": "ca70fefc",
+              "operator": "=",
+              "scope": "span"
+            },
+            {
+              "id": "service-name",
+              "operator": "=",
+              "scope": "resource",
+              "tag": "service.name",
+              "value": [
+                "test:vcsnet"
+              ],
+              "valueType": "string"
+            },
+            {
+              "id": "span-name",
+              "operator": "=",
+              "scope": "span",
+              "tag": "name",
+              "value": [],
+              "valueType": "string"
+            }
+          ],
+          "groupBy": [
+            {
+              "id": "85da6f14",
+              "scope": "span"
+            }
+          ],
+          "limit": 20,
+          "queryType": "traceqlSearch",
+          "refId": "A",
+          "tableType": "traces"
+        }
+      ],
+      "title": "test:vcsnet",
+      "transformations": [
+        {
+          "id": "filterByRefId",
+          "options": {
+            "include": "traces"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Name": true,
+              "Service": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "filters": [
+            {
+              "id": "8731c25b",
+              "operator": "=",
+              "scope": "span"
+            },
+            {
+              "id": "service-name",
+              "operator": "=",
+              "scope": "resource",
+              "tag": "service.name",
+              "value": [
+                "test:moodle/view"
+              ],
+              "valueType": "string"
+            }
+          ],
+          "groupBy": [
+            {
+              "id": "9f1a1902",
+              "scope": "span"
+            }
+          ],
+          "limit": 20,
+          "queryType": "traceqlSearch",
+          "refId": "A",
+          "tableType": "traces"
+        }
+      ],
+      "title": "test:moode/view",
       "transformations": [
         {
           "id": "filterByRefId",
@@ -309,7 +535,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 16
       },
       "id": 2,
       "options": {
@@ -425,9 +651,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 16
       },
-      "id": 1,
+      "id": 6,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -438,7 +664,6 @@
           ],
           "show": false
         },
-        "frameIndex": 1,
         "showHeader": true
       },
       "pluginVersion": "11.0.0",
@@ -450,7 +675,7 @@
           },
           "filters": [
             {
-              "id": "ca70fefc",
+              "id": "f04492bb",
               "operator": "=",
               "scope": "span"
             },
@@ -460,22 +685,14 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "test:vcsnet"
+                "test:moodle/edit"
               ],
-              "valueType": "string"
-            },
-            {
-              "id": "span-name",
-              "operator": "=",
-              "scope": "span",
-              "tag": "name",
-              "value": [],
               "valueType": "string"
             }
           ],
           "groupBy": [
             {
-              "id": "85da6f14",
+              "id": "1277e8b0",
               "scope": "span"
             }
           ],
@@ -485,7 +702,7 @@
           "tableType": "traces"
         }
       ],
-      "title": "test:vcsnet",
+      "title": "test:moodle/edit",
       "transformations": [
         {
           "id": "filterByRefId",
@@ -497,7 +714,6 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Name": true,
               "Service": true
             },
             "includeByName": {},
@@ -523,6 +739,6 @@
   "timezone": "browser",
   "title": "Tests",
   "uid": "cdpdk9gxo4l4wd",
-  "version": 5,
+  "version": 4,
   "weekStart": ""
 }

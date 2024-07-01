@@ -42,7 +42,7 @@ func CreatePowerschoolApiDevDB() error {
 		return err
 	}
 	_, err = db.Exec(string(schema))
-	if strings.Contains(err.Error(), "already exists") {
+	if err != nil && strings.Contains(err.Error(), "already exists") {
 		return nil
 	}
 	return err
@@ -58,16 +58,15 @@ func CreateLocalStack() error {
 }
 
 func SetupMoodleTests() error {
-	_, err := os.Stat("dev/.state/moodle_credentials.json")
+	_, err := os.Stat("dev/.state/moodle_config.json")
 	if !os.IsNotExist(err) {
-		slog.Info("moodle credentials have already been provided")
+		slog.Info("moodle credentials have already been set")
 		return err
 	}
 	ui := input.DefaultUI()
 
 	opts := &input.Options{
 		Default: "",
-		Mask:    false,
 		Loop:    true,
 	}
 	baseUrl, err := ui.Ask("moodle tests' base url:", opts)
@@ -78,28 +77,44 @@ func SetupMoodleTests() error {
 	if err != nil {
 		return err
 	}
-	password, err := ui.Ask("moodle tests' password:", opts)
+	password, err := ui.Ask("moodle tests' password:", &input.Options{
+		Default: "",
+		Mask:    true,
+		Loop:    true,
+	})
 	if err != nil {
 		return err
 	}
-	specificCourse, err := ui.Ask("specific course (lowercase name) to target in moodle tests:", opts)
+	viewSpecificCourse, err := ui.Ask("the course (make sure it's in the format `<course name> - <teacher name>` as seen on the moodle website) to target in the moodle/view tests:", opts)
+	if err != nil {
+		return err
+	}
+	editSpecificCourse, err := ui.Ask("the course (make sure it's in the format `<course name> - <teacher name>` as seen on the moodle website) to target in the moodle/edit tests:", opts)
 	if err != nil {
 		return err
 	}
 
 	config := devenv.MoodleTestConfig{
-		BaseUrl:        baseUrl,
-		Username:       username,
-		Password:       password,
-		SpecificCourse: specificCourse,
+		BaseUrl:  baseUrl,
+		Username: username,
+		Password: password,
+		ViewConfig: devenv.ViewMoodleTestConfig{
+			TargetCourse: viewSpecificCourse,
+		},
+		EditConfig: devenv.EditMoodleTestConfig{
+			TargetCourse: editSpecificCourse,
+		},
 	}
 	cached, err := json.Marshal(config)
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile("dev/.state/moodle_credentials.json", cached, 0777)
+	err = os.WriteFile("dev/.state/moodle_config.json", cached, 0777)
 	if err != nil {
 		return err
 	}
+
+	slog.Info("moodle test configuration written to `dev/.state/moodle_config.json`, make sure you check it to ensure it's correct.")
+
 	return nil
 }

@@ -3,16 +3,16 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"net/http"
 	"testing"
 	"time"
 	"vcassist-backend/lib/configuration"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
@@ -20,16 +20,11 @@ import (
 
 type Telemetry struct {
 	TracerProvider *trace.TracerProvider
-	MeterProvider  *metric.MeterProvider
 }
 
 func (t Telemetry) Shutdown(ctx context.Context) error {
 	errlist := []error{}
 	err := t.TracerProvider.Shutdown(ctx)
-	if err != nil {
-		errlist = append(errlist, err)
-	}
-	err = t.MeterProvider.Shutdown(ctx)
 	if err != nil {
 		errlist = append(errlist, err)
 	}
@@ -39,9 +34,6 @@ func (t Telemetry) Shutdown(ctx context.Context) error {
 type Config struct {
 	TracesOtlpGrpcEndpoint string `json:"traces_otlp_grpc_endpoint"`
 	TracesOtlpHttpEndpoint string `json:"traces_otlp_http_endpoint"`
-
-	MetricsOtlpGrpcEndpoint string `json:"metrics_otlp_grpc_endpoint"`
-	MetricsOtlpHttpEndpoint string `json:"metrics_otlp_http_endpoint"`
 }
 
 var setupTestEnvironments = map[string]bool{}
@@ -53,12 +45,13 @@ func SetupForTesting(t testing.TB, serviceName string) func() {
 	if setupAlready {
 		return func() {}
 	}
-	tel, err := SetupFromEnv(context.Background(), serviceName)
+	ctx := context.WithValue(context.Background(), "telemetry_test_env", struct{}{})
+	tel, err := SetupFromEnv(ctx, serviceName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return func() {
-		err := tel.Shutdown(context.Background())
+		err := tel.Shutdown(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,23 +69,26 @@ func SetupFromEnv(ctx context.Context, serviceName string) (Telemetry, error) {
 	return Setup(ctx, serviceName, config)
 }
 
+func setupPrometheus() {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	err := http.ListenAndServe(":2112", mux)
+	if err != nil {
+		slog.Error("failed to setup prometheus", "err", err.Error())
+	}
+}
+
 func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, error) {
 	tracerProvider, err := newTraceProvider(ctx, serviceName, config)
 	if err != nil {
 		return Telemetry{}, err
 	}
 	otel.SetTracerProvider(tracerProvider)
-
-	meterProvider, err := newMeterProvider(ctx, config)
-	if err != nil {
-		return Telemetry{}, err
+	_, ok := ctx.Value("telemetry_test_env").(struct{})
+	if !ok {
+		go setupPrometheus()
 	}
-	otel.SetMeterProvider(meterProvider)
-
-	return Telemetry{
-		TracerProvider: tracerProvider,
-		MeterProvider:  meterProvider,
-	}, nil
+	return Telemetry{TracerProvider: tracerProvider}, nil
 }
 
 func newTraceProvider(ctx context.Context, serviceName string, config Config) (*trace.TracerProvider, error) {
@@ -119,18 +115,6 @@ func newTraceProvider(ctx context.Context, serviceName string, config Config) (*
 	return traceProvider, nil
 }
 
-func newMeterProvider(ctx context.Context, config Config) (*metric.MeterProvider, error) {
-	exporter, err := otlpMeterExportFromConfig(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-
-	meterProvider := metric.NewMeterProvider(
-		metric.WithReader(metric.NewPeriodicReader(exporter)),
-	)
-	return meterProvider, nil
-}
-
 func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExporter, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
@@ -144,21 +128,5 @@ func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExport
 	return otlptracehttp.New(
 		ctx,
 		otlptracehttp.WithEndpointURL(c.TracesOtlpHttpEndpoint),
-	)
-}
-
-func otlpMeterExportFromConfig(ctx context.Context, c Config) (metric.Exporter, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
-	defer cancel()
-
-	if c.MetricsOtlpGrpcEndpoint != "" {
-		return otlpmetricgrpc.New(
-			ctx,
-			otlpmetricgrpc.WithEndpointURL(c.MetricsOtlpGrpcEndpoint),
-		)
-	}
-	return otlpmetrichttp.New(
-		ctx,
-		otlpmetrichttp.WithEndpointURL(c.MetricsOtlpHttpEndpoint),
 	)
 }

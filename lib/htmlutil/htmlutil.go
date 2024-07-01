@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"net/url"
+	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel"
@@ -40,6 +42,18 @@ type Anchor struct {
 	Href string
 }
 
+var innerWhitespace = regexp.MustCompile(`\s\s+`)
+
+func removeNonPrintable(s string) string {
+	newStr := strings.Builder{}
+	for _, c := range s {
+		if unicode.IsPrint(c) {
+			newStr.WriteRune(c)
+		}
+	}
+	return newStr.String()
+}
+
 func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 	ctx, span := tracer.Start(ctx, "GetAnchors")
 	defer span.End()
@@ -61,8 +75,13 @@ func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 			continue
 		}
 
+		name := GetText(n)
+		name = removeNonPrintable(name)
+		name = strings.Trim(name, " \t\n")
+		name = innerWhitespace.ReplaceAllString(name, " ")
+
 		anchors = append(anchors, Anchor{
-			Name: strings.Trim(GetText(n), " \t\n"),
+			Name: name,
 			Href: link.String(),
 		})
 	}

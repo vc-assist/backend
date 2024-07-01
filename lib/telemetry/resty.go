@@ -125,19 +125,21 @@ func onError(req *resty.Request, err error) {
 	span := trace.SpanFromContext(req.Context())
 	defer span.End()
 
-	span.SetName(fmt.Sprintf("http %s", req.Method))
-	span.SetAttributes(httpconv.ClientRequest(req.RawRequest)...)
+	if strings.Contains(err.Error(), "login successful") {
+		defer span.SetStatus(codes.Ok, "error bypassed: moodle login successful")
+	} else {
+		defer span.SetStatus(codes.Error, err.Error())
+		defer span.RecordError(err)
+	}
 
+	span.SetName(fmt.Sprintf("http %s", req.Method))
 	var attrs []attribute.KeyValue
 	instrumentRequestHeaders(&attrs, req.Header)
 	span.SetAttributes(attrs...)
 
-	instrumentRequestBody(span, req.RawRequest)
-
-	if strings.Contains(err.Error(), "login successful") {
-		span.SetStatus(codes.Ok, "error bypassed: moodle login successful")
+	if req.RawRequest == nil {
 		return
 	}
-	span.RecordError(err)
-	span.SetStatus(codes.Error, err.Error())
+	span.SetAttributes(httpconv.ClientRequest(req.RawRequest)...)
+	instrumentRequestBody(span, req.RawRequest)
 }

@@ -1,10 +1,11 @@
-package student
+package view
 
 import (
 	"context"
 	"net/url"
 	"testing"
 	"time"
+	"vcassist-backend/lib/htmlutil"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/go-cmp/cmp"
@@ -60,7 +61,7 @@ func TestCache(t *testing.T) {
 	require.Equal(t, err, errWebpageNotFound)
 
 	page1original := webpage{
-		Anchors: []Chapter{
+		Anchors: []htmlutil.Anchor{
 			{
 				Name: "book 1",
 				Href: "https://learn.vcs.net/view.php?chapterid=0",

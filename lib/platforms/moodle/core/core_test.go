@@ -1,15 +1,33 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
 	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/telemetry"
+
+	_ "embed"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/stretchr/testify/require"
 )
 
+//go:embed moodle_login_page_test.html
+var moodleLoginPageTest []byte
+
+func TestGetMoodleConfig(t *testing.T) {
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(moodleLoginPageTest))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sesskey := getSesskey(context.Background(), doc)
+	require.Equal(t, sesskey, "w11kOTXYpH")
+}
+
 func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
-	contents, err := devenv.GetStateFile("moodle_credentials.json")
+	contents, err := devenv.GetStateFile("moodle_config.json")
 	if err != nil {
 		t.Fatal(err)
 	}

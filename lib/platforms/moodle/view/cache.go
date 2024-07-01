@@ -1,4 +1,4 @@
-package student
+package view
 
 import (
 	"bytes"

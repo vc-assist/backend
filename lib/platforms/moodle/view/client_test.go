@@ -1,14 +1,12 @@
-package student
+package view
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
 	"sync"
 	"testing"
 	devenv "vcassist-backend/dev/env"
-	"vcassist-backend/lib/htmlutil"
 	"vcassist-backend/lib/platforms/moodle/core"
 	"vcassist-backend/lib/telemetry"
 
@@ -17,7 +15,7 @@ import (
 )
 
 func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
-	contents, err := devenv.GetStateFile("moodle_credentials.json")
+	contents, err := devenv.GetStateFile("moodle_config.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +29,7 @@ func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
 }
 
 func TestClient(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:moodle/student")
+	cleanup := telemetry.SetupForTesting(t, "test:moodle/view")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestClient")
@@ -43,7 +41,7 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	core, err := core.NewClient(ctx, core.ClientOptions{
+	coreClient, err := core.NewClient(ctx, core.ClientOptions{
 		BaseUrl:  config.BaseUrl,
 		Username: config.Username,
 		Password: config.Password,
@@ -51,12 +49,12 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = core.LoginUsernamePassword(ctx, config.Username, config.Password)
+	err = coreClient.LoginUsernamePassword(ctx, config.Username, config.Password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := NewClient(ctx, core, ClientOptions{
+	client, err := NewClient(ctx, coreClient, ClientOptions{
 		Cache:    cache,
 		ClientId: config.Username,
 	})
@@ -70,27 +68,33 @@ func TestClient(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		require.Greater(t, len(courses), 0)
+		require.Greater(t, len(courses), 0, "could not find any courses on this moodle account")
 
 		t.Log("Courses", courses)
 
 		for _, c := range courses {
-			if strings.ToLower(c.Name) == config.SpecificCourse {
+			if c == (Course{}) {
+				t.Fatal("got empty course in course list")
+			}
+			if c.Name == config.ViewConfig.TargetCourse {
 				targetCourse = c
 				break
 			}
 		}
-		require.NotEqual(t, targetCourse, Course{})
 	})
 
+	if targetCourse == (Course{}) {
+		t.Fatal("could not find target course", config.ViewConfig.TargetCourse)
+	}
+
 	t.Run("TestSections", func(t *testing.T) {
-		t.Log("Target Course", targetCourse)
+		t.Log("Target Course", targetCourse.Name, targetCourse.Id())
 
 		sections, err := client.Sections(ctx, targetCourse)
 		if err != nil {
 			t.Fatal(err)
 		}
-		require.Greater(t, len(sections), 0)
+		require.Greater(t, len(sections), 0, "could not find any sections in the target course", targetCourse.Name)
 
 		t.Log("Resources", sections)
 
@@ -101,7 +105,7 @@ func TestClient(t *testing.T) {
 
 		for _, s := range sections {
 			wg.Add(1)
-			go func(s htmlutil.Anchor) {
+			go func(s Section) {
 				defer wg.Done()
 
 				resources, err := client.Resources(ctx, s)

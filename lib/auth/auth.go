@@ -115,7 +115,7 @@ If you don't recognize this account, please ignore this email.`, code)
 		fmt.Sprintf("%s:%d", s.email.Server, s.email.Port),
 		smtp.PlainAuth("", s.email.EmailAddress, s.email.Password, s.email.Server),
 	)
-	if strings.Contains(err.Error(), "server doesn't support AUTH") {
+	if err != nil && strings.Contains(err.Error(), "server doesn't support AUTH") {
 		err = mail.Send(fmt.Sprintf("%s:%d", s.email.Server, s.email.Port), nil)
 		if err != nil {
 			span.RecordError(err)

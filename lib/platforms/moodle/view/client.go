@@ -1,8 +1,9 @@
-package student
+package view
 
 import (
 	"bytes"
 	"context"
+	"net/url"
 	"time"
 	"vcassist-backend/lib/htmlutil"
 	"vcassist-backend/lib/platforms/moodle/core"
@@ -15,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("platforms/moodle/student")
+var tracer = otel.Tracer("platforms/moodle/view")
 
 type Client struct {
 	ClientId string
@@ -29,12 +30,12 @@ type ClientOptions struct {
 	Cache    *badger.DB
 }
 
-func NewClient(ctx context.Context, coreClient *core.Client, opts ClientOptions) (*Client, error) {
+func NewClient(ctx context.Context, coreClient *core.Client, opts ClientOptions) (Client, error) {
 	cache := webpageCache{
 		db:      opts.Cache,
 		baseUrl: coreClient.BaseUrl,
 	}
-	c := &Client{
+	c := Client{
 		ClientId: opts.ClientId,
 		Core:     coreClient,
 		cache:    cache,
@@ -42,18 +43,41 @@ func NewClient(ctx context.Context, coreClient *core.Client, opts ClientOptions)
 	return c, nil
 }
 
-type Course = htmlutil.Anchor
+type Course htmlutil.Anchor
+
+func (c Course) Id() string {
+	href, err := url.Parse(c.Href)
+	if err != nil {
+		return ""
+	}
+	return href.Query().Get("id")
+}
+
+func coursesFromAnchors(anchors []htmlutil.Anchor) []Course {
+	courses := make([]Course, len(anchors))
+	for i := 0; i < len(anchors); i++ {
+		a := anchors[i]
+		if a == (htmlutil.Anchor{}) {
+			continue
+		}
+		courses[i] = Course{
+			Name: a.Name,
+			Href: a.Href,
+		}
+	}
+	return courses
+}
 
 const COURSE_LIST_LIFETIME = int64((time.Hour / time.Second) * 24 * 30 * 6)
 
-func (c *Client) Courses(ctx context.Context) ([]Course, error) {
+func (c Client) Courses(ctx context.Context) ([]Course, error) {
 	ctx, span := tracer.Start(ctx, "client:Courses")
 	defer span.End()
 
 	page, err := c.cache.get(ctx, c.ClientId, "/index.php")
 	if err == nil {
 		span.SetStatus(codes.Ok, "CACHE HIT")
-		return page.Anchors, nil
+		return coursesFromAnchors(page.Anchors), nil
 	}
 
 	if err != errWebpageNotFound {
@@ -91,14 +115,29 @@ func (c *Client) Courses(ctx context.Context) ([]Course, error) {
 		span.SetStatus(codes.Error, "failed to cache request")
 	}
 
-	return anchors, nil
+	return coursesFromAnchors(anchors), nil
 }
 
-type Section = htmlutil.Anchor
+type Section htmlutil.Anchor
+
+func sectionsFromAnchors(anchors []htmlutil.Anchor) []Section {
+	sections := make([]Section, len(anchors))
+	for i := 0; i < len(anchors); i++ {
+		a := anchors[i]
+		if a == (htmlutil.Anchor{}) {
+			continue
+		}
+		sections[i] = Section{
+			Name: a.Name,
+			Href: a.Href,
+		}
+	}
+	return sections
+}
 
 const SECTION_LIST_LIFETIME = int64(time.Hour / time.Second * 24)
 
-func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error) {
+func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) {
 	ctx, span := tracer.Start(ctx, "client:Sections")
 	defer span.End()
 
@@ -111,7 +150,7 @@ func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error)
 	page, err := c.cache.get(ctx, c.ClientId, endpoint)
 	if err == nil {
 		span.SetStatus(codes.Ok, "CACHE HIT")
-		return page.Anchors, nil
+		return sectionsFromAnchors(page.Anchors), nil
 	}
 
 	res, err := c.Core.Http.R().
@@ -141,14 +180,26 @@ func (c *Client) Sections(ctx context.Context, course Course) ([]Section, error)
 		span.SetStatus(codes.Error, "failed to cache request")
 	}
 
-	return anchors, nil
+	return sectionsFromAnchors(anchors), nil
 }
 
-type Resource = htmlutil.Anchor
+type Resource htmlutil.Anchor
+
+func resourcesFromAnchors(anchors []htmlutil.Anchor) []Resource {
+	resources := make([]Resource, len(anchors))
+	for i := 0; i < len(anchors); i++ {
+		a := anchors[i]
+		resources[i] = Resource{
+			Name: a.Name,
+			Href: a.Href,
+		}
+	}
+	return resources
+}
 
 const RESOURCE_LIST_LIFETIME = int64(time.Minute * 15 / time.Second)
 
-func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, error) {
+func (c Client) Resources(ctx context.Context, section Section) ([]Resource, error) {
 	ctx, span := tracer.Start(ctx, "client:Resources")
 	defer span.End()
 
@@ -161,7 +212,7 @@ func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, er
 	page, err := c.cache.get(ctx, c.ClientId, endpoint)
 	if err == nil {
 		span.SetStatus(codes.Ok, "CACHE HIT")
-		return page.Anchors, nil
+		return resourcesFromAnchors(page.Anchors), nil
 	}
 
 	res, err := c.Core.Http.R().
@@ -191,14 +242,29 @@ func (c *Client) Resources(ctx context.Context, section Section) ([]Resource, er
 		span.SetStatus(codes.Error, "failed to cache request")
 	}
 
-	return anchors, nil
+	return resourcesFromAnchors(anchors), nil
 }
 
-type Chapter = htmlutil.Anchor
+type Chapter htmlutil.Anchor
+
+func chaptersFromAnchors(anchors []htmlutil.Anchor) []Chapter {
+	chapters := make([]Chapter, len(anchors))
+	for i := 0; i < len(anchors); i++ {
+		a := anchors[i]
+		if a == (htmlutil.Anchor{}) {
+			continue
+		}
+		chapters[i] = Chapter{
+			Name: a.Name,
+			Href: a.Href,
+		}
+	}
+	return chapters
+}
 
 const CHAPTER_LIST_LIFETIME = int64(time.Minute * 15 / time.Second)
 
-func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, error) {
+func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, error) {
 	ctx, span := tracer.Start(ctx, "client:Chapters")
 	defer span.End()
 
@@ -211,7 +277,7 @@ func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, er
 	page, err := c.cache.get(ctx, c.ClientId, endpoint)
 	if err == nil {
 		span.SetStatus(codes.Ok, "CACHE HIT")
-		return page.Anchors, nil
+		return chaptersFromAnchors(page.Anchors), nil
 	}
 
 	res, err := c.Core.Http.R().
@@ -254,5 +320,5 @@ func (c *Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, er
 		span.SetStatus(codes.Error, "failed to cache request")
 	}
 
-	return anchors, nil
+	return chaptersFromAnchors(anchors), nil
 }
