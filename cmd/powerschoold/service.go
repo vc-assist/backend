@@ -39,10 +39,7 @@ func NewService(database *sql.DB, config Config) Service {
 	}
 }
 
-func (s Service) GetAuthStatus(
-	ctx context.Context,
-	req *connect.Request[api.GetAuthStatusRequest],
-) (*connect.Response[api.GetAuthStatusResponse], error) {
+func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.GetAuthStatusRequest]) (*connect.Response[api.GetAuthStatusResponse], error) {
 	ctx, span := s.tracer.Start(ctx, "service:GetAuthStatus")
 	defer span.End()
 
@@ -66,7 +63,9 @@ func (s Service) GetAuthStatus(
 		}, nil
 	}
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to exec sql query")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	span.SetStatus(codes.Ok, "token found")
@@ -87,7 +86,7 @@ func (s Service) GetAuthFlow(
 
 	codeVerifier, err := oauth.GenerateCodeVerifier()
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return &connect.Response[api.GetAuthFlowResponse]{
@@ -116,7 +115,7 @@ func (s Service) ProvideOAuth(
 
 	client, err := powerschool.NewClient(s.baseUrl)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	expiresAt, err := client.LoginOAuth(ctx, req.Msg.GetToken())
@@ -131,7 +130,9 @@ func (s Service) ProvideOAuth(
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to start transaction")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	defer func() {
 		// err will be set to the latest err when this function
@@ -148,7 +149,9 @@ func (s Service) ProvideOAuth(
 
 	err = qry.CreateStudent(ctx, req.Msg.GetStudentId())
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to exec sql query (1)")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	err = qry.CreateOrUpdateOAuthToken(ctx, db.CreateOrUpdateOAuthTokenParams{
 		Studentid: req.Msg.GetStudentId(),
@@ -156,7 +159,9 @@ func (s Service) ProvideOAuth(
 		Expiresat: expiresAt.Unix(),
 	})
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to exec sql query (2)")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return &connect.Response[api.ProvideOAuthResponse]{
@@ -179,30 +184,47 @@ func (s Service) GetStudentData(
 	if err == sql.ErrNoRows {
 		// if we are to support other auth methods in the future
 		// you would add additional code to handle it in this branch
-		return nil, fmt.Errorf("you don't have any credentials that can request student data")
+		err := fmt.Errorf("you don't have any credentials that can request student data")
+		span.SetStatus(codes.Error, err.Error())
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to exec sql query")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
 	if token.Expiresat < time.Now().Unix() {
-		return nil, fmt.Errorf("your credentials have expired, please call ProvideOAuth again")
+		err := fmt.Errorf("your credentials have expired, please call ProvideOAuth again")
+		span.SetStatus(codes.Error, err.Error())
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
+
 	client, err := powerschool.NewClient(s.baseUrl)
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to create powerschool client")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	_, err = client.LoginOAuth(ctx, token.Token)
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to login with oauth token")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	// fetch data
 	allStudents, err := client.GetAllStudents(ctx)
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch all student data")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	if len(allStudents.GetStudents()) == 0 {
-		return nil, fmt.Errorf("could not find student profile, are your powerschool credentials expired?")
+		err := fmt.Errorf("could not find student profile, are your powerschool credentials expired?")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	psStudent := allStudents.GetStudents()[0]
@@ -210,10 +232,13 @@ func (s Service) GetStudentData(
 		Guid: psStudent.GetGuid(),
 	})
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch student data")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	if studentData.Student == nil {
+		span.SetStatus(codes.Ok, "student data unavailable, only returning profile...")
 		return &connect.Response[api.GetStudentDataResponse]{
 			Msg: &api.GetStudentDataResponse{
 				Profile: psStudent,
@@ -231,7 +256,9 @@ func (s Service) GetStudentData(
 		SectionGuids: guids,
 	})
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch course meetings")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	// cache and return response
@@ -243,7 +270,9 @@ func (s Service) GetStudentData(
 
 	serializedResponse, err := proto.Marshal(response)
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to cache student data")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	err = s.qry.CreateOrUpdateStudentData(ctx, db.CreateOrUpdateStudentDataParams{
 		Studentid: token.Studentid,
@@ -251,7 +280,9 @@ func (s Service) GetStudentData(
 		Cached:    serializedResponse,
 	})
 	if err != nil {
-		return nil, err
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to exec sql query")
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return &connect.Response[api.GetStudentDataResponse]{Msg: response}, nil
