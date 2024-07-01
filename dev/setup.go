@@ -31,7 +31,7 @@ func cmd(name string, args ...string) {
 	}
 }
 
-func CreatePowerschoolApiDevDB() error {
+func CreatePowerschooldDevDB() error {
 	db, err := sql.Open("sqlite", "cmd/powerschoold/state.db")
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package powerschoolapi
+package main
 
 import (
 	"context"
@@ -60,7 +60,7 @@ func main() {
 	authInterceptor := NewAuthInterceptor(authService)
 
 	slog.Info("setting up grpc service handler...")
-	service := NewPowerschoolService(sqlite, config)
+	service := NewService(sqlite, config)
 	mux := http.NewServeMux()
 	mux.Handle(apiconnect.NewPowerschoolServiceHandler(
 		service,

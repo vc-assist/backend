@@ -7,3 +7,5 @@ dev/.state
 
 *.local.json5
 
+cmd/powerschoold/powerschoold
+

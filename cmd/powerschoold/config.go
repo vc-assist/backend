@@ -1,4 +1,4 @@
-package powerschoolapi
+package main
 
 import (
 	"vcassist-backend/lib/configuration"

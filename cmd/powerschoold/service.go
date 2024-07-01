@@ -1,4 +1,4 @@
-package powerschoolapi
+package main
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type PowerschoolService struct {
+type Service struct {
 	baseUrl string
 	qry     *db.Queries
 	db      *sql.DB
@@ -29,8 +29,8 @@ type PowerschoolService struct {
 	apiconnect.UnimplementedPowerschoolServiceHandler
 }
 
-func NewPowerschoolService(database *sql.DB, config Config) PowerschoolService {
-	return PowerschoolService{
+func NewService(database *sql.DB, config Config) Service {
+	return Service{
 		baseUrl: config.BaseUrl,
 		oauth:   config.OAuth,
 		qry:     db.New(database),
@@ -39,7 +39,7 @@ func NewPowerschoolService(database *sql.DB, config Config) PowerschoolService {
 	}
 }
 
-func (s PowerschoolService) GetAuthStatus(
+func (s Service) GetAuthStatus(
 	ctx context.Context,
 	req *connect.Request[api.GetAuthStatusRequest],
 ) (*connect.Response[api.GetAuthStatusResponse], error) {
@@ -77,7 +77,7 @@ func (s PowerschoolService) GetAuthStatus(
 	}, nil
 }
 
-func (s PowerschoolService) GetAuthFlow(
+func (s Service) GetAuthFlow(
 	ctx context.Context,
 	req *connect.Request[api.GetAuthFlowRequest],
 ) (*connect.Response[api.GetAuthFlowResponse], error) {
@@ -107,7 +107,7 @@ func (s PowerschoolService) GetAuthFlow(
 	}, nil
 }
 
-func (s PowerschoolService) ProvideOAuth(
+func (s Service) ProvideOAuth(
 	ctx context.Context,
 	req *connect.Request[api.ProvideOAuthRequest],
 ) (*connect.Response[api.ProvideOAuthResponse], error) {
@@ -167,7 +167,7 @@ func (s PowerschoolService) ProvideOAuth(
 	}, nil
 }
 
-func (s PowerschoolService) GetStudentData(
+func (s Service) GetStudentData(
 	ctx context.Context,
 	req *connect.Request[api.GetStudentDataRequest],
 ) (*connect.Response[api.GetStudentDataResponse], error) {

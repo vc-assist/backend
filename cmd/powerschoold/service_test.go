@@ -1,4 +1,4 @@
-package powerschoolapi_test
+package main
 
 import (
 	"context"
@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	powerschoolapi "vcassist-backend/cmd/powerschoold"
 	"vcassist-backend/cmd/powerschoold/api"
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/oauth"
@@ -55,7 +54,7 @@ func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) 
 	}
 }
 
-func getOAuthFlow(t testing.TB, ctx context.Context, service powerschoolapi.PowerschoolService) *api.OAuthFlow {
+func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *api.OAuthFlow {
 	authFlow, err := service.GetAuthFlow(
 		ctx,
 		&connect.Request[api.GetAuthFlowRequest]{Msg: &api.GetAuthFlowRequest{}},
@@ -114,7 +113,7 @@ func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAut
 	return token
 }
 
-func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.PowerschoolService) (string, func(t testing.TB)) {
+func promptForToken(t testing.TB, ctx context.Context, service Service) (string, func(t testing.TB)) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +146,7 @@ func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.Po
 //go:embed db/schema.sql
 var schemaSql string
 
-func setup(t testing.TB, dbname string) (powerschoolapi.PowerschoolService, func()) {
+func setup(t testing.TB, dbname string) (Service, func()) {
 	cleanupTel := telemetry.SetupForTesting(t, "test:powerschoold")
 
 	sqlite, err := sql.Open("sqlite", dbname)
@@ -159,19 +158,19 @@ func setup(t testing.TB, dbname string) (powerschoolapi.PowerschoolService, func
 		t.Fatal(err)
 	}
 
-	config, err := configuration.ReadConfig[powerschoolapi.Config]("config.json5")
+	config, err := configuration.ReadConfig[Config]("config.json5")
 	if err != nil {
 		t.Fatal("failed to load configuration", err)
 	}
 
-	oauthd, err := powerschoolapi.NewOAuthDaemon(sqlite, config.OAuth)
+	oauthd, err := NewOAuthDaemon(sqlite, config.OAuth)
 	if err != nil {
 		t.Fatal(err)
 	}
 	oauthdCtx, cancelOAuthd := context.WithCancel(context.Background())
 	oauthd.Start(oauthdCtx)
 
-	service := powerschoolapi.NewPowerschoolService(sqlite, config)
+	service := NewService(sqlite, config)
 
 	return service, func() {
 		cancelOAuthd()
@@ -179,7 +178,7 @@ func setup(t testing.TB, dbname string) (powerschoolapi.PowerschoolService, func
 	}
 }
 
-func provideNewToken(t testing.TB, ctx context.Context, service powerschoolapi.PowerschoolService, id string) {
+func provideNewToken(t testing.TB, ctx context.Context, service Service, id string) {
 	token, cleanup := promptForToken(t, ctx, service)
 	defer cleanup(t)
 

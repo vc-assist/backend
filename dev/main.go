@@ -31,7 +31,7 @@ func create(recreate bool) error {
 	if err != nil {
 		return err
 	}
-	err = CreatePowerschoolApiDevDB()
+	err = CreatePowerschooldDevDB()
 	if err != nil {
 		return err
 	}
