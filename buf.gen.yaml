@@ -11,5 +11,11 @@ plugins:
   - remote: buf.build/connectrpc/go
     out: .
     opt: paths=source_relative
+  - remote: buf.build/bufbuild/es
+    out: .
+    opt: target=ts
+  - remote: buf.build/connectrpc/es
+    out: .
+    opt: target=ts
 inputs:
   - directory: .

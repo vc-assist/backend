@@ -1,4 +1,4 @@
-## vcassist-backend
+## backend
 
 > WIP rewrite of the vcassist backend in golang.
 
@@ -52,6 +52,6 @@ here are some commands relating to linting and code generation that will probabl
 
 ### testing
 
-- `go test ./lib/...` - runs all tests in shared packages
-- `go test ./cmd/powerschoold` - runs the tests for the Powerschool API, this is kept separately from `go test ./lib/...` because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test ./lib/... ./cmd/authd` - runs all tests that don't require manual interaction
+- `go test ./cmd/powerschoold` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 
