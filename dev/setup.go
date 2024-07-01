@@ -32,12 +32,12 @@ func cmd(name string, args ...string) {
 }
 
 func CreatePowerschoolApiDevDB() error {
-	db, err := sql.Open("sqlite", "cmd/powerschool_api/state.db")
+	db, err := sql.Open("sqlite", "cmd/powerschoold/state.db")
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	schema, err := os.ReadFile("cmd/powerschool_api/db/schema.sql")
+	schema, err := os.ReadFile("cmd/powerschoold/db/schema.sql")
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,0 @@
-package vcassistapi
-
-func main() {
-
-}

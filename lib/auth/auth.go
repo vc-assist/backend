@@ -133,7 +133,7 @@ If you don't recognize this account, please ignore this email.`, code)
 }
 
 func (s Service) StartLogin(ctx context.Context, email string) error {
-	ctx, span := tracer.Start(ctx, "auth:CreateOrLogin")
+	ctx, span := tracer.Start(ctx, "auth:StartLogin")
 	defer span.End()
 
 	tx, err := s.db.BeginTx(ctx, nil)

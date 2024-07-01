@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"time"
-	"vcassist-backend/cmd/powerschool_api/db"
+	"vcassist-backend/cmd/powerschoold/db"
 	"vcassist-backend/lib/oauth"
 
 	"github.com/prometheus/client_golang/prometheus"

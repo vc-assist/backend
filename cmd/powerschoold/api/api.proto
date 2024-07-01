@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package cmd.powerschool_api.api;
+package cmd.powerschoold.api;
 
 import "lib/platforms/powerschool/query_all_students.proto";
 import "lib/platforms/powerschool/query_schedule.proto";

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	"vcassist-backend/cmd/powerschool_api/api"
-	"vcassist-backend/cmd/powerschool_api/api/apiconnect"
-	"vcassist-backend/cmd/powerschool_api/db"
+	"vcassist-backend/cmd/powerschoold/api"
+	"vcassist-backend/cmd/powerschoold/api/apiconnect"
+	"vcassist-backend/cmd/powerschoold/db"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/platforms/powerschool"
 

@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "cmd/powerschool_api/db/query.sql"
-    schema: "cmd/powerschool_api/db/schema.sql"
+    queries: "cmd/powerschoold/db/query.sql"
+    schema: "cmd/powerschoold/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "cmd/powerschool_api/db"
+        out: "cmd/powerschoold/db"
   - engine: "sqlite"
     queries: "lib/auth/db/query.sql"
     schema: "lib/auth/db/schema.sql"

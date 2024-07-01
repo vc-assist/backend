@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"vcassist-backend/cmd/powerschool_api/api/apiconnect"
+	"vcassist-backend/cmd/powerschoold/api/apiconnect"
 	"vcassist-backend/lib/auth"
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/telemetry"
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	slog.Info("setting up telemetry...")
-	tel, err := telemetry.SetupFromEnv(context.Background(), "powerschool_api")
+	tel, err := telemetry.SetupFromEnv(context.Background(), "powerschoold")
 	if err != nil {
 		fatalerr("failed to setup telemetry", err)
 	}

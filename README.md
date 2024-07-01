@@ -24,7 +24,7 @@ the code that initializes this environment is kept under `dev/`.
 
 here are a few things it sets up:
 
-1. an empty sqlite database + migrations for `cmd/powerschool_api/`
+1. an empty sqlite database + migrations for `cmd/powerschoold/`
 2. a local setup of telemetry using Docker Compose under `dev/local_stack/`
 3. moodle credentials for use in testing in `lib/platforms/moodle/...`
 
@@ -53,5 +53,5 @@ here are some commands relating to linting and code generation that will probabl
 ### testing
 
 - `go test ./lib/...` - runs all tests in shared packages
-- `go test ./cmd/powerschool_api` - runs the tests for the Powerschool API, this is kept separately from `go test ./lib/...` because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test ./cmd/powerschoold` - runs the tests for the Powerschool API, this is kept separately from `go test ./lib/...` because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 

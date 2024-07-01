@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
-	powerschoolapi "vcassist-backend/cmd/powerschool_api"
-	"vcassist-backend/cmd/powerschool_api/api"
+	powerschoolapi "vcassist-backend/cmd/powerschoold"
+	"vcassist-backend/cmd/powerschoold/api"
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/platforms/powerschool"
@@ -148,7 +148,7 @@ func promptForToken(t testing.TB, ctx context.Context, service powerschoolapi.Po
 var schemaSql string
 
 func setup(t testing.TB, dbname string) (powerschoolapi.PowerschoolService, func()) {
-	cleanupTel := telemetry.SetupForTesting(t, "test:powerschool_api")
+	cleanupTel := telemetry.SetupForTesting(t, "test:powerschoold")
 
 	sqlite, err := sql.Open("sqlite", dbname)
 	if err != nil {

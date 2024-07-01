@@ -129,7 +129,7 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "powerschool_api"
+                "powerschoold"
               ],
               "valueType": "string"
             },

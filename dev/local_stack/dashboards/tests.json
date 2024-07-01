@@ -570,7 +570,7 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "test:powerschool_api"
+                "test:powerschoold"
               ],
               "valueType": "string"
             },
@@ -594,7 +594,7 @@
           "tableType": "traces"
         }
       ],
-      "title": "test:powerschool_api",
+      "title": "test:powerschoold",
       "transformations": [
         {
           "id": "filterByRefId",
