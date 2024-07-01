@@ -35,7 +35,7 @@ func TestGenerateCode(t *testing.T) {
 var schemaSql string
 
 func setup(t testing.TB) (Service, func()) {
-	cleanup := telemetry.SetupForTesting(t, "test:auth")
+	cleanup := telemetry.SetupForTesting(t, "test:authd")
 
 	sqlite, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
