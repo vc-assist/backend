@@ -23,11 +23,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
 	_ "modernc.org/sqlite"
 )
-
-var tracer = otel.Tracer("service_test")
 
 func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) {
 	switch runtime.GOOS {
@@ -55,15 +52,11 @@ func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) 
 }
 
 func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *api.OAuthFlow {
-	authFlow, err := service.GetAuthFlow(
-		ctx,
-		&connect.Request[api.GetAuthFlowRequest]{Msg: &api.GetAuthFlowRequest{}},
-	)
+	authFlow, err := service.GetAuthFlow(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	oauthFlow := authFlow.Msg.GetOauth()
-	return oauthFlow
+	return authFlow.GetOauth()
 }
 
 func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAuthFlow) string {
@@ -186,20 +179,10 @@ func provideNewToken(t testing.TB, ctx context.Context, service Service, id stri
 	fmt.Println(token)
 	fmt.Println("=======================")
 
-	providedOAuth, err := service.ProvideOAuth(
-		ctx,
-		&connect.Request[api.ProvideOAuthRequest]{
-			Msg: &api.ProvideOAuthRequest{
-				StudentId: id,
-				Token:     token,
-			},
-		},
-	)
+	err := service.ProvideOAuth(ctx, id, token)
 	if err != nil {
 		t.Fatal(err)
 	}
-	slog.Info("provide auth message", "msg", providedOAuth.Msg.GetMessage())
-	require.True(t, providedOAuth.Msg.GetSuccess())
 
 	foundToken, err := service.GetAuthStatus(
 		ctx,
@@ -236,29 +219,22 @@ func TestOAuth(t *testing.T) {
 		provideNewToken(t, ctx, service, studentId)
 	}
 
-	foundStudentData, err := service.GetStudentData(
-		ctx,
-		&connect.Request[api.GetStudentDataRequest]{
-			Msg: &api.GetStudentDataRequest{
-				StudentId: studentId,
-			},
-		},
-	)
+	foundStudentData, err := service.GetStudentData(ctx, studentId)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	require.NotNil(t, foundStudentData.Msg.GetProfile())
-	require.NotEmpty(t, foundStudentData.Msg.GetProfile().GetGuid())
-	require.NotEmpty(t, foundStudentData.Msg.GetProfile().GetFirstName())
-	require.NotEmpty(t, foundStudentData.Msg.GetProfile().GetLastName())
+	require.NotNil(t, foundStudentData.GetProfile())
+	require.NotEmpty(t, foundStudentData.GetProfile().GetGuid())
+	require.NotEmpty(t, foundStudentData.GetProfile().GetFirstName())
+	require.NotEmpty(t, foundStudentData.GetProfile().GetLastName())
 
-	require.Greater(t, len(foundStudentData.Msg.GetProfile().GetSchools()), 0, "provided powerschool account must be a part of at least one school")
-	for _, school := range foundStudentData.Msg.GetProfile().GetSchools() {
+	require.Greater(t, len(foundStudentData.GetProfile().GetSchools()), 0, "provided powerschool account must be a part of at least one school")
+	for _, school := range foundStudentData.GetProfile().GetSchools() {
 		require.NotEmpty(t, school.GetName())
 	}
 
-	courses := foundStudentData.Msg.GetCourseData()
+	courses := foundStudentData.GetCourseData()
 	if len(courses) > 0 {
 		for _, course := range courses {
 			require.NotEmpty(t, course.GetGuid())
@@ -267,7 +243,7 @@ func TestOAuth(t *testing.T) {
 		}
 	}
 
-	meetings := foundStudentData.Msg.GetMeetings().SectionMeetings
+	meetings := foundStudentData.GetMeetings().SectionMeetings
 	if len(meetings) > 0 {
 		for _, meeting := range meetings {
 			require.NotEmpty(t, meeting.GetSectionGuid())
@@ -301,13 +277,6 @@ func TestBasicNotFound(t *testing.T) {
 	}
 	require.False(t, res.Msg.GetIsAuthenticated())
 
-	_, err = service.GetStudentData(
-		ctx,
-		&connect.Request[api.GetStudentDataRequest]{
-			Msg: &api.GetStudentDataRequest{
-				StudentId: id,
-			},
-		},
-	)
+	_, err = service.GetStudentData(ctx, id)
 	require.NotNil(t, err)
 }

@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"vcassist-backend/cmd/authd/verifier"
 	"vcassist-backend/cmd/powerschoold/api/apiconnect"
-	"vcassist-backend/lib/auth"
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/telemetry"
 
@@ -24,7 +24,7 @@ func main() {
 	slog.Info("loading config...")
 	config, err := configuration.ReadConfig[Config]("config.json5")
 	if err != nil {
-		fatalerr("failed to load configuration", err)
+		fatalerr("failed to load config", err)
 	}
 
 	slog.Info("setting up telemetry...")
@@ -40,36 +40,36 @@ func main() {
 	}()
 
 	slog.Info("opening database...")
-	sqlite, err := config.Libsql.OpenDB()
+	selfDB, err := config.Database.Self.OpenDB()
 	if err != nil {
-		fatalerr("failed to open libsql connector", err)
+		fatalerr("failed to open self libsql connector", err)
 	}
 
 	slog.Info("setting up oauth daemon...")
-	oauthd, err := NewOAuthDaemon(sqlite, config.OAuth)
+	oauthd, err := NewOAuthDaemon(selfDB, config.OAuth)
 	if err != nil {
 		fatalerr("failed to create oauth daemon", err)
 	}
 	oauthd.Start(context.Background())
 
 	slog.Info("setting up auth interceptor...")
-	authService, err := auth.ServiceFromEnv()
+	authDB, err := config.Database.Auth.OpenDB()
 	if err != nil {
-		fatalerr("failed to create auth service", err)
+		fatalerr("failed to open auth libsql connector", err)
 	}
-	authInterceptor := NewAuthInterceptor(authService)
+	authInterceptor := verifier.NewAuthInterceptor(verifier.NewVerifier(authDB))
 
 	slog.Info("setting up grpc service handler...")
-	service := NewService(sqlite, config)
+	service := GrpcService{service: NewService(selfDB, config)}
 	mux := http.NewServeMux()
 	mux.Handle(apiconnect.NewPowerschoolServiceHandler(
 		service,
 		connect.WithInterceptors(authInterceptor),
 	))
 
-	slog.Info("listening to gRPC...", "port", 9000)
+	slog.Info("listening to gRPC...", "port", 9111)
 	err = http.ListenAndServe(
-		"127.0.0.1:9000",
+		"127.0.0.1:9111",
 		// for gRPC clients, it's convenient to support HTTP/2 without TLS. you can
 		// avoid x/net/http2 by using http.ListenAndServeTLS.
 		h2c.NewHandler(mux, &http2.Server{}),

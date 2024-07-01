@@ -1,6 +1,7 @@
-package auth
+package main
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -8,54 +9,30 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
-	"vcassist-backend/lib/auth/db"
+	"vcassist-backend/cmd/authd/db"
+	"vcassist-backend/cmd/authd/verifier"
 
 	"github.com/jordan-wright/email"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
-	"golang.org/x/net/context"
 )
 
-var tracer = otel.Tracer("auth")
-
-type EmailConfig struct {
-	Server       string `json:"server"`
-	Port         int    `json:"port"`
-	EmailAddress string `json:"email_address"`
-	Password     string `json:"password"`
-}
+var tracer = otel.Tracer("service")
 
 type Service struct {
-	db    *sql.DB
-	qry   *db.Queries
-	email EmailConfig
+	db       *sql.DB
+	qry      *db.Queries
+	email    EmailConfig
+	verifier verifier.Verifier
 }
 
 func NewService(database *sql.DB, email EmailConfig) Service {
 	return Service{
-		db:    database,
-		qry:   db.New(database),
-		email: email,
+		db:       database,
+		qry:      db.New(database),
+		email:    email,
+		verifier: verifier.NewVerifier(database),
 	}
-}
-
-var InvalidToken = fmt.Errorf("invalid token")
-
-func (s Service) VerifyToken(ctx context.Context, token string) (db.User, error) {
-	ctx, span := tracer.Start(ctx, "auth:VerifyToken")
-	defer span.End()
-
-	email, err := s.qry.GetUserFromToken(ctx, token)
-	if sql.ErrNoRows == err {
-		span.SetStatus(codes.Error, "invalid token")
-		return db.User{}, InvalidToken
-	} else if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "got unexpected error while reading token")
-		return db.User{}, err
-	}
-
-	return db.User{Email: email}, nil
 }
 
 func generateVerificationCode() (string, error) {
@@ -258,4 +235,8 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, email, providedCod
 	}
 
 	return token, nil
+}
+
+func (s Service) VerifyToken(ctx context.Context, token string) (db.User, error) {
+	return s.verifier.VerifyToken(ctx, token)
 }

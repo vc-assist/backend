@@ -1,15 +1,14 @@
-package main
+package verifier
 
 import (
 	"context"
 	"fmt"
 	"strings"
-	"vcassist-backend/lib/auth"
 
 	"connectrpc.com/connect"
 )
 
-func NewAuthInterceptor(service auth.Service) connect.UnaryInterceptorFunc {
+func NewAuthInterceptor(verifier Verifier) connect.UnaryInterceptorFunc {
 	interceptor := func(next connect.UnaryFunc) connect.UnaryFunc {
 		return connect.UnaryFunc(func(
 			ctx context.Context,
@@ -22,7 +21,7 @@ func NewAuthInterceptor(service auth.Service) connect.UnaryInterceptorFunc {
 			}
 
 			token := split[1]
-			_, err := service.VerifyToken(ctx, token)
+			_, err := verifier.VerifyToken(ctx, token)
 			if err != nil {
 				return nil, err
 			}

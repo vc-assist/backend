@@ -10,8 +10,13 @@ type OAuthConfig struct {
 	ClientId     string `json:"client_id"`
 }
 
+type DatabaseConfig struct {
+	Self configuration.Libsql `json:"self"`
+	Auth configuration.Libsql `json:"auth"`
+}
+
 type Config struct {
-	BaseUrl string               `json:"base_url"`
-	OAuth   OAuthConfig          `json:"oauth"`
-	Libsql  configuration.Libsql `json:"database"`
+	BaseUrl  string         `json:"base_url"`
+	OAuth    OAuthConfig    `json:"oauth"`
+	Database DatabaseConfig `json:"database"`
 }

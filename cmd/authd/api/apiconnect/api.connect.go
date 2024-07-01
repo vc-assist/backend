@@ -6,7 +6,10 @@ package apiconnect
 
 import (
 	connect "connectrpc.com/connect"
+	context "context"
+	errors "errors"
 	http "net/http"
+	strings "strings"
 	api "vcassist-backend/cmd/authd/api"
 )
 
@@ -22,13 +25,36 @@ const (
 	AuthServiceName = "cmd.authd.api.AuthService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// AuthServiceStartLoginProcedure is the fully-qualified name of the AuthService's StartLogin RPC.
+	AuthServiceStartLoginProcedure = "/cmd.authd.api.AuthService/StartLogin"
+	// AuthServiceConsumeVerificationCodeProcedure is the fully-qualified name of the AuthService's
+	// ConsumeVerificationCode RPC.
+	AuthServiceConsumeVerificationCodeProcedure = "/cmd.authd.api.AuthService/ConsumeVerificationCode"
+	// AuthServiceVerifyTokenProcedure is the fully-qualified name of the AuthService's VerifyToken RPC.
+	AuthServiceVerifyTokenProcedure = "/cmd.authd.api.AuthService/VerifyToken"
+)
+
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	authServiceServiceDescriptor = api.File_cmd_authd_api_api_proto.Services().ByName("AuthService")
+	authServiceServiceDescriptor                       = api.File_cmd_authd_api_api_proto.Services().ByName("AuthService")
+	authServiceStartLoginMethodDescriptor              = authServiceServiceDescriptor.Methods().ByName("StartLogin")
+	authServiceConsumeVerificationCodeMethodDescriptor = authServiceServiceDescriptor.Methods().ByName("ConsumeVerificationCode")
+	authServiceVerifyTokenMethodDescriptor             = authServiceServiceDescriptor.Methods().ByName("VerifyToken")
 )
 
 // AuthServiceClient is a client for the cmd.authd.api.AuthService service.
 type AuthServiceClient interface {
+	StartLogin(context.Context, *connect.Request[api.StartLoginRequest]) (*connect.Response[api.StartLoginResponse], error)
+	ConsumeVerificationCode(context.Context, *connect.Request[api.ConsumeVerificationCodeRequest]) (*connect.Response[api.ConsumeVerificationCodeResponse], error)
+	VerifyToken(context.Context, *connect.Request[api.VerifyTokenRequest]) (*connect.Response[api.VerifyTokenResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the cmd.authd.api.AuthService service. By default,
@@ -39,15 +65,56 @@ type AuthServiceClient interface {
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
 func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) AuthServiceClient {
-	return &authServiceClient{}
+	baseURL = strings.TrimRight(baseURL, "/")
+	return &authServiceClient{
+		startLogin: connect.NewClient[api.StartLoginRequest, api.StartLoginResponse](
+			httpClient,
+			baseURL+AuthServiceStartLoginProcedure,
+			connect.WithSchema(authServiceStartLoginMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		consumeVerificationCode: connect.NewClient[api.ConsumeVerificationCodeRequest, api.ConsumeVerificationCodeResponse](
+			httpClient,
+			baseURL+AuthServiceConsumeVerificationCodeProcedure,
+			connect.WithSchema(authServiceConsumeVerificationCodeMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		verifyToken: connect.NewClient[api.VerifyTokenRequest, api.VerifyTokenResponse](
+			httpClient,
+			baseURL+AuthServiceVerifyTokenProcedure,
+			connect.WithSchema(authServiceVerifyTokenMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
+	startLogin              *connect.Client[api.StartLoginRequest, api.StartLoginResponse]
+	consumeVerificationCode *connect.Client[api.ConsumeVerificationCodeRequest, api.ConsumeVerificationCodeResponse]
+	verifyToken             *connect.Client[api.VerifyTokenRequest, api.VerifyTokenResponse]
+}
+
+// StartLogin calls cmd.authd.api.AuthService.StartLogin.
+func (c *authServiceClient) StartLogin(ctx context.Context, req *connect.Request[api.StartLoginRequest]) (*connect.Response[api.StartLoginResponse], error) {
+	return c.startLogin.CallUnary(ctx, req)
+}
+
+// ConsumeVerificationCode calls cmd.authd.api.AuthService.ConsumeVerificationCode.
+func (c *authServiceClient) ConsumeVerificationCode(ctx context.Context, req *connect.Request[api.ConsumeVerificationCodeRequest]) (*connect.Response[api.ConsumeVerificationCodeResponse], error) {
+	return c.consumeVerificationCode.CallUnary(ctx, req)
+}
+
+// VerifyToken calls cmd.authd.api.AuthService.VerifyToken.
+func (c *authServiceClient) VerifyToken(ctx context.Context, req *connect.Request[api.VerifyTokenRequest]) (*connect.Response[api.VerifyTokenResponse], error) {
+	return c.verifyToken.CallUnary(ctx, req)
 }
 
 // AuthServiceHandler is an implementation of the cmd.authd.api.AuthService service.
 type AuthServiceHandler interface {
+	StartLogin(context.Context, *connect.Request[api.StartLoginRequest]) (*connect.Response[api.StartLoginResponse], error)
+	ConsumeVerificationCode(context.Context, *connect.Request[api.ConsumeVerificationCodeRequest]) (*connect.Response[api.ConsumeVerificationCodeResponse], error)
+	VerifyToken(context.Context, *connect.Request[api.VerifyTokenRequest]) (*connect.Response[api.VerifyTokenResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -56,8 +123,32 @@ type AuthServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	authServiceStartLoginHandler := connect.NewUnaryHandler(
+		AuthServiceStartLoginProcedure,
+		svc.StartLogin,
+		connect.WithSchema(authServiceStartLoginMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceConsumeVerificationCodeHandler := connect.NewUnaryHandler(
+		AuthServiceConsumeVerificationCodeProcedure,
+		svc.ConsumeVerificationCode,
+		connect.WithSchema(authServiceConsumeVerificationCodeMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceVerifyTokenHandler := connect.NewUnaryHandler(
+		AuthServiceVerifyTokenProcedure,
+		svc.VerifyToken,
+		connect.WithSchema(authServiceVerifyTokenMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/cmd.authd.api.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case AuthServiceStartLoginProcedure:
+			authServiceStartLoginHandler.ServeHTTP(w, r)
+		case AuthServiceConsumeVerificationCodeProcedure:
+			authServiceConsumeVerificationCodeHandler.ServeHTTP(w, r)
+		case AuthServiceVerifyTokenProcedure:
+			authServiceVerifyTokenHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -66,3 +157,15 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 
 // UnimplementedAuthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAuthServiceHandler struct{}
+
+func (UnimplementedAuthServiceHandler) StartLogin(context.Context, *connect.Request[api.StartLoginRequest]) (*connect.Response[api.StartLoginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cmd.authd.api.AuthService.StartLogin is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ConsumeVerificationCode(context.Context, *connect.Request[api.ConsumeVerificationCodeRequest]) (*connect.Response[api.ConsumeVerificationCodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cmd.authd.api.AuthService.ConsumeVerificationCode is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) VerifyToken(context.Context, *connect.Request[api.VerifyTokenRequest]) (*connect.Response[api.VerifyTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cmd.authd.api.AuthService.VerifyToken is not implemented"))
+}
