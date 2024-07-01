@@ -15,6 +15,11 @@ func create(recreate bool) error {
 		return fmt.Errorf("the dev environment must be created in the repository root (the same directory as the 'go.mod' file)")
 	}
 
+	err = os.MkdirAll("dev/.state", 0777)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
 	if recreate {
 		err = os.RemoveAll("dev/.state")
 		if err != nil && !os.IsNotExist(err) {

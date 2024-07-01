@@ -8,10 +8,10 @@ import (
 	"vcassist-backend/cmd/powerschool_api/db"
 	"vcassist-backend/lib/oauth"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -20,15 +20,15 @@ type OAuthDaemon struct {
 	db             *sql.DB
 	config         OAuthConfig
 	tracer         trace.Tracer
-	refreshCounter metric.Int64Counter
+	refreshCounter prometheus.Counter
 }
 
 func NewOAuthDaemon(database *sql.DB, config OAuthConfig) (OAuthDaemon, error) {
-	oauthdMeter := otel.GetMeterProvider().Meter("oauthd")
-	refreshCounter, err := oauthdMeter.Int64Counter("refresh_token")
-	if err != nil {
-		return OAuthDaemon{}, err
-	}
+	refreshCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "vcassist",
+		Name:      "oauthd_refresh_total",
+		Help:      "The total amount of times a token has been refreshed.",
+	})
 	return OAuthDaemon{
 		db:             database,
 		qry:            db.New(database),
@@ -107,7 +107,7 @@ func (d OAuthDaemon) refreshAllTokens(ctx context.Context) {
 		if err != nil {
 			continue
 		}
-		d.refreshCounter.Add(ctx, 1)
+		d.refreshCounter.Add(1)
 	}
 }
 

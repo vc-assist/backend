@@ -14,7 +14,6 @@ import (
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 )
@@ -25,7 +24,6 @@ type PowerschoolService struct {
 	db      *sql.DB
 
 	oauth  OAuthConfig
-	meter  metric.Meter
 	tracer trace.Tracer
 
 	apiconnect.UnimplementedPowerschoolServiceHandler
@@ -38,7 +36,6 @@ func NewPowerschoolService(database *sql.DB, config Config) PowerschoolService {
 		qry:     db.New(database),
 		db:      database,
 		tracer:  otel.GetTracerProvider().Tracer("service"),
-		meter:   otel.GetMeterProvider().Meter("service"),
 	}
 }
 

@@ -30,8 +30,8 @@ here are a few things it sets up:
 
 as such, before running tests or doing local debugging you should run one of the following commands.
 
-- `go run dev/main.go` - setup development environment
-- `go run dev/main.go -recreate` - recreate development environment (bypass cache effectively)
+- `go run ./dev` - setup development environment
+- `go run ./dev -recreate` - recreate development environment (bypass cache effectively)
 
 ### commands
 
