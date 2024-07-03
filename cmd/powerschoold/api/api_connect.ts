@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetAuthFlowRequest, GetAuthFlowResponse, GetAuthStatusRequest, GetAuthStatusResponse, GetStudentDataRequest, GetStudentDataResponse, ProvideOAuthRequest, ProvideOAuthResponse } from "./api_pb.js";
+import { GetAuthFlowRequest, GetAuthFlowResponse, GetAuthStatusRequest, GetAuthStatusResponse, GetKnownCoursesRequest, GetKnownCoursesResponse, GetStudentDataRequest, GetStudentDataResponse, ProvideOAuthRequest, ProvideOAuthResponse } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -46,6 +46,15 @@ export const PowerschoolService = {
       name: "GetStudentData",
       I: GetStudentDataRequest,
       O: GetStudentDataResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc cmd.powerschoold.api.PowerschoolService.GetKnownCourses
+     */
+    getKnownCourses: {
+      name: "GetKnownCourses",
+      I: GetKnownCoursesRequest,
+      O: GetKnownCoursesResponse,
       kind: MethodKind.Unary,
     },
   }

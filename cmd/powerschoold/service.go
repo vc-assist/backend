@@ -34,6 +34,32 @@ func NewService(database *sql.DB, config Config) Service {
 	}
 }
 
+func (s Service) GetKnownCourses(ctx context.Context) ([]*api.KnownCourse, error) {
+	ctx, span := tracer.Start(ctx, "service:GetKnownCourses")
+	defer span.End()
+
+	courses, err := s.qry.GetKnownCourses(ctx)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to exec sql query")
+		return nil, err
+	}
+
+	res := make([]*api.KnownCourse, len(courses))
+	for i, c := range courses {
+		res[i] = &api.KnownCourse{
+			Guid:             c.Guid,
+			Name:             c.Name,
+			Period:           c.Period.String,
+			Room:             c.Room.String,
+			TeacherFirstName: c.Teacherfirstname.String,
+			TeacherLastName:  c.Teacherlastname.String,
+			TeacherEmail:     c.Teacheremail.String,
+		}
+	}
+	return res, nil
+}
+
 func (s Service) GetAuthStatus(ctx context.Context, studentId string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "service:GetAuthStatus")
 	defer span.End()
@@ -216,18 +242,50 @@ func (s Service) GetStudentData(ctx context.Context, studentId string) (*api.Get
 	}
 
 	courseList := studentData.GetStudent().GetSections()
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to begin transaction")
+	}
+	defer tx.Rollback()
+	txqry := s.qry.WithTx(tx)
+	for _, c := range courseList {
+		err = txqry.CreateOrUpdateKnownCourse(ctx, db.CreateOrUpdateKnownCourseParams{
+			Guid:             c.Guid,
+			Name:             c.Name,
+			Teacherfirstname: sql.NullString{String: c.TeacherFirstName},
+			Teacherlastname:  sql.NullString{String: c.TeacherLastName},
+			Teacheremail:     sql.NullString{String: c.TeacherEmail},
+			Period:           sql.NullString{String: c.Period},
+			Room:             sql.NullString{String: c.Room},
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to add known course to register transaction")
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to register known courses")
+	}
+
 	guids := make([]string, len(courseList))
 	for i, course := range courseList {
 		guids[i] = course.GetGuid()
 	}
 
-	courseMeetingList, err := client.GetCourseMeetingList(ctx, &powerschool.GetCourseMeetingListInput{
-		SectionGuids: guids,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch course meetings")
-		return nil, err
+	var courseMeetingList *powerschool.CourseMeetingList
+	if len(guids) > 0 {
+		courseMeetingList, err = client.GetCourseMeetingList(ctx, &powerschool.GetCourseMeetingListInput{
+			SectionGuids: guids,
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to fetch course meetings")
+			return nil, err
+		}
 	}
 
 	// cache and return response

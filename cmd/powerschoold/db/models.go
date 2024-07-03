@@ -4,6 +4,20 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
+type KnownCourse struct {
+	Guid             string
+	Name             string
+	Period           sql.NullString
+	Teacherfirstname sql.NullString
+	Teacherlastname  sql.NullString
+	Teacheremail     sql.NullString
+	Room             sql.NullString
+}
+
 type OAuthToken struct {
 	Studentid string
 	Token     string

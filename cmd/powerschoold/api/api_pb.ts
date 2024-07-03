@@ -410,3 +410,146 @@ export class GetStudentDataResponse extends Message<GetStudentDataResponse> {
   }
 }
 
+/**
+ * GetKnownCourses
+ *
+ * @generated from message cmd.powerschoold.api.KnownCourse
+ */
+export class KnownCourse extends Message<KnownCourse> {
+  /**
+   * @generated from field: string guid = 1;
+   */
+  guid = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string period = 3;
+   */
+  period = "";
+
+  /**
+   * @generated from field: string teacher_first_name = 4;
+   */
+  teacherFirstName = "";
+
+  /**
+   * @generated from field: string teacher_last_name = 5;
+   */
+  teacherLastName = "";
+
+  /**
+   * @generated from field: string teacher_email = 6;
+   */
+  teacherEmail = "";
+
+  /**
+   * @generated from field: string room = 7;
+   */
+  room = "";
+
+  constructor(data?: PartialMessage<KnownCourse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cmd.powerschoold.api.KnownCourse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "guid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "period", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "teacher_first_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "teacher_last_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "teacher_email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "room", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): KnownCourse {
+    return new KnownCourse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): KnownCourse {
+    return new KnownCourse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): KnownCourse {
+    return new KnownCourse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: KnownCourse | PlainMessage<KnownCourse> | undefined, b: KnownCourse | PlainMessage<KnownCourse> | undefined): boolean {
+    return proto3.util.equals(KnownCourse, a, b);
+  }
+}
+
+/**
+ * @generated from message cmd.powerschoold.api.GetKnownCoursesRequest
+ */
+export class GetKnownCoursesRequest extends Message<GetKnownCoursesRequest> {
+  constructor(data?: PartialMessage<GetKnownCoursesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cmd.powerschoold.api.GetKnownCoursesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetKnownCoursesRequest {
+    return new GetKnownCoursesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetKnownCoursesRequest {
+    return new GetKnownCoursesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetKnownCoursesRequest {
+    return new GetKnownCoursesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetKnownCoursesRequest | PlainMessage<GetKnownCoursesRequest> | undefined, b: GetKnownCoursesRequest | PlainMessage<GetKnownCoursesRequest> | undefined): boolean {
+    return proto3.util.equals(GetKnownCoursesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message cmd.powerschoold.api.GetKnownCoursesResponse
+ */
+export class GetKnownCoursesResponse extends Message<GetKnownCoursesResponse> {
+  /**
+   * @generated from field: repeated cmd.powerschoold.api.KnownCourse courses = 1;
+   */
+  courses: KnownCourse[] = [];
+
+  constructor(data?: PartialMessage<GetKnownCoursesResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cmd.powerschoold.api.GetKnownCoursesResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "courses", kind: "message", T: KnownCourse, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetKnownCoursesResponse {
+    return new GetKnownCoursesResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetKnownCoursesResponse {
+    return new GetKnownCoursesResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetKnownCoursesResponse {
+    return new GetKnownCoursesResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetKnownCoursesResponse | PlainMessage<GetKnownCoursesResponse> | undefined, b: GetKnownCoursesResponse | PlainMessage<GetKnownCoursesResponse> | undefined): boolean {
+    return proto3.util.equals(GetKnownCoursesResponse, a, b);
+  }
+}
+

@@ -7,7 +7,45 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const createOrUpdateKnownCourse = `-- name: CreateOrUpdateKnownCourse :exec
+insert into KnownCourse(guid, name, period, teacherFirstName, teacherLastName, teacherEmail, room)
+values (?, ?, ?, ?, ?, ?, ?)
+on conflict (guid)
+    do update set
+        guid = EXCLUDED.guid,
+        name = EXCLUDED.name,
+        period = EXCLUDED.period,
+        teacherFirstName = EXCLUDED.teacherFirstName,
+        teacherLastName = EXCLUDED.teacherLastName,
+        teacherEmail = EXCLUDED.teacherEmail,
+        room = EXCLUDED.room
+`
+
+type CreateOrUpdateKnownCourseParams struct {
+	Guid             string
+	Name             string
+	Period           sql.NullString
+	Teacherfirstname sql.NullString
+	Teacherlastname  sql.NullString
+	Teacheremail     sql.NullString
+	Room             sql.NullString
+}
+
+func (q *Queries) CreateOrUpdateKnownCourse(ctx context.Context, arg CreateOrUpdateKnownCourseParams) error {
+	_, err := q.db.ExecContext(ctx, createOrUpdateKnownCourse,
+		arg.Guid,
+		arg.Name,
+		arg.Period,
+		arg.Teacherfirstname,
+		arg.Teacherlastname,
+		arg.Teacheremail,
+		arg.Room,
+	)
+	return err
+}
 
 const createOrUpdateOAuthToken = `-- name: CreateOrUpdateOAuthToken :exec
 insert into OAuthToken(studentId, token, expiresAt)
@@ -84,6 +122,41 @@ func (q *Queries) GetExpiredTokens(ctx context.Context, expiresat int64) ([]OAut
 	for rows.Next() {
 		var i OAuthToken
 		if err := rows.Scan(&i.Studentid, &i.Token, &i.Expiresat); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKnownCourses = `-- name: GetKnownCourses :many
+select guid, name, period, teacherfirstname, teacherlastname, teacheremail, room from KnownCourse
+`
+
+func (q *Queries) GetKnownCourses(ctx context.Context) ([]KnownCourse, error) {
+	rows, err := q.db.QueryContext(ctx, getKnownCourses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []KnownCourse
+	for rows.Next() {
+		var i KnownCourse
+		if err := rows.Scan(
+			&i.Guid,
+			&i.Name,
+			&i.Period,
+			&i.Teacherfirstname,
+			&i.Teacherlastname,
+			&i.Teacheremail,
+			&i.Room,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

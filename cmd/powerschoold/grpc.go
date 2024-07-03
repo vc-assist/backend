@@ -50,3 +50,15 @@ func (s GrpcService) GetStudentData(ctx context.Context, req *connect.Request[ap
 	}
 	return &connect.Response[api.GetStudentDataResponse]{Msg: data}, nil
 }
+
+func (s GrpcService) GetKnownCourses(ctx context.Context, req *connect.Request[api.GetKnownCoursesRequest]) (*connect.Response[api.GetKnownCoursesResponse], error) {
+	courses, err := s.service.GetKnownCourses(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return &connect.Response[api.GetKnownCoursesResponse]{
+		Msg: &api.GetKnownCoursesResponse{
+			Courses: courses,
+		},
+	}, nil
+}
