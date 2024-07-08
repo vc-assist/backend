@@ -79,6 +79,9 @@ func setupPrometheus() {
 }
 
 func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*15)
+	defer cancel()
+
 	tracerProvider, err := newTraceProvider(ctx, serviceName, config)
 	if err != nil {
 		return Telemetry{}, err

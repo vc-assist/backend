@@ -6,6 +6,8 @@
 
 - `docs/` - documentation
 - `cmd/` - all official entrypoints/build targets
+   - `authd/` - the service that handles the authentication flow, issuing of tokens and verification codes.
+   - `powerschoold/` - the service that fetches a student's powerschool data given a valid key in keychain.
 - `lib/` - shared libraries
    - `platforms/` - bootleg APIs for various platforms
 - `dev/` - code for setting up the development environment
@@ -15,6 +17,9 @@
 - `buf.gen.yaml` - [buf.gen.yaml](https://buf.build/docs/configuration/v2/buf-gen-yaml)
 - `sqlc.yaml` - [sqlc.yaml](https://docs.sqlc.dev/en/latest/reference/config.html)
 - `telemetry.json5` - configuration of telemetry for development
+
+> [!NOTE]
+> the `d` in the packages under `cmd/` stand for daemon, while they're more like services than a daemons, names like `auth_service` don't work nicely with Go's naming conventions and don't quite roll off the tongue.
 
 ### development environment
 
@@ -48,7 +53,6 @@ here are some commands relating to linting and code generation that will probabl
 - `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
 - `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
-- [altas](https://atlasgo.io/getting-started#installation)
 
 ### testing
 
