@@ -4,7 +4,7 @@
 
 ### project structure
 
-- `docs/` - documentation
+- `docs/` - additional documentation
 - `cmd/` - all official entrypoints/build targets
    - `vchsd/` - the service that combines powerschool and moodle data into a format fit for the frontend.
 - `services/` - gRPC services
