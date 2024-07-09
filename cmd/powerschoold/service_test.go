@@ -1,4 +1,4 @@
-package main
+package powerschoold
 
 import (
 	"context"
@@ -13,9 +13,8 @@ import (
 	"testing"
 	"time"
 	"vcassist-backend/cmd/powerschoold/api"
-	"vcassist-backend/lib/configuration"
 	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/platforms/powerschool"
+	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/telemetry"
 
 	_ "embed"
@@ -51,15 +50,15 @@ func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) 
 	}
 }
 
-func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *api.OAuthFlow {
-	authFlow, err := service.GetAuthFlow(ctx)
+func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *api.GetOAuthFlowResponse {
+	authFlow, err := service.GetOAuthFlow(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return authFlow.GetOauth()
+	return authFlow.Msg
 }
 
-func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAuthFlow) string {
+func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetOAuthFlowResponse) string {
 	loginUrl, err := oauth.GetLoginUrl(
 		ctx,
 		oauth.AuthCodeRequest{
@@ -77,7 +76,7 @@ func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAuthFlow) st
 	return loginUrl
 }
 
-func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *api.OAuthFlow, callbackUrl string) string {
+func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetOAuthFlowResponse, callbackUrl string) string {
 	parsed, err := url.Parse(strings.Trim(string(callbackUrl), " \n\t"))
 	if err != nil {
 		t.Fatal("failed to parse callback url", callbackUrl, err)
@@ -151,19 +150,20 @@ func setup(t testing.TB, dbname string) (Service, func()) {
 		t.Fatal(err)
 	}
 
-	config, err := configuration.ReadConfig[Config]("config.json5")
-	if err != nil {
-		t.Fatal("failed to load configuration", err)
+	oauthConfig := OAuthConfig{
+		BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+		RefreshUrl:   "https://oauth2.googleapis.com/token",
+		ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 	}
 
-	oauthd, err := NewOAuthDaemon(sqlite, config.OAuth)
+	oauthd, err := NewOAuthDaemon(sqlite, oauthConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 	oauthdCtx, cancelOAuthd := context.WithCancel(context.Background())
 	oauthd.Start(oauthdCtx)
 
-	service := NewService(sqlite, config)
+	service := NewService(sqlite, "https://vcsnet.powerschool.com", oauthConfig)
 
 	return service, func() {
 		cancelOAuthd()
@@ -179,7 +179,12 @@ func provideNewToken(t testing.TB, ctx context.Context, service Service, id stri
 	fmt.Println(token)
 	fmt.Println("=======================")
 
-	err := service.ProvideOAuth(ctx, id, token)
+	_, err := service.ProvideOAuth(ctx, &connect.Request[api.ProvideOAuthRequest]{
+		Msg: &api.ProvideOAuthRequest{
+			StudentId: id,
+			Token:     token,
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,10 +224,15 @@ func TestOAuth(t *testing.T) {
 		provideNewToken(t, ctx, service, studentId)
 	}
 
-	foundStudentData, err := service.GetStudentData(ctx, studentId)
+	studentDataRes, err := service.GetStudentData(ctx, &connect.Request[api.GetStudentDataRequest]{
+		Msg: &api.GetStudentDataRequest{
+			StudentId: studentId,
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	foundStudentData := studentDataRes.Msg
 
 	require.NotNil(t, foundStudentData.GetProfile())
 	require.NotEmpty(t, foundStudentData.GetProfile().GetGuid())
@@ -277,6 +287,10 @@ func TestBasicNotFound(t *testing.T) {
 	}
 	require.False(t, res.Msg.GetIsAuthenticated())
 
-	_, err = service.GetStudentData(ctx, id)
+	_, err = service.GetStudentData(ctx, &connect.Request[api.GetStudentDataRequest]{
+		Msg: &api.GetStudentDataRequest{
+			StudentId: id,
+		},
+	})
 	require.NotNil(t, err)
 }

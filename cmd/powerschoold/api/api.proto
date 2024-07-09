@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package cmd.powerschoold.api;
 
-import "lib/platforms/powerschool/query_all_students.proto";
-import "lib/platforms/powerschool/query_schedule.proto";
-import "lib/platforms/powerschool/query_student_data.proto";
+import "lib/scrapers/powerschool/query_all_students.proto";
+import "lib/scrapers/powerschool/query_schedule.proto";
+import "lib/scrapers/powerschool/query_student_data.proto";
 
 // GetAuthStatus
 message GetAuthStatusRequest {
@@ -14,8 +14,9 @@ message GetAuthStatusResponse {
 	bool is_authenticated = 1;
 }
 
-// GetAuthFlow
-message OAuthFlow {
+// GetOAuthFlow
+message GetOAuthFlowRequest {}
+message GetOAuthFlowResponse {
 	string base_login_url = 1;
 	string access_type = 2;
 	string scope = 3;
@@ -24,31 +25,22 @@ message OAuthFlow {
 	string client_id = 6;
 	string token_request_url = 7;
 }
-message GetAuthFlowRequest {}
-message GetAuthFlowResponse {
-	oneof flow {
-		OAuthFlow oauth = 1;
-	}
-}
 
 // ProvideOAuth
 message ProvideOAuthRequest {
 	string student_id = 1;
 	string token = 2;
 }
-message ProvideOAuthResponse {
-	bool success = 1;
-	string message = 2;
-}
+message ProvideOAuthResponse {}
 
 // GetStudentData
 message GetStudentDataRequest {
 	string student_id = 1;
 }
 message GetStudentDataResponse {
-	lib.platforms.powerschool.StudentProfile profile = 1;
-	lib.platforms.powerschool.CourseMeetingList meetings = 2;
-	repeated lib.platforms.powerschool.CourseData course_data = 3;
+	lib.scrapers.powerschool.StudentProfile profile = 1;
+	lib.scrapers.powerschool.CourseMeetingList meetings = 2;
+	repeated lib.scrapers.powerschool.CourseData course_data = 3;
 }
 
 // GetKnownCourses
@@ -68,11 +60,11 @@ message GetKnownCoursesResponse {
 
 service PowerschoolService {
 	rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
-	rpc GetAuthFlow(GetAuthFlowRequest) returns (GetAuthFlowResponse);
 
+	rpc GetOAuthFlow(GetOAuthFlowRequest) returns (GetOAuthFlowResponse);
 	rpc ProvideOAuth(ProvideOAuthRequest) returns (ProvideOAuthResponse);
-	rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
 
+	rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
 	rpc GetKnownCourses(GetKnownCoursesRequest) returns (GetKnownCoursesResponse);
 }
 

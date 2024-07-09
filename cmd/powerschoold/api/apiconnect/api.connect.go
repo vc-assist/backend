@@ -36,9 +36,9 @@ const (
 	// PowerschoolServiceGetAuthStatusProcedure is the fully-qualified name of the PowerschoolService's
 	// GetAuthStatus RPC.
 	PowerschoolServiceGetAuthStatusProcedure = "/cmd.powerschoold.api.PowerschoolService/GetAuthStatus"
-	// PowerschoolServiceGetAuthFlowProcedure is the fully-qualified name of the PowerschoolService's
-	// GetAuthFlow RPC.
-	PowerschoolServiceGetAuthFlowProcedure = "/cmd.powerschoold.api.PowerschoolService/GetAuthFlow"
+	// PowerschoolServiceGetOAuthFlowProcedure is the fully-qualified name of the PowerschoolService's
+	// GetOAuthFlow RPC.
+	PowerschoolServiceGetOAuthFlowProcedure = "/cmd.powerschoold.api.PowerschoolService/GetOAuthFlow"
 	// PowerschoolServiceProvideOAuthProcedure is the fully-qualified name of the PowerschoolService's
 	// ProvideOAuth RPC.
 	PowerschoolServiceProvideOAuthProcedure = "/cmd.powerschoold.api.PowerschoolService/ProvideOAuth"
@@ -54,7 +54,7 @@ const (
 var (
 	powerschoolServiceServiceDescriptor               = api.File_cmd_powerschoold_api_api_proto.Services().ByName("PowerschoolService")
 	powerschoolServiceGetAuthStatusMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("GetAuthStatus")
-	powerschoolServiceGetAuthFlowMethodDescriptor     = powerschoolServiceServiceDescriptor.Methods().ByName("GetAuthFlow")
+	powerschoolServiceGetOAuthFlowMethodDescriptor    = powerschoolServiceServiceDescriptor.Methods().ByName("GetOAuthFlow")
 	powerschoolServiceProvideOAuthMethodDescriptor    = powerschoolServiceServiceDescriptor.Methods().ByName("ProvideOAuth")
 	powerschoolServiceGetStudentDataMethodDescriptor  = powerschoolServiceServiceDescriptor.Methods().ByName("GetStudentData")
 	powerschoolServiceGetKnownCoursesMethodDescriptor = powerschoolServiceServiceDescriptor.Methods().ByName("GetKnownCourses")
@@ -63,7 +63,7 @@ var (
 // PowerschoolServiceClient is a client for the cmd.powerschoold.api.PowerschoolService service.
 type PowerschoolServiceClient interface {
 	GetAuthStatus(context.Context, *connect.Request[api.GetAuthStatusRequest]) (*connect.Response[api.GetAuthStatusResponse], error)
-	GetAuthFlow(context.Context, *connect.Request[api.GetAuthFlowRequest]) (*connect.Response[api.GetAuthFlowResponse], error)
+	GetOAuthFlow(context.Context, *connect.Request[api.GetOAuthFlowRequest]) (*connect.Response[api.GetOAuthFlowResponse], error)
 	ProvideOAuth(context.Context, *connect.Request[api.ProvideOAuthRequest]) (*connect.Response[api.ProvideOAuthResponse], error)
 	GetStudentData(context.Context, *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error)
 	GetKnownCourses(context.Context, *connect.Request[api.GetKnownCoursesRequest]) (*connect.Response[api.GetKnownCoursesResponse], error)
@@ -85,10 +85,10 @@ func NewPowerschoolServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(powerschoolServiceGetAuthStatusMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		getAuthFlow: connect.NewClient[api.GetAuthFlowRequest, api.GetAuthFlowResponse](
+		getOAuthFlow: connect.NewClient[api.GetOAuthFlowRequest, api.GetOAuthFlowResponse](
 			httpClient,
-			baseURL+PowerschoolServiceGetAuthFlowProcedure,
-			connect.WithSchema(powerschoolServiceGetAuthFlowMethodDescriptor),
+			baseURL+PowerschoolServiceGetOAuthFlowProcedure,
+			connect.WithSchema(powerschoolServiceGetOAuthFlowMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		provideOAuth: connect.NewClient[api.ProvideOAuthRequest, api.ProvideOAuthResponse](
@@ -115,7 +115,7 @@ func NewPowerschoolServiceClient(httpClient connect.HTTPClient, baseURL string, 
 // powerschoolServiceClient implements PowerschoolServiceClient.
 type powerschoolServiceClient struct {
 	getAuthStatus   *connect.Client[api.GetAuthStatusRequest, api.GetAuthStatusResponse]
-	getAuthFlow     *connect.Client[api.GetAuthFlowRequest, api.GetAuthFlowResponse]
+	getOAuthFlow    *connect.Client[api.GetOAuthFlowRequest, api.GetOAuthFlowResponse]
 	provideOAuth    *connect.Client[api.ProvideOAuthRequest, api.ProvideOAuthResponse]
 	getStudentData  *connect.Client[api.GetStudentDataRequest, api.GetStudentDataResponse]
 	getKnownCourses *connect.Client[api.GetKnownCoursesRequest, api.GetKnownCoursesResponse]
@@ -126,9 +126,9 @@ func (c *powerschoolServiceClient) GetAuthStatus(ctx context.Context, req *conne
 	return c.getAuthStatus.CallUnary(ctx, req)
 }
 
-// GetAuthFlow calls cmd.powerschoold.api.PowerschoolService.GetAuthFlow.
-func (c *powerschoolServiceClient) GetAuthFlow(ctx context.Context, req *connect.Request[api.GetAuthFlowRequest]) (*connect.Response[api.GetAuthFlowResponse], error) {
-	return c.getAuthFlow.CallUnary(ctx, req)
+// GetOAuthFlow calls cmd.powerschoold.api.PowerschoolService.GetOAuthFlow.
+func (c *powerschoolServiceClient) GetOAuthFlow(ctx context.Context, req *connect.Request[api.GetOAuthFlowRequest]) (*connect.Response[api.GetOAuthFlowResponse], error) {
+	return c.getOAuthFlow.CallUnary(ctx, req)
 }
 
 // ProvideOAuth calls cmd.powerschoold.api.PowerschoolService.ProvideOAuth.
@@ -150,7 +150,7 @@ func (c *powerschoolServiceClient) GetKnownCourses(ctx context.Context, req *con
 // service.
 type PowerschoolServiceHandler interface {
 	GetAuthStatus(context.Context, *connect.Request[api.GetAuthStatusRequest]) (*connect.Response[api.GetAuthStatusResponse], error)
-	GetAuthFlow(context.Context, *connect.Request[api.GetAuthFlowRequest]) (*connect.Response[api.GetAuthFlowResponse], error)
+	GetOAuthFlow(context.Context, *connect.Request[api.GetOAuthFlowRequest]) (*connect.Response[api.GetOAuthFlowResponse], error)
 	ProvideOAuth(context.Context, *connect.Request[api.ProvideOAuthRequest]) (*connect.Response[api.ProvideOAuthResponse], error)
 	GetStudentData(context.Context, *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error)
 	GetKnownCourses(context.Context, *connect.Request[api.GetKnownCoursesRequest]) (*connect.Response[api.GetKnownCoursesResponse], error)
@@ -168,10 +168,10 @@ func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect
 		connect.WithSchema(powerschoolServiceGetAuthStatusMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	powerschoolServiceGetAuthFlowHandler := connect.NewUnaryHandler(
-		PowerschoolServiceGetAuthFlowProcedure,
-		svc.GetAuthFlow,
-		connect.WithSchema(powerschoolServiceGetAuthFlowMethodDescriptor),
+	powerschoolServiceGetOAuthFlowHandler := connect.NewUnaryHandler(
+		PowerschoolServiceGetOAuthFlowProcedure,
+		svc.GetOAuthFlow,
+		connect.WithSchema(powerschoolServiceGetOAuthFlowMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	powerschoolServiceProvideOAuthHandler := connect.NewUnaryHandler(
@@ -196,8 +196,8 @@ func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect
 		switch r.URL.Path {
 		case PowerschoolServiceGetAuthStatusProcedure:
 			powerschoolServiceGetAuthStatusHandler.ServeHTTP(w, r)
-		case PowerschoolServiceGetAuthFlowProcedure:
-			powerschoolServiceGetAuthFlowHandler.ServeHTTP(w, r)
+		case PowerschoolServiceGetOAuthFlowProcedure:
+			powerschoolServiceGetOAuthFlowHandler.ServeHTTP(w, r)
 		case PowerschoolServiceProvideOAuthProcedure:
 			powerschoolServiceProvideOAuthHandler.ServeHTTP(w, r)
 		case PowerschoolServiceGetStudentDataProcedure:
@@ -217,8 +217,8 @@ func (UnimplementedPowerschoolServiceHandler) GetAuthStatus(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cmd.powerschoold.api.PowerschoolService.GetAuthStatus is not implemented"))
 }
 
-func (UnimplementedPowerschoolServiceHandler) GetAuthFlow(context.Context, *connect.Request[api.GetAuthFlowRequest]) (*connect.Response[api.GetAuthFlowResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cmd.powerschoold.api.PowerschoolService.GetAuthFlow is not implemented"))
+func (UnimplementedPowerschoolServiceHandler) GetOAuthFlow(context.Context, *connect.Request[api.GetOAuthFlowRequest]) (*connect.Response[api.GetOAuthFlowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cmd.powerschoold.api.PowerschoolService.GetOAuthFlow is not implemented"))
 }
 
 func (UnimplementedPowerschoolServiceHandler) ProvideOAuth(context.Context, *connect.Request[api.ProvideOAuthRequest]) (*connect.Response[api.ProvideOAuthResponse], error) {

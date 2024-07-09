@@ -1,4 +1,4 @@
-package main
+package powerschoold
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"vcassist-backend/cmd/powerschoold/api"
 	"vcassist-backend/cmd/powerschoold/db"
 	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/platforms/powerschool"
+	"vcassist-backend/lib/scrapers/powerschool"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -18,19 +18,25 @@ import (
 
 var tracer = otel.Tracer("powerschoold/service")
 
-type Service struct {
-	baseUrl string
-	qry     *db.Queries
-	db      *sql.DB
-	oauth   OAuthConfig
+type OAuthConfig struct {
+	BaseLoginUrl string `json:"base_login_url"`
+	RefreshUrl   string `json:"refresh_url"`
+	ClientId     string `json:"client_id"`
 }
 
-func NewService(database *sql.DB, config Config) Service {
+type Service struct {
+	baseUrl string
+	db      *sql.DB
+	oauth   OAuthConfig
+	qry     *db.Queries
+}
+
+func NewService(database *sql.DB, baseUrl string, oauth OAuthConfig) Service {
 	return Service{
-		baseUrl: config.BaseUrl,
-		oauth:   config.OAuth,
-		qry:     db.New(database),
+		baseUrl: baseUrl,
+		oauth:   oauth,
 		db:      database,
+		qry:     db.New(database),
 	}
 }
 
@@ -93,7 +99,7 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.Get
 	}, nil
 }
 
-func (s Service) GetAuthFlow(ctx context.Context, _ *connect.Request[api.GetAuthFlowRequest]) (*connect.Response[api.GetAuthFlowResponse], error) {
+func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[api.GetOAuthFlowRequest]) (*connect.Response[api.GetOAuthFlowResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetAuthFlow")
 	defer span.End()
 
@@ -110,19 +116,15 @@ func (s Service) GetAuthFlow(ctx context.Context, _ *connect.Request[api.GetAuth
 		return nil, err
 	}
 
-	return &connect.Response[api.GetAuthFlowResponse]{
-		Msg: &api.GetAuthFlowResponse{
-			Flow: &api.GetAuthFlowResponse_Oauth{
-				Oauth: &api.OAuthFlow{
-					BaseLoginUrl:    s.oauth.BaseLoginUrl,
-					AccessType:      "offline",
-					Scope:           "openid email profile",
-					RedirectUri:     "com.powerschool.portal://",
-					CodeVerifier:    codeVerifier,
-					ClientId:        s.oauth.ClientId,
-					TokenRequestUrl: "https://oauth2.googleapis.com/token",
-				},
-			},
+	return &connect.Response[api.GetOAuthFlowResponse]{
+		Msg: &api.GetOAuthFlowResponse{
+			BaseLoginUrl:    s.oauth.BaseLoginUrl,
+			AccessType:      "offline",
+			Scope:           "openid email profile",
+			RedirectUri:     "com.powerschool.portal://",
+			CodeVerifier:    codeVerifier,
+			ClientId:        s.oauth.ClientId,
+			TokenRequestUrl: "https://oauth2.googleapis.com/token",
 		},
 	}, nil
 }
@@ -184,12 +186,7 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[api.Prov
 		return nil, err
 	}
 
-	return &connect.Response[api.ProvideOAuthResponse]{
-		Msg: &api.ProvideOAuthResponse{
-			Success: true,
-			Message: "Credentials provided successfully.",
-		},
-	}, nil
+	return &connect.Response[api.ProvideOAuthResponse]{Msg: &api.ProvideOAuthResponse{}}, nil
 }
 
 var NoCredentialsErr = fmt.Errorf("you don't have any credentials that can request student data")

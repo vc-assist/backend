@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetAuthFlowRequest, GetAuthFlowResponse, GetAuthStatusRequest, GetAuthStatusResponse, GetKnownCoursesRequest, GetKnownCoursesResponse, GetStudentDataRequest, GetStudentDataResponse, ProvideOAuthRequest, ProvideOAuthResponse } from "./api_pb.js";
+import { GetAuthStatusRequest, GetAuthStatusResponse, GetKnownCoursesRequest, GetKnownCoursesResponse, GetOAuthFlowRequest, GetOAuthFlowResponse, GetStudentDataRequest, GetStudentDataResponse, ProvideOAuthRequest, ProvideOAuthResponse } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -22,12 +22,12 @@ export const PowerschoolService = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc cmd.powerschoold.api.PowerschoolService.GetAuthFlow
+     * @generated from rpc cmd.powerschoold.api.PowerschoolService.GetOAuthFlow
      */
-    getAuthFlow: {
-      name: "GetAuthFlow",
-      I: GetAuthFlowRequest,
-      O: GetAuthFlowResponse,
+    getOAuthFlow: {
+      name: "GetOAuthFlow",
+      I: GetOAuthFlowRequest,
+      O: GetOAuthFlowResponse,
       kind: MethodKind.Unary,
     },
     /**

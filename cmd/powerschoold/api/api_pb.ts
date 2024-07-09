@@ -5,9 +5,9 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { StudentProfile } from "../../../lib/platforms/powerschool/query_all_students_pb.js";
-import { CourseMeetingList } from "../../../lib/platforms/powerschool/query_schedule_pb.js";
-import { CourseData } from "../../../lib/platforms/powerschool/query_student_data_pb.js";
+import { StudentProfile } from "../../../lib/scrapers/powerschool/query_all_students_pb.js";
+import { CourseMeetingList } from "../../../lib/scrapers/powerschool/query_schedule_pb.js";
+import { CourseData } from "../../../lib/scrapers/powerschool/query_student_data_pb.js";
 
 /**
  * GetAuthStatus
@@ -86,11 +86,42 @@ export class GetAuthStatusResponse extends Message<GetAuthStatusResponse> {
 }
 
 /**
- * GetAuthFlow
+ * GetOAuthFlow
  *
- * @generated from message cmd.powerschoold.api.OAuthFlow
+ * @generated from message cmd.powerschoold.api.GetOAuthFlowRequest
  */
-export class OAuthFlow extends Message<OAuthFlow> {
+export class GetOAuthFlowRequest extends Message<GetOAuthFlowRequest> {
+  constructor(data?: PartialMessage<GetOAuthFlowRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cmd.powerschoold.api.GetOAuthFlowRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetOAuthFlowRequest {
+    return new GetOAuthFlowRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetOAuthFlowRequest {
+    return new GetOAuthFlowRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetOAuthFlowRequest {
+    return new GetOAuthFlowRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetOAuthFlowRequest | PlainMessage<GetOAuthFlowRequest> | undefined, b: GetOAuthFlowRequest | PlainMessage<GetOAuthFlowRequest> | undefined): boolean {
+    return proto3.util.equals(GetOAuthFlowRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message cmd.powerschoold.api.GetOAuthFlowResponse
+ */
+export class GetOAuthFlowResponse extends Message<GetOAuthFlowResponse> {
   /**
    * @generated from field: string base_login_url = 1;
    */
@@ -126,13 +157,13 @@ export class OAuthFlow extends Message<OAuthFlow> {
    */
   tokenRequestUrl = "";
 
-  constructor(data?: PartialMessage<OAuthFlow>) {
+  constructor(data?: PartialMessage<GetOAuthFlowResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cmd.powerschoold.api.OAuthFlow";
+  static readonly typeName = "cmd.powerschoold.api.GetOAuthFlowResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "base_login_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "access_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -143,94 +174,20 @@ export class OAuthFlow extends Message<OAuthFlow> {
     { no: 7, name: "token_request_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OAuthFlow {
-    return new OAuthFlow().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetOAuthFlowResponse {
+    return new GetOAuthFlowResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OAuthFlow {
-    return new OAuthFlow().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetOAuthFlowResponse {
+    return new GetOAuthFlowResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OAuthFlow {
-    return new OAuthFlow().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetOAuthFlowResponse {
+    return new GetOAuthFlowResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: OAuthFlow | PlainMessage<OAuthFlow> | undefined, b: OAuthFlow | PlainMessage<OAuthFlow> | undefined): boolean {
-    return proto3.util.equals(OAuthFlow, a, b);
-  }
-}
-
-/**
- * @generated from message cmd.powerschoold.api.GetAuthFlowRequest
- */
-export class GetAuthFlowRequest extends Message<GetAuthFlowRequest> {
-  constructor(data?: PartialMessage<GetAuthFlowRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cmd.powerschoold.api.GetAuthFlowRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetAuthFlowRequest {
-    return new GetAuthFlowRequest().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetAuthFlowRequest {
-    return new GetAuthFlowRequest().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetAuthFlowRequest {
-    return new GetAuthFlowRequest().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: GetAuthFlowRequest | PlainMessage<GetAuthFlowRequest> | undefined, b: GetAuthFlowRequest | PlainMessage<GetAuthFlowRequest> | undefined): boolean {
-    return proto3.util.equals(GetAuthFlowRequest, a, b);
-  }
-}
-
-/**
- * @generated from message cmd.powerschoold.api.GetAuthFlowResponse
- */
-export class GetAuthFlowResponse extends Message<GetAuthFlowResponse> {
-  /**
-   * @generated from oneof cmd.powerschoold.api.GetAuthFlowResponse.flow
-   */
-  flow: {
-    /**
-     * @generated from field: cmd.powerschoold.api.OAuthFlow oauth = 1;
-     */
-    value: OAuthFlow;
-    case: "oauth";
-  } | { case: undefined; value?: undefined } = { case: undefined };
-
-  constructor(data?: PartialMessage<GetAuthFlowResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cmd.powerschoold.api.GetAuthFlowResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "oauth", kind: "message", T: OAuthFlow, oneof: "flow" },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetAuthFlowResponse {
-    return new GetAuthFlowResponse().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetAuthFlowResponse {
-    return new GetAuthFlowResponse().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetAuthFlowResponse {
-    return new GetAuthFlowResponse().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: GetAuthFlowResponse | PlainMessage<GetAuthFlowResponse> | undefined, b: GetAuthFlowResponse | PlainMessage<GetAuthFlowResponse> | undefined): boolean {
-    return proto3.util.equals(GetAuthFlowResponse, a, b);
+  static equals(a: GetOAuthFlowResponse | PlainMessage<GetOAuthFlowResponse> | undefined, b: GetOAuthFlowResponse | PlainMessage<GetOAuthFlowResponse> | undefined): boolean {
+    return proto3.util.equals(GetOAuthFlowResponse, a, b);
   }
 }
 
@@ -283,16 +240,6 @@ export class ProvideOAuthRequest extends Message<ProvideOAuthRequest> {
  * @generated from message cmd.powerschoold.api.ProvideOAuthResponse
  */
 export class ProvideOAuthResponse extends Message<ProvideOAuthResponse> {
-  /**
-   * @generated from field: bool success = 1;
-   */
-  success = false;
-
-  /**
-   * @generated from field: string message = 2;
-   */
-  message = "";
-
   constructor(data?: PartialMessage<ProvideOAuthResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -301,8 +248,6 @@ export class ProvideOAuthResponse extends Message<ProvideOAuthResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cmd.powerschoold.api.ProvideOAuthResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "success", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: "message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvideOAuthResponse {
@@ -366,17 +311,17 @@ export class GetStudentDataRequest extends Message<GetStudentDataRequest> {
  */
 export class GetStudentDataResponse extends Message<GetStudentDataResponse> {
   /**
-   * @generated from field: lib.platforms.powerschool.StudentProfile profile = 1;
+   * @generated from field: lib.scrapers.powerschool.StudentProfile profile = 1;
    */
   profile?: StudentProfile;
 
   /**
-   * @generated from field: lib.platforms.powerschool.CourseMeetingList meetings = 2;
+   * @generated from field: lib.scrapers.powerschool.CourseMeetingList meetings = 2;
    */
   meetings?: CourseMeetingList;
 
   /**
-   * @generated from field: repeated lib.platforms.powerschool.CourseData course_data = 3;
+   * @generated from field: repeated lib.scrapers.powerschool.CourseData course_data = 3;
    */
   courseData: CourseData[] = [];
 
