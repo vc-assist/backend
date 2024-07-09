@@ -6,10 +6,11 @@
 
 - `docs/` - documentation
 - `cmd/` - all official entrypoints/build targets
+   - `vchsd/` - the service that combines powerschool and moodle data into a format fit for the frontend.
 - `services/` - gRPC services
    - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
    - `powerschool/` - the service that fetches a student's powerschool data given a valid key in keychain.
-   - `vchs/` - the service that combines powerschool and moodle data into a format fit for the frontend.
+   - `gradesnapshots/` - a service that can store and retrieve grade snapshots.
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms
 - `dev/` - code for setting up the development environment
