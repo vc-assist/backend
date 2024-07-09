@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"vcassist-backend/services/auth/db"
 
 	"connectrpc.com/connect"
 )
+
+const profileCtxKey = "vcassist:profile"
 
 func NewAuthInterceptor(verifier Verifier) connect.UnaryInterceptorFunc {
 	interceptor := func(next connect.UnaryFunc) connect.UnaryFunc {
@@ -21,13 +24,19 @@ func NewAuthInterceptor(verifier Verifier) connect.UnaryInterceptorFunc {
 			}
 
 			token := split[1]
-			_, err := verifier.VerifyToken(ctx, token)
+			user, err := verifier.VerifyToken(ctx, token)
 			if err != nil {
 				return nil, err
 			}
 
+			ctx = context.WithValue(ctx, profileCtxKey, user)
 			return next(ctx, req)
 		})
 	}
 	return connect.UnaryInterceptorFunc(interceptor)
+}
+
+func ProfileFromContext(ctx context.Context) (db.User, bool) {
+	profile, ok := ctx.Value(profileCtxKey).(db.User)
+	return profile, ok
 }
