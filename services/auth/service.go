@@ -1,4 +1,4 @@
-package main
+package authd
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
-	"vcassist-backend/cmd/authd/api"
-	"vcassist-backend/cmd/authd/db"
-	"vcassist-backend/cmd/authd/verifier"
+	"vcassist-backend/services/auth/api"
+	"vcassist-backend/services/auth/db"
+	"vcassist-backend/services/auth/verifier"
 
 	"connectrpc.com/connect"
 	"github.com/jordan-wright/email"
@@ -20,6 +20,13 @@ import (
 )
 
 var tracer = otel.Tracer("service")
+
+type EmailConfig struct {
+	Server       string `json:"server"`
+	Port         int    `json:"port"`
+	EmailAddress string `json:"email_address"`
+	Password     string `json:"password"`
+}
 
 type Service struct {
 	db       *sql.DB

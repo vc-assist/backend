@@ -1,15 +1,11 @@
 package main
 
-import "vcassist-backend/lib/configuration"
-
-type EmailConfig struct {
-	Server       string `json:"server"`
-	Port         int    `json:"port"`
-	EmailAddress string `json:"email_address"`
-	Password     string `json:"password"`
-}
+import (
+	"vcassist-backend/lib/configuration"
+	authd "vcassist-backend/services/auth"
+)
 
 type AuthConfig struct {
-	Email  EmailConfig          `json:"email"`
+	Email  authd.EmailConfig    `json:"email"`
 	Libsql configuration.Libsql `json:"database"`
 }

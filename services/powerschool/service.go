@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	"vcassist-backend/cmd/powerschoold/api"
-	"vcassist-backend/cmd/powerschoold/db"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
+	"vcassist-backend/services/powerschool/api"
+	"vcassist-backend/services/powerschool/db"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"

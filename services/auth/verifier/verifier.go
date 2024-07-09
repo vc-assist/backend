@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"vcassist-backend/cmd/authd/db"
+	"vcassist-backend/services/auth/db"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"

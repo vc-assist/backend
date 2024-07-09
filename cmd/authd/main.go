@@ -4,8 +4,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"vcassist-backend/cmd/authd/api/apiconnect"
 	"vcassist-backend/lib/configuration"
+	authd "vcassist-backend/services/auth"
+	"vcassist-backend/services/auth/api/apiconnect"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -28,7 +29,7 @@ func main() {
 		fatalerr("failed to open libsql connector", err)
 	}
 
-	service := NewService(sqlite, config.Email)
+	service := authd.NewService(sqlite, config.Email)
 	mux := http.NewServeMux()
 	mux.Handle(apiconnect.NewAuthServiceHandler(service))
 

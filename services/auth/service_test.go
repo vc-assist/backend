@@ -1,4 +1,4 @@
-package main
+package authd
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"log"
 	"regexp"
 	"testing"
-	"vcassist-backend/cmd/authd/api"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/services/auth/api"
 
 	"connectrpc.com/connect"
 	"github.com/go-resty/resty/v2"

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"time"
-	"vcassist-backend/cmd/powerschoold/db"
 	"vcassist-backend/lib/oauth"
+	"vcassist-backend/services/powerschool/db"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"

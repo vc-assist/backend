@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "cmd/vchsd/api/student_data.proto";
+
+package cmd.vchsd.api;
+
+// GetStudentData
+message GetStudentDataRequest {}
+message GetStudentDataResponse {
+	cmd.vchsd.api.StudentData data = 1;
+}
+
+// ProvidePowerschoolToken
+message ProvidePowerschoolTokenRequest {
+	string token = 1;
+}
+message ProvidePowerschoolTokenResponse {}
+
+// ProvideMoodleLogin
+message ProvideMoodleLoginRequest {
+	string username = 1;
+	string password = 2;
+}
+message ProvideMoodleLoginResponse {}
+
+// GetCredentialStatus
+message GetCredentialStatusRequest {}
+message GetCredentialStatusResponse {
+	bool powerschool_provided = 1;
+	bool moodle_provided = 2;
+}
+
+service VchsService {
+	rpc GetCredentialStatus(GetCredentialStatusRequest) returns (GetCredentialStatusResponse);
+	rpc ProvidePowerschoolToken(ProvidePowerschoolTokenRequest) returns (ProvidePowerschoolTokenResponse);
+	rpc ProvideMoodleLogin(ProvideMoodleLoginRequest) returns (ProvideMoodleLoginResponse);
+
+	rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
+}
+

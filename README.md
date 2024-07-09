@@ -6,6 +6,7 @@
 
 - `docs/` - documentation
 - `cmd/` - all official entrypoints/build targets
+- `services/` - gRPC services
    - `authd/` - the service that handles the authentication flow, issuing of tokens and verification codes.
    - `powerschoold/` - the service that fetches a student's powerschool data given a valid key in keychain.
 - `lib/` - shared libraries
