@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"vcassist-backend/services/gradesnapshots/api"
+	"vcassist-backend/services/gradesnapshots/api/apiconnect"
 	"vcassist-backend/services/gradesnapshots/db"
 
 	"connectrpc.com/connect"
@@ -17,6 +18,8 @@ var tracer = otel.Tracer("services/gradesnapshots")
 type Service struct {
 	db  *sql.DB
 	qry *db.Queries
+
+	apiconnect.UnimplementedGradeSnapshotsServiceHandler
 }
 
 func NewService(database *sql.DB) Service {

@@ -8,6 +8,7 @@ import (
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/services/powerschool/api"
+	"vcassist-backend/services/powerschool/api/apiconnect"
 	"vcassist-backend/services/powerschool/db"
 
 	"connectrpc.com/connect"
@@ -29,6 +30,8 @@ type Service struct {
 	db      *sql.DB
 	oauth   OAuthConfig
 	qry     *db.Queries
+
+	apiconnect.UnimplementedPowerschoolServiceHandler
 }
 
 func NewService(database *sql.DB, baseUrl string, oauth OAuthConfig) Service {
