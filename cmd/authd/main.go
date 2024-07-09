@@ -17,6 +17,11 @@ func fatalerr(message string, err error) {
 	os.Exit(1)
 }
 
+type AuthConfig struct {
+	Email  authd.EmailConfig    `json:"email"`
+	Libsql configuration.Libsql `json:"database"`
+}
+
 func main() {
 	config, err := configuration.ReadConfig[AuthConfig]("config.json5")
 	if err != nil {
