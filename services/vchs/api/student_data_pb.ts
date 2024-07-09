@@ -7,6 +7,50 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 
 /**
+ * @generated from enum services.vchs.api.AssignmentState
+ */
+export enum AssignmentState {
+  /**
+   * @generated from enum value: UNSET = 0;
+   */
+  UNSET = 0,
+
+  /**
+   * @generated from enum value: MISSING = 1;
+   */
+  MISSING = 1,
+
+  /**
+   * @generated from enum value: INCOMPLETE = 2;
+   */
+  INCOMPLETE = 2,
+
+  /**
+   * @generated from enum value: SUBMITTED = 3;
+   */
+  SUBMITTED = 3,
+
+  /**
+   * @generated from enum value: LATE = 4;
+   */
+  LATE = 4,
+
+  /**
+   * @generated from enum value: EXEMPT = 5;
+   */
+  EXEMPT = 5,
+}
+// Retrieve enum metadata with: proto3.getEnumType(AssignmentState)
+proto3.util.setEnumType(AssignmentState, "services.vchs.api.AssignmentState", [
+  { no: 0, name: "UNSET" },
+  { no: 1, name: "MISSING" },
+  { no: 2, name: "INCOMPLETE" },
+  { no: 3, name: "SUBMITTED" },
+  { no: 4, name: "LATE" },
+  { no: 5, name: "EXEMPT" },
+]);
+
+/**
  * @generated from message services.vchs.api.Assignment
  */
 export class Assignment extends Message<Assignment> {
@@ -26,27 +70,22 @@ export class Assignment extends Message<Assignment> {
   description = "";
 
   /**
-   * @generated from field: bool missing = 4;
+   * @generated from field: services.vchs.api.AssignmentState state = 4;
    */
-  missing = false;
+  state = AssignmentState.UNSET;
 
   /**
-   * @generated from field: bool submitted = 5;
-   */
-  submitted = false;
-
-  /**
-   * @generated from field: float scored = 6;
+   * @generated from field: float scored = 5;
    */
   scored = 0;
 
   /**
-   * @generated from field: float total = 7;
+   * @generated from field: float total = 6;
    */
   total = 0;
 
   /**
-   * @generated from field: string assignment_type_name = 8;
+   * @generated from field: string assignment_type_name = 7;
    */
   assignmentTypeName = "";
 
@@ -61,11 +100,10 @@ export class Assignment extends Message<Assignment> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "time", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "missing", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 5, name: "submitted", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 6, name: "scored", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-    { no: 7, name: "total", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-    { no: 8, name: "assignment_type_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "state", kind: "enum", T: proto3.getEnumType(AssignmentState) },
+    { no: 5, name: "scored", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 6, name: "total", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 7, name: "assignment_type_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Assignment {

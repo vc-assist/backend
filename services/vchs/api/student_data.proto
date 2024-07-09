@@ -2,16 +2,24 @@ syntax = "proto3";
 
 package services.vchs.api;
 
+enum AssignmentState {
+	UNSET = 0;
+	MISSING = 1;
+	INCOMPLETE = 2;
+	SUBMITTED = 3;
+	LATE = 4;
+	EXEMPT = 5;
+}
+
 message Assignment {
 	string name = 1;
 
 	int64 time = 2;
 	string description = 3;
-	bool missing = 4;
-	bool submitted = 5;
-	float scored = 6;
-	float total = 7;
-	string assignment_type_name = 8;
+	AssignmentState state = 4;
+	float scored = 5;
+	float total = 6;
+	string assignment_type_name = 7;
 }
 
 message CourseMeeting {
