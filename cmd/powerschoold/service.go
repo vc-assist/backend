@@ -34,7 +34,7 @@ func NewService(database *sql.DB, config Config) Service {
 	}
 }
 
-func (s Service) GetKnownCourses(ctx context.Context) ([]*api.KnownCourse, error) {
+func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[api.GetKnownCoursesRequest]) (*connect.Response[api.GetKnownCoursesResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetKnownCourses")
 	defer span.End()
 
@@ -57,35 +57,43 @@ func (s Service) GetKnownCourses(ctx context.Context) ([]*api.KnownCourse, error
 			TeacherEmail:     c.Teacheremail.String,
 		}
 	}
-	return res, nil
+	return &connect.Response[api.GetKnownCoursesResponse]{
+		Msg: &api.GetKnownCoursesResponse{
+			Courses: res,
+		},
+	}, nil
 }
 
-func (s Service) GetAuthStatus(ctx context.Context, studentId string) (bool, error) {
+func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.GetAuthStatusRequest]) (*connect.Response[api.GetAuthStatusResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetAuthStatus")
 	defer span.End()
 
+	studentId := req.Msg.GetStudentId()
+
 	token, err := s.qry.GetOAuthToken(ctx, studentId)
-	if token.Expiresat < time.Now().Unix() {
+	if token.Expiresat < time.Now().Unix() || err == sql.ErrNoRows {
 		span.SetStatus(codes.Ok, "got expired token")
-
-		return false, nil
-	}
-	if err == sql.ErrNoRows {
-		span.SetStatus(codes.Ok, "token not found")
-
-		return false, nil
+		return &connect.Response[api.GetAuthStatusResponse]{
+			Msg: &api.GetAuthStatusResponse{
+				IsAuthenticated: false,
+			},
+		}, nil
 	}
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to exec sql query")
-		return false, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	span.SetStatus(codes.Ok, "token found")
-	return token.Token != "", nil
+	return &connect.Response[api.GetAuthStatusResponse]{
+		Msg: &api.GetAuthStatusResponse{
+			IsAuthenticated: token.Token != "",
+		},
+	}, nil
 }
 
-func (s Service) GetAuthFlow(ctx context.Context) (*api.GetAuthFlowResponse, error) {
+func (s Service) GetAuthFlow(ctx context.Context, _ *connect.Request[api.GetAuthFlowRequest]) (*connect.Response[api.GetAuthFlowResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetAuthFlow")
 	defer span.End()
 
@@ -102,22 +110,24 @@ func (s Service) GetAuthFlow(ctx context.Context) (*api.GetAuthFlowResponse, err
 		return nil, err
 	}
 
-	return &api.GetAuthFlowResponse{
-		Flow: &api.GetAuthFlowResponse_Oauth{
-			Oauth: &api.OAuthFlow{
-				BaseLoginUrl:    s.oauth.BaseLoginUrl,
-				AccessType:      "offline",
-				Scope:           "openid email profile",
-				RedirectUri:     "com.powerschool.portal://",
-				CodeVerifier:    codeVerifier,
-				ClientId:        s.oauth.ClientId,
-				TokenRequestUrl: "https://oauth2.googleapis.com/token",
+	return &connect.Response[api.GetAuthFlowResponse]{
+		Msg: &api.GetAuthFlowResponse{
+			Flow: &api.GetAuthFlowResponse_Oauth{
+				Oauth: &api.OAuthFlow{
+					BaseLoginUrl:    s.oauth.BaseLoginUrl,
+					AccessType:      "offline",
+					Scope:           "openid email profile",
+					RedirectUri:     "com.powerschool.portal://",
+					CodeVerifier:    codeVerifier,
+					ClientId:        s.oauth.ClientId,
+					TokenRequestUrl: "https://oauth2.googleapis.com/token",
+				},
 			},
 		},
 	}, nil
 }
 
-func (s Service) ProvideOAuth(ctx context.Context, studentId, token string) error {
+func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[api.ProvideOAuthRequest]) (*connect.Response[api.ProvideOAuthResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:ProvideOAuth")
 	defer span.End()
 
@@ -125,21 +135,23 @@ func (s Service) ProvideOAuth(ctx context.Context, studentId, token string) erro
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to create powerschool client")
-		return err
+		return nil, err
 	}
+
+	token := req.Msg.GetToken()
 
 	expiresAt, err := client.LoginOAuth(ctx, token)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to login")
-		return fmt.Errorf("failed to login: %s", err.Error())
+		return nil, fmt.Errorf("failed to login: %s", err.Error())
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to start transaction")
-		return err
+		return nil, err
 	}
 	defer func() {
 		// err will be set to the latest err when this function
@@ -154,11 +166,12 @@ func (s Service) ProvideOAuth(ctx context.Context, studentId, token string) erro
 
 	qry := s.qry.WithTx(tx)
 
+	studentId := req.Msg.GetStudentId()
 	err = qry.CreateStudent(ctx, studentId)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to exec sql query (1)")
-		return err
+		return nil, err
 	}
 	err = qry.CreateOrUpdateOAuthToken(ctx, db.CreateOrUpdateOAuthTokenParams{
 		Studentid: studentId,
@@ -168,18 +181,25 @@ func (s Service) ProvideOAuth(ctx context.Context, studentId, token string) erro
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to exec sql query (2)")
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &connect.Response[api.ProvideOAuthResponse]{
+		Msg: &api.ProvideOAuthResponse{
+			Success: true,
+			Message: "Credentials provided successfully.",
+		},
+	}, nil
 }
 
 var NoCredentialsErr = fmt.Errorf("you don't have any credentials that can request student data")
 var ExpiredCredentialsErr = fmt.Errorf("your credentials have expired, please call ProvideOAuth again")
 
-func (s Service) GetStudentData(ctx context.Context, studentId string) (*api.GetStudentDataResponse, error) {
+func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetStudentData")
 	defer span.End()
+
+	studentId := req.Msg.GetStudentId()
 
 	// get oauth token & login
 	token, err := s.qry.GetOAuthToken(ctx, studentId)
@@ -238,7 +258,9 @@ func (s Service) GetStudentData(ctx context.Context, studentId string) (*api.Get
 
 	if studentData.Student == nil {
 		span.SetStatus(codes.Ok, "student data unavailable, only returning profile...")
-		return &api.GetStudentDataResponse{Profile: psStudent}, nil
+		return &connect.Response[api.GetStudentDataResponse]{
+			Msg: &api.GetStudentDataResponse{Profile: psStudent},
+		}, nil
 	}
 
 	courseList := studentData.GetStudent().GetSections()
@@ -312,5 +334,7 @@ func (s Service) GetStudentData(ctx context.Context, studentId string) (*api.Get
 		return nil, err
 	}
 
-	return response, nil
+	return &connect.Response[api.GetStudentDataResponse]{
+		Msg: response,
+	}, nil
 }

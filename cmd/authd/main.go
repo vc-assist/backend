@@ -28,9 +28,7 @@ func main() {
 		fatalerr("failed to open libsql connector", err)
 	}
 
-	service := GrpcService{
-		service: NewService(sqlite, config.Email),
-	}
+	service := NewService(sqlite, config.Email)
 	mux := http.NewServeMux()
 	mux.Handle(apiconnect.NewAuthServiceHandler(service))
 

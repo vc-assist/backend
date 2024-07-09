@@ -60,7 +60,7 @@ func main() {
 	authInterceptor := verifier.NewAuthInterceptor(verifier.NewVerifier(authDB))
 
 	slog.Info("setting up grpc service handler...")
-	service := GrpcService{service: NewService(selfDB, config)}
+	service := NewService(selfDB, config)
 	mux := http.NewServeMux()
 	mux.Handle(apiconnect.NewPowerschoolServiceHandler(
 		service,

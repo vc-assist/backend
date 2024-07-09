@@ -9,9 +9,11 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
+	"vcassist-backend/cmd/authd/api"
 	"vcassist-backend/cmd/authd/db"
 	"vcassist-backend/cmd/authd/verifier"
 
+	"connectrpc.com/connect"
 	"github.com/jordan-wright/email"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -109,7 +111,7 @@ If you don't recognize this account, please ignore this email.`, code)
 	return nil
 }
 
-func (s Service) StartLogin(ctx context.Context, email string) error {
+func (s Service) StartLogin(ctx context.Context, req *connect.Request[api.StartLoginRequest]) (*connect.Response[api.StartLoginResponse], error) {
 	ctx, span := tracer.Start(ctx, "auth:StartLogin")
 	defer span.End()
 
@@ -117,39 +119,41 @@ func (s Service) StartLogin(ctx context.Context, email string) error {
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to begin transaction")
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
 	txqry := s.qry.WithTx(tx)
+
+	email := req.Msg.GetEmail()
 
 	err = txqry.EnsureUserExists(ctx, email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "got unexpected error while ensuring user exists")
-		return err
+		return nil, err
 	}
 	code, err := s.createVerificationCode(ctx, txqry, email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to create verification code")
-		return err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to commit transaction")
-		return err
+		return nil, err
 	}
 
 	err = s.sendVerificationCode(ctx, email, code)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to send verification code")
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &connect.Response[api.StartLoginResponse]{Msg: &api.StartLoginResponse{}}, nil
 }
 
 func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
@@ -201,7 +205,7 @@ func (s Service) createToken(ctx context.Context, txqry *db.Queries, email strin
 	return token, nil
 }
 
-func (s Service) ConsumeVerificationCode(ctx context.Context, email, providedCode string) (token string, err error) {
+func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Request[api.ConsumeVerificationCodeRequest]) (*connect.Response[api.ConsumeVerificationCodeResponse], error) {
 	ctx, span := tracer.Start(ctx, "auth:ConsumeVerificationCode")
 	defer span.End()
 
@@ -209,34 +213,55 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, email, providedCod
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "could not start transaction")
-		return "", err
+		return nil, err
 	}
 	defer tx.Rollback()
 	txqry := s.qry.WithTx(tx)
+
+	email := req.Msg.GetEmail()
+	providedCode := req.Msg.GetProvidedCode()
 
 	err = s.verifyAndDeleteCode(ctx, txqry, email, providedCode)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to verify or delete verification code")
-		return "", err
+		return nil, err
 	}
-	token, err = s.createToken(ctx, txqry, email)
+	token, err := s.createToken(ctx, txqry, email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to create token")
-		return "", err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to commit transaction")
-		return "", err
+		return nil, err
 	}
 
-	return token, nil
+	return &connect.Response[api.ConsumeVerificationCodeResponse]{
+		Msg: &api.ConsumeVerificationCodeResponse{
+			Token: token,
+		},
+	}, nil
 }
 
-func (s Service) VerifyToken(ctx context.Context, token string) (db.User, error) {
-	return s.verifier.VerifyToken(ctx, token)
+func (s Service) VerifyToken(ctx context.Context, req *connect.Request[api.VerifyTokenRequest]) (*connect.Response[api.VerifyTokenResponse], error) {
+	ctx, span := tracer.Start(ctx, "auth:VerifyToken")
+	defer span.End()
+
+	user, err := s.verifier.VerifyToken(ctx, req.Msg.GetToken())
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	return &connect.Response[api.VerifyTokenResponse]{
+		Msg: &api.VerifyTokenResponse{
+			Email: user.Email,
+		},
+	}, nil
 }

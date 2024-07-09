@@ -7,8 +7,10 @@ import (
 	"log"
 	"regexp"
 	"testing"
+	"vcassist-backend/cmd/authd/api"
 	"vcassist-backend/lib/telemetry"
 
+	"connectrpc.com/connect"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -102,24 +104,38 @@ func TestLoginFlow(t *testing.T) {
 
 	userEmail := "bob@email.com"
 
-	err := service.StartLogin(ctx, userEmail)
+	_, err := service.StartLogin(ctx, &connect.Request[api.StartLoginRequest]{
+		Msg: &api.StartLoginRequest{
+			Email: userEmail,
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	code := getVerificationCodeFromEmail(t)
 
-	token, err := service.ConsumeVerificationCode(ctx, userEmail, code)
+	res, err := service.ConsumeVerificationCode(ctx, &connect.Request[api.ConsumeVerificationCodeRequest]{
+		Msg: &api.ConsumeVerificationCodeRequest{
+			Email:        userEmail,
+			ProvidedCode: code,
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	token := res.Msg.GetToken()
 	span.AddEvent("login successful", trace.WithAttributes(attribute.KeyValue{
 		Key:   "token",
 		Value: attribute.StringValue(token),
 	}))
 
-	user, err := service.VerifyToken(ctx, token)
+	userRes, err := service.VerifyToken(ctx, &connect.Request[api.VerifyTokenRequest]{
+		Msg: &api.VerifyTokenRequest{
+			Token: token,
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	require.Equal(t, userEmail, user.Email)
+	require.Equal(t, userEmail, userRes.Msg.GetEmail())
 }
