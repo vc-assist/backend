@@ -9,17 +9,14 @@ import (
 	"vcassist-backend/services/powerschool/db"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type OAuthDaemon struct {
 	qry            *db.Queries
 	db             *sql.DB
 	config         OAuthConfig
-	tracer         trace.Tracer
 	refreshCounter prometheus.Counter
 }
 
@@ -33,13 +30,12 @@ func NewOAuthDaemon(database *sql.DB, config OAuthConfig) (OAuthDaemon, error) {
 		db:             database,
 		qry:            db.New(database),
 		config:         config,
-		tracer:         otel.GetTracerProvider().Tracer("oauthd"),
 		refreshCounter: refreshCounter,
 	}, nil
 }
 
 func (d OAuthDaemon) refreshToken(ctx context.Context, original db.OAuthToken) error {
-	ctx, span := d.tracer.Start(ctx, "daemon:refreshToken")
+	ctx, span := tracer.Start(ctx, "oauth_daemon:refreshToken")
 	defer span.End()
 
 	span.SetAttributes(
@@ -91,7 +87,7 @@ func (d OAuthDaemon) refreshToken(ctx context.Context, original db.OAuthToken) e
 }
 
 func (d OAuthDaemon) refreshAllTokens(ctx context.Context) {
-	ctx, span := d.tracer.Start(ctx, "oauth_daemon:refreshAllTokens")
+	ctx, span := tracer.Start(ctx, "oauth_daemon:refreshAllTokens")
 	defer span.End()
 
 	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Unix()
@@ -112,7 +108,7 @@ func (d OAuthDaemon) refreshAllTokens(ctx context.Context) {
 }
 
 func (d OAuthDaemon) deleteExpiredTokens(ctx context.Context) {
-	ctx, span := d.tracer.Start(ctx, "oauth_daemon:deleteExpiredTokens")
+	ctx, span := tracer.Start(ctx, "oauth_daemon:deleteExpiredTokens")
 	defer span.End()
 
 	err := d.qry.DeleteExpiredOAuthTokens(ctx, time.Now().Unix())

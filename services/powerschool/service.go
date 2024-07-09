@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var tracer = otel.Tracer("powerschoold/service")
+var tracer = otel.Tracer("services/powerschoold")
 
 type OAuthConfig struct {
 	BaseLoginUrl string `json:"base_login_url"`

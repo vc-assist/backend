@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-import "cmd/vchsd/api/student_data.proto";
+import "services/vchs/api/student_data.proto";
 
-package cmd.vchsd.api;
+package services.vchs.api;
 
 // GetStudentData
 message GetStudentDataRequest {}
 message GetStudentDataResponse {
-	cmd.vchsd.api.StudentData data = 1;
+	services.vchs.api.StudentData data = 1;
 }
 
 // ProvidePowerschoolToken

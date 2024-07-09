@@ -1,4 +1,4 @@
-package authd
+package auth
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("service")
+var tracer = otel.Tracer("services/auth")
 
 type EmailConfig struct {
 	Server       string `json:"server"`

@@ -1,16 +1,23 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "cmd/powerschoold/db/query.sql"
-    schema: "cmd/powerschoold/db/schema.sql"
+    queries: "services/powerschool/db/query.sql"
+    schema: "services/powerschool/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "cmd/powerschoold/db"
+        out: "services/powerschool/db"
   - engine: "sqlite"
-    queries: "cmd/authd/db/query.sql"
-    schema: "cmd/authd/db/schema.sql"
+    queries: "services/auth/db/query.sql"
+    schema: "services/auth/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "cmd/authd/db"
+        out: "services/auth/db"
+  - engine: "sqlite"
+    queries: "services/gradesnapshots/db/query.sql"
+    schema: "services/gradesnapshots/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "services/gradesnapshots/db"

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 	"vcassist-backend/lib/configuration"
-	authd "vcassist-backend/services/auth"
+	"vcassist-backend/services/auth"
 	"vcassist-backend/services/auth/api/apiconnect"
 
 	"golang.org/x/net/http2"
@@ -18,7 +18,7 @@ func fatalerr(message string, err error) {
 }
 
 type AuthConfig struct {
-	Email  authd.EmailConfig    `json:"email"`
+	Email  auth.EmailConfig     `json:"email"`
 	Libsql configuration.Libsql `json:"database"`
 }
 
@@ -34,7 +34,7 @@ func main() {
 		fatalerr("failed to open libsql connector", err)
 	}
 
-	service := authd.NewService(sqlite, config.Email)
+	service := auth.NewService(sqlite, config.Email)
 	mux := http.NewServeMux()
 	mux.Handle(apiconnect.NewAuthServiceHandler(service))
 

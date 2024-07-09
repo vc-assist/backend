@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package cmd.vchsd.api;
+package services.vchs.api;
 
 message Assignment {
 	string name = 1;
