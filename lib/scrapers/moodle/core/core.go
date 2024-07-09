@@ -20,7 +20,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("platforms/moodle/core")
+var tracer = otel.Tracer("scrapers/moodle/core")
 
 var LoginFailed = fmt.Errorf("Failed to login to your account.")
 
@@ -55,7 +55,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	client.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(baseUrl.Hostname()))
 	client.SetTimeout(time.Second * 30)
 
-	telemetry.InstrumentResty(client, "platform/moodle/http")
+	telemetry.InstrumentResty(client, "scrapers/moodle/http")
 
 	c := &Client{
 		BaseUrl: baseUrl,

@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"testing"
 	devenv "vcassist-backend/dev/env"
-	"vcassist-backend/lib/platforms/moodle/core"
-	"vcassist-backend/lib/platforms/moodle/view"
+	"vcassist-backend/lib/scrapers/moodle/core"
+	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/telemetry"
 
 	"github.com/dgraph-io/badger/v4"

@@ -9,7 +9,7 @@
    - `authd/` - the service that handles the authentication flow, issuing of tokens and verification codes.
    - `powerschoold/` - the service that fetches a student's powerschool data given a valid key in keychain.
 - `lib/` - shared libraries
-   - `platforms/` - bootleg APIs for various platforms
+   - `scrapers/` - scrapers for various platforms
 - `dev/` - code for setting up the development environment
    - `local_stack/` - docker compose stuff for setting up grafana and other things locally
    - `.state/ (gitignore'd)` - internal state (like secrets, usernames, passwords, etc...) that are used by tests and other dev/local-only processes
@@ -31,7 +31,7 @@ here are a few things it sets up:
 
 1. an empty sqlite database + migrations for `cmd/powerschoold/`
 2. a local setup of telemetry using Docker Compose under `dev/local_stack/`
-3. moodle credentials for use in testing in `lib/platforms/moodle/...`
+3. moodle credentials for use in testing in `lib/scrapers/moodle/...`
 
 as such, before running tests or doing local debugging you should run one of the following commands.
 

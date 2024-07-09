@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("platforms/powerschool")
+var tracer = otel.Tracer("scrapers/powerschool")
 
 type Client struct {
 	http *resty.Client
@@ -29,7 +29,7 @@ func NewClient(baseUrl string) (*Client, error) {
 	client.SetCookieJar(jar)
 	client.SetHeader("user-agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.110 Mobile Safari/537.36")
 
-	telemetry.InstrumentResty(client, "platform/powerschool/http")
+	telemetry.InstrumentResty(client, "scrapers/powerschool/http")
 
 	return &Client{http: client}, nil
 }

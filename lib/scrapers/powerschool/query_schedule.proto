@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package lib.platforms.powerschool;
+package lib.scrapers.powerschool;
 
 message CourseMeeting {
 	string section_guid = 1 [json_name = "sectionGuid"];

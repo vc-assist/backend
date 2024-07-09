@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package lib.platforms.powerschool;
+package lib.scrapers.powerschool;
 
 message TermData {
 	string start = 1 [json_name = "start"];

@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 	"vcassist-backend/lib/htmlutil"
-	"vcassist-backend/lib/platforms/moodle/core"
+	"vcassist-backend/lib/scrapers/moodle/core"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dgraph-io/badger/v4"
@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("platforms/moodle/view")
+var tracer = otel.Tracer("scrapers/moodle/view")
 
 type Client struct {
 	ClientId string

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"vcassist-backend/lib/platforms/moodle/core"
+	"vcassist-backend/lib/scrapers/moodle/core"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("platform/moodle/edit")
+var tracer = otel.Tracer("scrapers/moodle/edit")
 
 type Course struct {
 	Id   string

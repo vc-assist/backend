@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package lib.platforms.powerschool;
+package lib.scrapers.powerschool;
 
 message SchoolData {
 	string name = 1 [json_name = "name"];
 	string phone = 2 [json_name = "phone"];
 	string fax = 3 [json_name = "fax"];
 	string email = 4 [json_name = "email"];
-	string streetAddress = 5 [json_name = "streetAddress"];
+	string street_address = 5 [json_name = "streetAddress"];
 	string city = 6 [json_name = "city"];
 	string state = 7 [json_name = "state"];
 	string zip = 8 [json_name = "zip"];

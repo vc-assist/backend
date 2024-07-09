@@ -62,12 +62,12 @@ type Event struct {
 	Date time.Time
 }
 
-var tracer = otel.Tracer("platform/vcsnet")
+var tracer = otel.Tracer("scrapers/vcsnet")
 var client = resty.New()
 
 func init() {
 	client = resty.New()
-	telemetry.InstrumentResty(client, "platform/vcsnet/http")
+	telemetry.InstrumentResty(client, "scrapers/vcsnet/http")
 }
 
 func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {

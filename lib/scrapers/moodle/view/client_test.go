@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 	devenv "vcassist-backend/dev/env"
-	"vcassist-backend/lib/platforms/moodle/core"
+	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/telemetry"
 
 	"github.com/dgraph-io/badger/v4"
