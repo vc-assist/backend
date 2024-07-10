@@ -57,7 +57,7 @@ func setup(t testing.TB) (Service, func()) {
 			Started: true,
 			ContainerRequest: testcontainers.ContainerRequest{
 				Image:        "haravich/fake-smtp-server",
-				ExposedPorts: []string{"1025:1025", "1080:1080"},
+				ExposedPorts: []string{"1025:1025", "1090:1080"},
 				WaitingFor:   wait.ForLog("smtp://0.0.0.0:1025"),
 			},
 		},
