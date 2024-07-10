@@ -21,3 +21,10 @@ sql:
       go:
         package: "db"
         out: "services/gradesnapshots/db"
+  - engine: "sqlite"
+    queries: "services/linker/db/query.sql"
+    schema: "services/linker/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "services/linker/db"
