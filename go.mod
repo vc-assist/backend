@@ -11,6 +11,7 @@ require (
 	github.com/geraldo-labs/merge-struct v1.0.0
 	github.com/go-resty/resty/v2 v2.13.1
 	github.com/google/go-cmp v0.6.0
+	github.com/jhvst/go-jaro-winkler-distance v0.0.0-20220308004700-32671379e37c
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lqr471814/protocolreg v0.0.0-20240623001501-4610d908ae22
 	github.com/prometheus/client_golang v1.19.1
