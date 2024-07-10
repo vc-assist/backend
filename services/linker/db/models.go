@@ -12,11 +12,11 @@ type ExplicitLink struct {
 }
 
 type KnownKey struct {
-	Set      string
+	Setname  string
 	Value    string
 	Lastseen int64
 }
 
 type KnownSet struct {
-	Set string
+	Setname string
 }

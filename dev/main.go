@@ -31,10 +31,6 @@ func create(recreate bool) error {
 	if err != nil {
 		return err
 	}
-	err = CreatePowerschooldDevDB()
-	if err != nil {
-		return err
-	}
 	err = SetupMoodleTests()
 	if err != nil {
 		return err

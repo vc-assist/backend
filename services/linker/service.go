@@ -3,6 +3,7 @@ package linker
 import (
 	"context"
 	"database/sql"
+	"time"
 	"vcassist-backend/services/linker/api"
 	"vcassist-backend/services/linker/db"
 
@@ -16,6 +17,13 @@ var tracer = otel.Tracer("services/linker")
 type Service struct {
 	qry *db.Queries
 	db  *sql.DB
+}
+
+func NewService(database *sql.DB) Service {
+	return Service{
+		qry: db.New(database),
+		db:  database,
+	}
 }
 
 func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[api.GetExplicitLinksRequest]) (*connect.Response[api.GetExplicitLinksResponse], error) {
@@ -95,6 +103,61 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[ap
 func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]) (*connect.Response[api.LinkResponse], error) {
 	ctx, span := tracer.Start(ctx, "Link")
 	defer span.End()
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	txqry := s.qry.WithTx(tx)
+	err = txqry.CreateKnownSet(ctx, req.Msg.Src.Name)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+	err = txqry.CreateKnownSet(ctx, req.Msg.Dst.Name)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	now := time.Now().Unix()
+	for _, src := range req.Msg.Src.Keys {
+		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
+			Setname:  req.Msg.Src.Name,
+			Value:    src,
+			Lastseen: now,
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+	}
+	for _, dst := range req.Msg.Dst.Keys {
+		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
+			Setname:  req.Msg.Dst.Name,
+			Value:    dst,
+			Lastseen: now,
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
 
 	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[api.GetExplicitLinksRequest]{
 		Msg: &api.GetExplicitLinksRequest{

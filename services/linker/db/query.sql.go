@@ -31,26 +31,28 @@ func (q *Queries) CreateExplicitLink(ctx context.Context, arg CreateExplicitLink
 }
 
 const createKnownKey = `-- name: CreateKnownKey :exec
-insert into KnownKey(set, value, lastSeen) values (?, ?, ?)
+insert into KnownKey(setname, value, lastSeen) values (?, ?, ?)
+on conflict (setname, value) do update set
+    lastSeen = EXCLUDED.lastSeen
 `
 
 type CreateKnownKeyParams struct {
-	Set      string
+	Setname  string
 	Value    string
 	Lastseen int64
 }
 
 func (q *Queries) CreateKnownKey(ctx context.Context, arg CreateKnownKeyParams) error {
-	_, err := q.db.ExecContext(ctx, createKnownKey, arg.Set, arg.Value, arg.Lastseen)
+	_, err := q.db.ExecContext(ctx, createKnownKey, arg.Setname, arg.Value, arg.Lastseen)
 	return err
 }
 
 const createKnownSet = `-- name: CreateKnownSet :exec
-insert into KnownSet(set) values (?) on conflict do nothing
+insert into KnownSet(setname) values (?) on conflict (setname) do nothing
 `
 
-func (q *Queries) CreateKnownSet(ctx context.Context, set string) error {
-	_, err := q.db.ExecContext(ctx, createKnownSet, set)
+func (q *Queries) CreateKnownSet(ctx context.Context, setname string) error {
+	_, err := q.db.ExecContext(ctx, createKnownSet, setname)
 	return err
 }
 
@@ -119,7 +121,7 @@ func (q *Queries) GetExplicitLinks(ctx context.Context, arg GetExplicitLinksPara
 }
 
 const getKnownKeyBefore = `-- name: GetKnownKeyBefore :many
-select "set", value, lastseen from KnownKey where lastSeen < ?
+select setname, value, lastseen from KnownKey where lastSeen < ?
 `
 
 func (q *Queries) GetKnownKeyBefore(ctx context.Context, lastseen int64) ([]KnownKey, error) {
@@ -131,7 +133,7 @@ func (q *Queries) GetKnownKeyBefore(ctx context.Context, lastseen int64) ([]Know
 	var items []KnownKey
 	for rows.Next() {
 		var i KnownKey
-		if err := rows.Scan(&i.Set, &i.Value, &i.Lastseen); err != nil {
+		if err := rows.Scan(&i.Setname, &i.Value, &i.Lastseen); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -146,11 +148,11 @@ func (q *Queries) GetKnownKeyBefore(ctx context.Context, lastseen int64) ([]Know
 }
 
 const getKnownKeys = `-- name: GetKnownKeys :many
-select "set", value, lastseen from KnownKey where set = ?
+select setname, value, lastseen from KnownKey where setname = ?
 `
 
-func (q *Queries) GetKnownKeys(ctx context.Context, set string) ([]KnownKey, error) {
-	rows, err := q.db.QueryContext(ctx, getKnownKeys, set)
+func (q *Queries) GetKnownKeys(ctx context.Context, setname string) ([]KnownKey, error) {
+	rows, err := q.db.QueryContext(ctx, getKnownKeys, setname)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +160,7 @@ func (q *Queries) GetKnownKeys(ctx context.Context, set string) ([]KnownKey, err
 	var items []KnownKey
 	for rows.Next() {
 		var i KnownKey
-		if err := rows.Scan(&i.Set, &i.Value, &i.Lastseen); err != nil {
+		if err := rows.Scan(&i.Setname, &i.Value, &i.Lastseen); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -173,7 +175,7 @@ func (q *Queries) GetKnownKeys(ctx context.Context, set string) ([]KnownKey, err
 }
 
 const getKnownSets = `-- name: GetKnownSets :many
-select "set" from KnownSet
+select setname from KnownSet
 `
 
 func (q *Queries) GetKnownSets(ctx context.Context) ([]string, error) {
@@ -184,11 +186,11 @@ func (q *Queries) GetKnownSets(ctx context.Context) ([]string, error) {
 	defer rows.Close()
 	var items []string
 	for rows.Next() {
-		var set string
-		if err := rows.Scan(&set); err != nil {
+		var setname string
+		if err := rows.Scan(&setname); err != nil {
 			return nil, err
 		}
-		items = append(items, set)
+		items = append(items, setname)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

@@ -1,13 +1,11 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
-	"strings"
 	devenv "vcassist-backend/dev/env"
 
 	"github.com/tcnksm/go-input"
@@ -29,23 +27,6 @@ func cmd(name string, args ...string) {
 	if err != nil {
 		os.Exit(1)
 	}
-}
-
-func CreatePowerschooldDevDB() error {
-	db, err := sql.Open("sqlite", "cmd/powerschoold/state.db")
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	schema, err := os.ReadFile("cmd/powerschoold/db/schema.sql")
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(string(schema))
-	if err != nil && strings.Contains(err.Error(), "already exists") {
-		return nil
-	}
-	return err
 }
 
 func CreateLocalStack() error {

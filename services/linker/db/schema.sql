@@ -7,13 +7,14 @@ create table ExplicitLink (
 );
 
 create table KnownSet (
-    set text not null primary key
+    -- "setname" instead of "set" used because "set" is a reserved keyword
+    setname text not null primary key
 );
 
 create table KnownKey (
-    set text not null,
+    setname text not null,
     value text not null,
     lastSeen integer not null,
-    primary key (set, value)
+    primary key (setname, value)
 );
 

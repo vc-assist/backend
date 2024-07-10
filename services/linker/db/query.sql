@@ -14,16 +14,18 @@ delete from ExplicitLink where
     rightKey = ?;
 
 -- name: CreateKnownSet :exec
-insert into KnownSet(set) values (?) on conflict do nothing;
+insert into KnownSet(setname) values (?) on conflict (setname) do nothing;
 
 -- name: CreateKnownKey :exec
-insert into KnownKey(set, value, lastSeen) values (?, ?, ?);
+insert into KnownKey(setname, value, lastSeen) values (?, ?, ?)
+on conflict (setname, value) do update set
+    lastSeen = EXCLUDED.lastSeen;
 
 -- name: GetKnownSets :many
 select * from KnownSet;
 
 -- name: GetKnownKeys :many
-select * from KnownKey where set = ?;
+select * from KnownKey where setname = ?;
 
 -- name: GetKnownKeyBefore :many
 select * from KnownKey where lastSeen < ?;
