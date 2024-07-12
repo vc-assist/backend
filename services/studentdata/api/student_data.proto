@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package services.vchs.api;
+package services.studentdata.api;
 
 enum AssignmentState {
 	UNSET = 0;

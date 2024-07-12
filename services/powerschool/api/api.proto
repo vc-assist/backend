@@ -5,6 +5,7 @@ package cmd.powerschoold.api;
 import "lib/scrapers/powerschool/query_all_students.proto";
 import "lib/scrapers/powerschool/query_schedule.proto";
 import "lib/scrapers/powerschool/query_student_data.proto";
+import "services/studentdata/api/api.proto";
 
 // GetAuthStatus
 message GetAuthStatusRequest {
@@ -17,13 +18,7 @@ message GetAuthStatusResponse {
 // GetOAuthFlow
 message GetOAuthFlowRequest {}
 message GetOAuthFlowResponse {
-	string base_login_url = 1;
-	string access_type = 2;
-	string scope = 3;
-	string redirect_uri = 4;
-	string code_verifier = 5;
-	string client_id = 6;
-	string token_request_url = 7;
+	services.studentdata.api.OAuthFlow flow = 1;
 }
 
 // ProvideOAuth

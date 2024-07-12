@@ -11,6 +11,10 @@
    - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
    - `powerschool/` - the service that fetches a student's powerschool data given a valid key in keychain.
    - `gradesnapshots/` - a service that can store and retrieve grade snapshots.
+   - `linker/` - a service that does hybrid automatic and manual data linking
+   - `studentdata/` - the interface all student data providers must fulfill to talk to the frontend
+   - `vchsmoodle/` - the service for getting student data specific to VCHS flavored moodle
+   - `vchs/` - the student data provider for VCHS
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms
 - `dev/` - code for setting up the development environment
