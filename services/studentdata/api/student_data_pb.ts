@@ -316,6 +316,11 @@ export class Course extends Message<Course> {
    */
   snapshots: GradeSnapshot[] = [];
 
+  /**
+   * @generated from field: string lesson_plan = 13;
+   */
+  lessonPlan = "";
+
   constructor(data?: PartialMessage<Course>) {
     super();
     proto3.util.initPartial(data, this);
@@ -336,6 +341,7 @@ export class Course extends Message<Course> {
     { no: 10, name: "assignment_types", kind: "message", T: AssignmentType, repeated: true },
     { no: 11, name: "assignments", kind: "message", T: Assignment, repeated: true },
     { no: 12, name: "snapshots", kind: "message", T: GradeSnapshot, repeated: true },
+    { no: 13, name: "lesson_plan", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Course {

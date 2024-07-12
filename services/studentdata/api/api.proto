@@ -14,12 +14,6 @@ message OAuthFlow {
 	string token_request_url = 7;
 }
 
-// GetStudentData
-message GetStudentDataRequest {}
-message GetStudentDataResponse {
-	services.studentdata.api.StudentData data = 1;
-}
-
 // GetCredentialStatus
 message CredentialStatus {
 	string id = 1;
@@ -51,9 +45,22 @@ message ProvideCredentialRequest {
 }
 message ProvideCredentialResponse {}
 
+// GetStudentData
+message GetStudentDataRequest {}
+message GetStudentDataResponse {
+	services.studentdata.api.StudentData data = 1;
+}
+
+// RefreshData
+message RefreshDataRequest {}
+message RefreshDataResponse {
+	services.studentdata.api.StudentData refreshed = 1;
+}
+
 service StudentDataService {
 	rpc GetCredentialStatus(GetCredentialStatusRequest) returns (GetCredentialStatusResponse);
 	rpc ProvideCredential(ProvideCredentialRequest) returns (ProvideCredentialResponse);
 	rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
+	rpc RefreshData(RefreshDataRequest) returns (RefreshDataResponse);
 }
 

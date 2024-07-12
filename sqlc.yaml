@@ -35,3 +35,10 @@ sql:
       go:
         package: "db"
         out: "services/vchsmoodle/db"
+  - engine: "sqlite"
+    queries: "services/vchs/db/query.sql"
+    schema: "services/vchs/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "services/vchs/db"

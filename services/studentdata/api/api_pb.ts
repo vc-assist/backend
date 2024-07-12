@@ -81,76 +81,6 @@ export class OAuthFlow extends Message<OAuthFlow> {
 }
 
 /**
- * GetStudentData
- *
- * @generated from message services.studentdata.api.GetStudentDataRequest
- */
-export class GetStudentDataRequest extends Message<GetStudentDataRequest> {
-  constructor(data?: PartialMessage<GetStudentDataRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "services.studentdata.api.GetStudentDataRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetStudentDataRequest {
-    return new GetStudentDataRequest().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetStudentDataRequest {
-    return new GetStudentDataRequest().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetStudentDataRequest {
-    return new GetStudentDataRequest().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: GetStudentDataRequest | PlainMessage<GetStudentDataRequest> | undefined, b: GetStudentDataRequest | PlainMessage<GetStudentDataRequest> | undefined): boolean {
-    return proto3.util.equals(GetStudentDataRequest, a, b);
-  }
-}
-
-/**
- * @generated from message services.studentdata.api.GetStudentDataResponse
- */
-export class GetStudentDataResponse extends Message<GetStudentDataResponse> {
-  /**
-   * @generated from field: services.studentdata.api.StudentData data = 1;
-   */
-  data?: StudentData;
-
-  constructor(data?: PartialMessage<GetStudentDataResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "services.studentdata.api.GetStudentDataResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "data", kind: "message", T: StudentData },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetStudentDataResponse {
-    return new GetStudentDataResponse().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetStudentDataResponse {
-    return new GetStudentDataResponse().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetStudentDataResponse {
-    return new GetStudentDataResponse().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: GetStudentDataResponse | PlainMessage<GetStudentDataResponse> | undefined, b: GetStudentDataResponse | PlainMessage<GetStudentDataResponse> | undefined): boolean {
-    return proto3.util.equals(GetStudentDataResponse, a, b);
-  }
-}
-
-/**
  * GetCredentialStatus
  *
  * @generated from message services.studentdata.api.CredentialStatus
@@ -447,6 +377,146 @@ export class ProvideCredentialResponse extends Message<ProvideCredentialResponse
 
   static equals(a: ProvideCredentialResponse | PlainMessage<ProvideCredentialResponse> | undefined, b: ProvideCredentialResponse | PlainMessage<ProvideCredentialResponse> | undefined): boolean {
     return proto3.util.equals(ProvideCredentialResponse, a, b);
+  }
+}
+
+/**
+ * GetStudentData
+ *
+ * @generated from message services.studentdata.api.GetStudentDataRequest
+ */
+export class GetStudentDataRequest extends Message<GetStudentDataRequest> {
+  constructor(data?: PartialMessage<GetStudentDataRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "services.studentdata.api.GetStudentDataRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetStudentDataRequest {
+    return new GetStudentDataRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetStudentDataRequest {
+    return new GetStudentDataRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetStudentDataRequest {
+    return new GetStudentDataRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetStudentDataRequest | PlainMessage<GetStudentDataRequest> | undefined, b: GetStudentDataRequest | PlainMessage<GetStudentDataRequest> | undefined): boolean {
+    return proto3.util.equals(GetStudentDataRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message services.studentdata.api.GetStudentDataResponse
+ */
+export class GetStudentDataResponse extends Message<GetStudentDataResponse> {
+  /**
+   * @generated from field: services.studentdata.api.StudentData data = 1;
+   */
+  data?: StudentData;
+
+  constructor(data?: PartialMessage<GetStudentDataResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "services.studentdata.api.GetStudentDataResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "data", kind: "message", T: StudentData },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetStudentDataResponse {
+    return new GetStudentDataResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetStudentDataResponse {
+    return new GetStudentDataResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetStudentDataResponse {
+    return new GetStudentDataResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetStudentDataResponse | PlainMessage<GetStudentDataResponse> | undefined, b: GetStudentDataResponse | PlainMessage<GetStudentDataResponse> | undefined): boolean {
+    return proto3.util.equals(GetStudentDataResponse, a, b);
+  }
+}
+
+/**
+ * RefreshData
+ *
+ * @generated from message services.studentdata.api.RefreshDataRequest
+ */
+export class RefreshDataRequest extends Message<RefreshDataRequest> {
+  constructor(data?: PartialMessage<RefreshDataRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "services.studentdata.api.RefreshDataRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshDataRequest {
+    return new RefreshDataRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshDataRequest {
+    return new RefreshDataRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshDataRequest {
+    return new RefreshDataRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefreshDataRequest | PlainMessage<RefreshDataRequest> | undefined, b: RefreshDataRequest | PlainMessage<RefreshDataRequest> | undefined): boolean {
+    return proto3.util.equals(RefreshDataRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message services.studentdata.api.RefreshDataResponse
+ */
+export class RefreshDataResponse extends Message<RefreshDataResponse> {
+  /**
+   * @generated from field: services.studentdata.api.StudentData refreshed = 1;
+   */
+  refreshed?: StudentData;
+
+  constructor(data?: PartialMessage<RefreshDataResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "services.studentdata.api.RefreshDataResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "refreshed", kind: "message", T: StudentData },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshDataResponse {
+    return new RefreshDataResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshDataResponse {
+    return new RefreshDataResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshDataResponse {
+    return new RefreshDataResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefreshDataResponse | PlainMessage<RefreshDataResponse> | undefined, b: RefreshDataResponse | PlainMessage<RefreshDataResponse> | undefined): boolean {
+    return proto3.util.equals(RefreshDataResponse, a, b);
   }
 }
 

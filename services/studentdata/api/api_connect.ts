@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetCredentialStatusRequest, GetCredentialStatusResponse, GetStudentDataRequest, GetStudentDataResponse, ProvideCredentialRequest, ProvideCredentialResponse } from "./api_pb.js";
+import { GetCredentialStatusRequest, GetCredentialStatusResponse, GetStudentDataRequest, GetStudentDataResponse, ProvideCredentialRequest, ProvideCredentialResponse, RefreshDataRequest, RefreshDataResponse } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -37,6 +37,15 @@ export const StudentDataService = {
       name: "GetStudentData",
       I: GetStudentDataRequest,
       O: GetStudentDataResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc services.studentdata.api.StudentDataService.RefreshData
+     */
+    refreshData: {
+      name: "RefreshData",
+      I: RefreshDataRequest,
+      O: RefreshDataResponse,
       kind: MethodKind.Unary,
     },
   }

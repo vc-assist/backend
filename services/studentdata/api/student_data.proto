@@ -52,6 +52,7 @@ message Course {
 	repeated AssignmentType assignment_types = 10;
 	repeated Assignment assignments = 11;
 	repeated GradeSnapshot snapshots = 12;
+	string lesson_plan = 13;
 }
 
 message StudentData {

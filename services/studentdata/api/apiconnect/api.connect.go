@@ -42,6 +42,9 @@ const (
 	// StudentDataServiceGetStudentDataProcedure is the fully-qualified name of the StudentDataService's
 	// GetStudentData RPC.
 	StudentDataServiceGetStudentDataProcedure = "/services.studentdata.api.StudentDataService/GetStudentData"
+	// StudentDataServiceRefreshDataProcedure is the fully-qualified name of the StudentDataService's
+	// RefreshData RPC.
+	StudentDataServiceRefreshDataProcedure = "/services.studentdata.api.StudentDataService/RefreshData"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -50,6 +53,7 @@ var (
 	studentDataServiceGetCredentialStatusMethodDescriptor = studentDataServiceServiceDescriptor.Methods().ByName("GetCredentialStatus")
 	studentDataServiceProvideCredentialMethodDescriptor   = studentDataServiceServiceDescriptor.Methods().ByName("ProvideCredential")
 	studentDataServiceGetStudentDataMethodDescriptor      = studentDataServiceServiceDescriptor.Methods().ByName("GetStudentData")
+	studentDataServiceRefreshDataMethodDescriptor         = studentDataServiceServiceDescriptor.Methods().ByName("RefreshData")
 )
 
 // StudentDataServiceClient is a client for the services.studentdata.api.StudentDataService service.
@@ -57,6 +61,7 @@ type StudentDataServiceClient interface {
 	GetCredentialStatus(context.Context, *connect.Request[api.GetCredentialStatusRequest]) (*connect.Response[api.GetCredentialStatusResponse], error)
 	ProvideCredential(context.Context, *connect.Request[api.ProvideCredentialRequest]) (*connect.Response[api.ProvideCredentialResponse], error)
 	GetStudentData(context.Context, *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error)
+	RefreshData(context.Context, *connect.Request[api.RefreshDataRequest]) (*connect.Response[api.RefreshDataResponse], error)
 }
 
 // NewStudentDataServiceClient constructs a client for the
@@ -88,6 +93,12 @@ func NewStudentDataServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(studentDataServiceGetStudentDataMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		refreshData: connect.NewClient[api.RefreshDataRequest, api.RefreshDataResponse](
+			httpClient,
+			baseURL+StudentDataServiceRefreshDataProcedure,
+			connect.WithSchema(studentDataServiceRefreshDataMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -96,6 +107,7 @@ type studentDataServiceClient struct {
 	getCredentialStatus *connect.Client[api.GetCredentialStatusRequest, api.GetCredentialStatusResponse]
 	provideCredential   *connect.Client[api.ProvideCredentialRequest, api.ProvideCredentialResponse]
 	getStudentData      *connect.Client[api.GetStudentDataRequest, api.GetStudentDataResponse]
+	refreshData         *connect.Client[api.RefreshDataRequest, api.RefreshDataResponse]
 }
 
 // GetCredentialStatus calls services.studentdata.api.StudentDataService.GetCredentialStatus.
@@ -113,12 +125,18 @@ func (c *studentDataServiceClient) GetStudentData(ctx context.Context, req *conn
 	return c.getStudentData.CallUnary(ctx, req)
 }
 
+// RefreshData calls services.studentdata.api.StudentDataService.RefreshData.
+func (c *studentDataServiceClient) RefreshData(ctx context.Context, req *connect.Request[api.RefreshDataRequest]) (*connect.Response[api.RefreshDataResponse], error) {
+	return c.refreshData.CallUnary(ctx, req)
+}
+
 // StudentDataServiceHandler is an implementation of the services.studentdata.api.StudentDataService
 // service.
 type StudentDataServiceHandler interface {
 	GetCredentialStatus(context.Context, *connect.Request[api.GetCredentialStatusRequest]) (*connect.Response[api.GetCredentialStatusResponse], error)
 	ProvideCredential(context.Context, *connect.Request[api.ProvideCredentialRequest]) (*connect.Response[api.ProvideCredentialResponse], error)
 	GetStudentData(context.Context, *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error)
+	RefreshData(context.Context, *connect.Request[api.RefreshDataRequest]) (*connect.Response[api.RefreshDataResponse], error)
 }
 
 // NewStudentDataServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -145,6 +163,12 @@ func NewStudentDataServiceHandler(svc StudentDataServiceHandler, opts ...connect
 		connect.WithSchema(studentDataServiceGetStudentDataMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	studentDataServiceRefreshDataHandler := connect.NewUnaryHandler(
+		StudentDataServiceRefreshDataProcedure,
+		svc.RefreshData,
+		connect.WithSchema(studentDataServiceRefreshDataMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/services.studentdata.api.StudentDataService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case StudentDataServiceGetCredentialStatusProcedure:
@@ -153,6 +177,8 @@ func NewStudentDataServiceHandler(svc StudentDataServiceHandler, opts ...connect
 			studentDataServiceProvideCredentialHandler.ServeHTTP(w, r)
 		case StudentDataServiceGetStudentDataProcedure:
 			studentDataServiceGetStudentDataHandler.ServeHTTP(w, r)
+		case StudentDataServiceRefreshDataProcedure:
+			studentDataServiceRefreshDataHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -172,4 +198,8 @@ func (UnimplementedStudentDataServiceHandler) ProvideCredential(context.Context,
 
 func (UnimplementedStudentDataServiceHandler) GetStudentData(context.Context, *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("services.studentdata.api.StudentDataService.GetStudentData is not implemented"))
+}
+
+func (UnimplementedStudentDataServiceHandler) RefreshData(context.Context, *connect.Request[api.RefreshDataRequest]) (*connect.Response[api.RefreshDataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("services.studentdata.api.StudentDataService.RefreshData is not implemented"))
 }
