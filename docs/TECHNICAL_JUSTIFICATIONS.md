@@ -36,3 +36,8 @@ safe, generated boilerplate is also ensured to be type safe.
 
 1. Not my choice, side effect of the go formatter.
 
+### Why this strange microservice gRPC architecture?
+
+1. Organization, the separation of various backend functions into services makes it very clear where certain logic is located, instead of spreading it out all over the place in a single giant monolith. It also forces you to first think about the interface and the design of a service before implementing it.
+2. gRPC services can be used locally (that is, you can put multiple services together to form a monolith which will combine to form a single executable without needing kubernetes or any orchestration platforms). This allows you to separate out certain services to stay online independently (like `authd`) so killing the main monolith won't stop them, while keeping all the benefits of lowered overhead and increased reliability in the main monolith.
+
