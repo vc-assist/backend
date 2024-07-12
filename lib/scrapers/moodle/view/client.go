@@ -322,3 +322,54 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 
 	return chaptersFromAnchors(anchors), nil
 }
+
+func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, error) {
+	ctx, span := tracer.Start(ctx, "client:ChapterContent")
+	defer span.End()
+
+	endpoint := chapter.Href
+	span.SetAttributes(attribute.KeyValue{
+		Key:   "url",
+		Value: attribute.StringValue(endpoint),
+	})
+
+	page, err := c.cache.get(ctx, c.ClientId, endpoint)
+	if err == nil {
+		span.SetStatus(codes.Ok, "CACHE HIT")
+		return string(page.Contents), nil
+	}
+
+	res, err := c.Core.Http.R().
+		SetContext(ctx).
+		Get(endpoint)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch")
+		return "", err
+	}
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to parse html")
+		return "", err
+	}
+
+	contents, err := doc.Find("div[role=main] div.box").Html()
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return "", err
+	}
+
+	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
+		Contents:  []byte(contents),
+		Anchors:   nil,
+		ExpiresAt: time.Now().Unix() + CHAPTER_LIST_LIFETIME,
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to cache request")
+	}
+
+	return contents, nil
+}
