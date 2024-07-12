@@ -1,12 +1,12 @@
-## snippets
+## Snippets
 
-working with this codebase may have you repeating a couple of small code fragments all over the place ("mini-boilerplate" if you may).
+Working with this codebase may have you repeating a couple of small code fragments all over the place ("mini-boilerplate" if you may).
 
-here are some custom snippets may be able to help you out.
+Here are some custom snippets may be able to help you out.
 
-> the format of the snippets are in snipmate's custom format but it should be relatively simple to translate them to vscode or other program's snippet formats. (see snipmate examples [here](https://github.com/honza/vim-snippets/tree/master/snippets))
+> The format of the snippets are in snipmate's custom format but it should be relatively simple to translate them to vscode or other program's snippet formats. (See snipmate examples [here](https://github.com/honza/vim-snippets/tree/master/snippets))
 
-### golang
+### Golang
 
 ```snipmate
 snippet iferr
@@ -21,7 +21,7 @@ snippet recerr
 	span.SetStatus(codes.Error, ${0:err.Error()})
 ```
 
-### protobuf
+### Protobuf
 
 ```snipmate
 snippet reqres
