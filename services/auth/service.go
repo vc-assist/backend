@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 	"vcassist-backend/services/auth/api"
-	"vcassist-backend/services/auth/api/apiconnect"
 	"vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
 
@@ -34,8 +33,6 @@ type Service struct {
 	qry      *db.Queries
 	email    EmailConfig
 	verifier verifier.Verifier
-
-	apiconnect.UnimplementedAuthServiceHandler
 }
 
 func NewService(database *sql.DB, email EmailConfig) Service {
