@@ -2,46 +2,55 @@ package vchs
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"regexp"
-	"slices"
-	"strconv"
 	"time"
-	"vcassist-backend/lib/scrapers/powerschool"
-	authdb "vcassist-backend/services/auth/db"
+	auth "vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
+	linkerrpc "vcassist-backend/services/linker/api/apiconnect"
 	pspb "vcassist-backend/services/powerschool/api"
 	psrpc "vcassist-backend/services/powerschool/api/apiconnect"
 	"vcassist-backend/services/studentdata/api"
+	"vcassist-backend/services/vchs/db"
+	moodlepb "vcassist-backend/services/vchsmoodle/api"
+	moodlerpc "vcassist-backend/services/vchsmoodle/api/apiconnect"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/proto"
 )
 
 var tracer = otel.Tracer("services/vchs")
 
 type Service struct {
+	db          *sql.DB
+	qry         *db.Queries
 	powerschool psrpc.PowerschoolServiceClient
+	moodle      moodlerpc.MoodleServiceClient
+	linker      linkerrpc.LinkerServiceClient
 }
 
-func getProfile(ctx context.Context) authdb.User {
-	span := trace.SpanFromContext(ctx)
-	profile, _ := verifier.ProfileFromContext(ctx)
-	span.SetAttributes(attribute.KeyValue{
-		Key:   "student_email",
-		Value: attribute.StringValue(profile.Email),
-	})
-	return profile
+func NewService(
+	database *sql.DB,
+	powerschool psrpc.PowerschoolServiceClient,
+	moodle moodlerpc.MoodleServiceClient,
+	linker linkerrpc.LinkerServiceClient,
+) Service {
+	return Service{
+		db:          database,
+		qry:         db.New(database),
+		powerschool: powerschool,
+		moodle:      moodle,
+		linker:      linker,
+	}
 }
 
 func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[api.GetCredentialStatusRequest]) (*connect.Response[api.GetCredentialStatusResponse], error) {
 	ctx, span := tracer.Start(ctx, "GetCredentialStatus")
 	defer span.End()
 
-	profile := getProfile(ctx)
+	profile, _ := verifier.ProfileFromContext(ctx)
 
 	psoauthflow, err := s.powerschool.GetOAuthFlow(ctx, &connect.Request[pspb.GetOAuthFlowRequest]{Msg: &pspb.GetOAuthFlowRequest{}})
 	if err != nil {
@@ -81,7 +90,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[api
 	ctx, span := tracer.Start(ctx, "ProvideCredential")
 	defer span.End()
 
-	profile := getProfile(ctx)
+	profile, _ := verifier.ProfileFromContext(ctx)
 
 	switch req.Msg.Id {
 	case "powerschool":
@@ -97,208 +106,134 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[api
 			return nil, err
 		}
 	case "moodle":
-		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("moodle login is not yet implemented"))
+		_, err := s.moodle.ProvideUsernamePassword(ctx, &connect.Request[moodlepb.ProvideUsernamePasswordRequest]{
+			Msg: &moodlepb.ProvideUsernamePasswordRequest{
+				StudentId: req.Msg.Id,
+				Username:  req.Msg.GetUsernamePassword().Username,
+				Password:  req.Msg.GetUsernamePassword().Password,
+			},
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
 	}
 
 	return &connect.Response[api.ProvideCredentialResponse]{Msg: &api.ProvideCredentialResponse{}}, nil
 }
 
-func assignmentFromPSAssignment(ctx context.Context, a *powerschool.AssignmentData) *api.Assignment {
-	span := trace.SpanFromContext(ctx)
+func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) (*api.StudentData, error) {
+	ctx, span := tracer.Start(ctx, "getCachedStudentData")
+	defer span.End()
 
-	state := api.AssignmentState_UNSET
-	switch {
-	case a.GetAttributeLate():
-		state = api.AssignmentState_LATE
-	case a.GetAttributeCollected():
-		state = api.AssignmentState_SUBMITTED
-	case a.GetAttributeMissing():
-		state = api.AssignmentState_MISSING
-	case a.GetAttributeIncomplete():
-		state = api.AssignmentState_INCOMPLETE
-	case a.GetAttributeExempt():
-		state = api.AssignmentState_EXEMPT
+	cachedRow, err := s.qry.GetCachedStudentData(ctx, studentEmail)
+	if err == nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to read cache")
+		return nil, err
 	}
 
-	duedate, err := powerschool.DecodeAssignmentTime(a.GetDueDate())
+	now := time.Now().Unix()
+	if now >= cachedRow.Expiresat {
+		err := fmt.Errorf("cached data has expired")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	var data *api.StudentData
+	err = proto.Unmarshal(cachedRow.Cached, data)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to parse cached object")
+		return nil, err
+	}
+	return data, nil
+}
+
+func (s Service) recacheStudentData(ctx context.Context, profile auth.User) (*api.StudentData, error) {
+	ctx, span := tracer.Start(ctx, "recacheStudentData")
+	defer span.End()
+
+	psData, err := s.studentDataFromPS(ctx, profile)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get powerschool data")
+		psData = nil
+	}
+	moodleData, err := s.studentDataFromMoodle(ctx, profile)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get moodle data")
+		moodleData = nil
+	}
+	merged, err := s.mergeStudentData(ctx, psData, moodleData)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	newCached, err := proto.Marshal(merged)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	err = s.qry.SetCachedStudentData(ctx, db.SetCachedStudentDataParams{
+		Studentid: profile.Email,
+		Cached:    newCached,
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
 
-	return &api.Assignment{
-		Name:               a.GetTitle(),
-		Description:        a.GetDescription(),
-		Scored:             float32(a.GetPointsEarned()),
-		Total:              float32(a.GetPointsPossible()),
-		State:              state,
-		Time:               duedate.Unix(),
-		AssignmentTypeName: a.GetCategory(),
-	}
-}
-
-var periodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
-
-func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *api.Course {
-	span := trace.SpanFromContext(ctx)
-
-	matches := periodRegex.FindStringSubmatch(pscourse.Period)
-	if len(matches) < 2 {
-		err := fmt.Errorf("could not run regex on course period '%s'", pscourse.Period)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil
-	}
-	currentDay := matches[1]
-
-	now := time.Now().Unix()
-	var overallGrade int64 = -1
-	for _, term := range pscourse.GetTerms() {
-		start, err := powerschool.DecodeCourseTermTime(term.Start)
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return nil
-		}
-		end, err := powerschool.DecodeCourseTermTime(term.End)
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return nil
-		}
-
-		if now >= start.Unix() && now < end.Unix() {
-			overallGrade = int64(term.FinalGrade.GetPercent())
-			break
-		}
-	}
-
-	course := &api.Course{
-		Name: pscourse.GetName(),
-		Room: pscourse.GetRoom(),
-		Teacher: fmt.Sprintf(
-			"%s %s",
-			pscourse.GetTeacherFirstName(),
-			pscourse.GetTeacherLastName(),
-		),
-		TeacherEmail: pscourse.GetTeacherEmail(),
-		DayName:      currentDay,
-		// compute homework pass heuristic on frontend,
-		// just reply truthfully with what you know on backend
-		HomeworkPasses: -1,
-		OverallGrade:   float32(overallGrade),
-	}
-
-	var assignmentTypeNameList []string
-	for _, a := range pscourse.Assignments {
-		assignment := assignmentFromPSAssignment(ctx, a)
-		assignmentTypeName := assignment.GetAssignmentTypeName()
-		if !slices.Contains(assignmentTypeNameList, assignmentTypeName) {
-			assignmentTypeNameList = append(assignmentTypeNameList, assignmentTypeName)
-		}
-		course.Assignments = append(course.Assignments, assignment)
-	}
-	for _, typename := range assignmentTypeNameList {
-		course.AssignmentTypes = append(course.AssignmentTypes, &api.AssignmentType{
-			Name:   typename,
-			Weight: 0,
-		})
-	}
-
-	return course
+	return merged, nil
 }
 
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error) {
 	ctx, span := tracer.Start(ctx, "GetStudentData")
 	defer span.End()
 
-	profile := getProfile(ctx)
+	profile, _ := verifier.ProfileFromContext(ctx)
 
-	psres, err := s.powerschool.GetStudentData(ctx, &connect.Request[pspb.GetStudentDataRequest]{
-		Msg: &pspb.GetStudentDataRequest{
-			StudentId: profile.Email,
-		},
-	})
-	if err != nil {
+	cachedData, err := s.getCachedStudentData(ctx, profile.Email)
+	if err == nil {
+		return &connect.Response[api.GetStudentDataResponse]{
+			Msg: &api.GetStudentDataResponse{
+				Data: cachedData,
+			},
+		}, nil
+	} else {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return nil, err
 	}
 
-	gpa, err := strconv.ParseFloat(psres.Msg.GetProfile().CurrentGpa, 32)
+	data, err := s.recacheStudentData(ctx, profile)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
-	}
-
-	pscourseList := psres.Msg.GetCourseData()
-
-	var courseListGuids []string
-	var courseList []*api.Course
-	var dayNames []string
-	for _, c := range pscourseList {
-		course := courseFromPSCourse(ctx, c)
-		if course == nil {
-			continue
-		}
-		courseList = append(courseList, course)
-		courseListGuids = append(courseListGuids, c.Guid)
-
-		currentDay := course.DayName
-		for _, day := range dayNames {
-			if day == currentDay {
-				dayNames = append(dayNames, currentDay)
-				break
-			}
-		}
-	}
-
-	for _, meeting := range psres.Msg.GetMeetings().SectionMeetings {
-		var course *api.Course
-		for i, guid := range courseListGuids {
-			if guid == meeting.SectionGuid {
-				course = courseList[i]
-				break
-			}
-		}
-		if course == nil {
-			err := fmt.Errorf(
-				"could not find corresponding course for SectionMeeting with guid '%s'",
-				meeting.SectionGuid,
-			)
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			continue
-		}
-
-		start, err := powerschool.DecodeSectionMeetingTimestamp(meeting.GetStart())
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			continue
-		}
-		stop, err := powerschool.DecodeSectionMeetingTimestamp(meeting.GetStop())
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			continue
-		}
-
-		course.Meetings = append(course.Meetings, &api.CourseMeeting{
-			StartTime: start.Unix(),
-			EndTime:   stop.Unix(),
-		})
-	}
-
-	result := &api.StudentData{
-		Gpa:      float32(gpa),
-		DayNames: dayNames,
-		Courses:  courseList,
 	}
 	return &connect.Response[api.GetStudentDataResponse]{
 		Msg: &api.GetStudentDataResponse{
-			Data: result,
+			Data: data,
+		},
+	}, nil
+}
+
+func (s Service) RefreshData(ctx context.Context, _ *connect.Request[api.RefreshDataRequest]) (*connect.Response[api.RefreshDataResponse], error) {
+	ctx, span := tracer.Start(ctx, "RefreshData")
+	defer span.End()
+
+	profile, _ := verifier.ProfileFromContext(ctx)
+
+	data, err := s.recacheStudentData(ctx, profile)
+	if err != nil {
+		return nil, err
+	}
+	return &connect.Response[api.RefreshDataResponse]{
+		Msg: &api.RefreshDataResponse{
+			Refreshed: data,
 		},
 	}, nil
 }
