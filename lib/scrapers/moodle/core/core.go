@@ -31,9 +31,7 @@ type Client struct {
 }
 
 type ClientOptions struct {
-	BaseUrl  string
-	Username string
-	Password string
+	BaseUrl string
 }
 
 func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
