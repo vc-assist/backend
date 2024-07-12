@@ -8,8 +8,8 @@ import (
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/services/powerschool/api"
-	"vcassist-backend/services/powerschool/api/apiconnect"
 	"vcassist-backend/services/powerschool/db"
+	studentdataapi "vcassist-backend/services/studentdata/api"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -30,8 +30,6 @@ type Service struct {
 	db      *sql.DB
 	oauth   OAuthConfig
 	qry     *db.Queries
-
-	apiconnect.UnimplementedPowerschoolServiceHandler
 }
 
 func NewService(database *sql.DB, baseUrl string, oauth OAuthConfig) Service {
@@ -121,13 +119,15 @@ func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[api.GetOAu
 
 	return &connect.Response[api.GetOAuthFlowResponse]{
 		Msg: &api.GetOAuthFlowResponse{
-			BaseLoginUrl:    s.oauth.BaseLoginUrl,
-			AccessType:      "offline",
-			Scope:           "openid email profile",
-			RedirectUri:     "com.powerschool.portal://",
-			CodeVerifier:    codeVerifier,
-			ClientId:        s.oauth.ClientId,
-			TokenRequestUrl: "https://oauth2.googleapis.com/token",
+			Flow: &studentdataapi.OAuthFlow{
+				BaseLoginUrl:    s.oauth.BaseLoginUrl,
+				AccessType:      "offline",
+				Scope:           "openid email profile",
+				RedirectUri:     "com.powerschool.portal://",
+				CodeVerifier:    codeVerifier,
+				ClientId:        s.oauth.ClientId,
+				TokenRequestUrl: "https://oauth2.googleapis.com/token",
+			},
 		},
 	}, nil
 }

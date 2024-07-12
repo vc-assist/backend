@@ -2,7 +2,6 @@ package vchs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -13,8 +12,7 @@ import (
 	"vcassist-backend/services/auth/verifier"
 	pspb "vcassist-backend/services/powerschool/api"
 	psrpc "vcassist-backend/services/powerschool/api/apiconnect"
-	"vcassist-backend/services/vchs/api"
-	"vcassist-backend/services/vchs/api/apiconnect"
+	"vcassist-backend/services/studentdata/api"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -27,8 +25,6 @@ var tracer = otel.Tracer("services/vchs")
 
 type Service struct {
 	powerschool psrpc.PowerschoolServiceClient
-
-	apiconnect.UnimplementedVchsServiceHandler
 }
 
 func getProfile(ctx context.Context) authdb.User {
@@ -47,7 +43,14 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[a
 
 	profile := getProfile(ctx)
 
-	psres, err := s.powerschool.GetAuthStatus(ctx, &connect.Request[pspb.GetAuthStatusRequest]{
+	psoauthflow, err := s.powerschool.GetOAuthFlow(ctx, &connect.Request[pspb.GetOAuthFlowRequest]{Msg: &pspb.GetOAuthFlowRequest{}})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	psauthstatus, err := s.powerschool.GetAuthStatus(ctx, &connect.Request[pspb.GetAuthStatusRequest]{
 		Msg: &pspb.GetAuthStatusRequest{
 			StudentId: profile.Email,
 		},
@@ -60,33 +63,44 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[a
 
 	return &connect.Response[api.GetCredentialStatusResponse]{
 		Msg: &api.GetCredentialStatusResponse{
-			PowerschoolProvided: psres.Msg.IsAuthenticated,
+			Statuses: []*api.CredentialStatus{
+				{
+					Id:   "powerschool",
+					Name: "PowerSchool",
+					LoginFlow: &api.CredentialStatus_Oauth{
+						Oauth: psoauthflow.Msg.Flow,
+					},
+					Provided: psauthstatus.Msg.IsAuthenticated,
+				},
+			},
 		},
 	}, nil
 }
 
-func (s Service) ProvidePowerschoolToken(ctx context.Context, req *connect.Request[api.ProvidePowerschoolTokenRequest]) (*connect.Response[api.ProvidePowerschoolTokenResponse], error) {
-	ctx, span := tracer.Start(ctx, "ProvidePowerschoolToken")
+func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[api.ProvideCredentialRequest]) (*connect.Response[api.ProvideCredentialResponse], error) {
+	ctx, span := tracer.Start(ctx, "ProvideCredential")
 	defer span.End()
 
 	profile := getProfile(ctx)
 
-	_, err := s.powerschool.ProvideOAuth(ctx, &connect.Request[pspb.ProvideOAuthRequest]{
-		Msg: &pspb.ProvideOAuthRequest{
-			StudentId: profile.Email,
-			Token:     req.Msg.Token,
-		},
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+	switch req.Msg.Id {
+	case "powerschool":
+		_, err := s.powerschool.ProvideOAuth(ctx, &connect.Request[pspb.ProvideOAuthRequest]{
+			Msg: &pspb.ProvideOAuthRequest{
+				StudentId: profile.Email,
+				Token:     req.Msg.GetOauthToken().GetToken(),
+			},
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+	case "moodle":
+		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("moodle login is not yet implemented"))
 	}
-	return &connect.Response[api.ProvidePowerschoolTokenResponse]{Msg: &api.ProvidePowerschoolTokenResponse{}}, nil
-}
 
-func (s Service) ProvideMoodleLogin(ctx context.Context, req *connect.Request[api.ProvideMoodleLoginRequest]) (*connect.Response[api.ProvideMoodleLoginResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("services.vchs.api.VchsService.ProvideMoodleLogin is not implemented"))
+	return &connect.Response[api.ProvideCredentialResponse]{Msg: &api.ProvideCredentialResponse{}}, nil
 }
 
 func assignmentFromPSAssignment(ctx context.Context, a *powerschool.AssignmentData) *api.Assignment {

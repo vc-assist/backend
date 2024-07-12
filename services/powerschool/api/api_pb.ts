@@ -5,6 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
+import { OAuthFlow } from "../../studentdata/api/api_pb.js";
 import { StudentProfile } from "../../../lib/scrapers/powerschool/query_all_students_pb.js";
 import { CourseMeetingList } from "../../../lib/scrapers/powerschool/query_schedule_pb.js";
 import { CourseData } from "../../../lib/scrapers/powerschool/query_student_data_pb.js";
@@ -123,39 +124,9 @@ export class GetOAuthFlowRequest extends Message<GetOAuthFlowRequest> {
  */
 export class GetOAuthFlowResponse extends Message<GetOAuthFlowResponse> {
   /**
-   * @generated from field: string base_login_url = 1;
+   * @generated from field: services.studentdata.api.OAuthFlow flow = 1;
    */
-  baseLoginUrl = "";
-
-  /**
-   * @generated from field: string access_type = 2;
-   */
-  accessType = "";
-
-  /**
-   * @generated from field: string scope = 3;
-   */
-  scope = "";
-
-  /**
-   * @generated from field: string redirect_uri = 4;
-   */
-  redirectUri = "";
-
-  /**
-   * @generated from field: string code_verifier = 5;
-   */
-  codeVerifier = "";
-
-  /**
-   * @generated from field: string client_id = 6;
-   */
-  clientId = "";
-
-  /**
-   * @generated from field: string token_request_url = 7;
-   */
-  tokenRequestUrl = "";
+  flow?: OAuthFlow;
 
   constructor(data?: PartialMessage<GetOAuthFlowResponse>) {
     super();
@@ -165,13 +136,7 @@ export class GetOAuthFlowResponse extends Message<GetOAuthFlowResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cmd.powerschoold.api.GetOAuthFlowResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "base_login_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "access_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "scope", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "redirect_uri", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "code_verifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "client_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "token_request_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "flow", kind: "message", T: OAuthFlow },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetOAuthFlowResponse {
