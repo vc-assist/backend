@@ -7,6 +7,8 @@ import (
 	"vcassist-backend/services/auth/db"
 
 	"connectrpc.com/connect"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const profileCtxKey = "vcassist:profile"
@@ -37,6 +39,11 @@ func NewAuthInterceptor(verifier Verifier) connect.UnaryInterceptorFunc {
 }
 
 func ProfileFromContext(ctx context.Context) (db.User, bool) {
+	span := trace.SpanFromContext(ctx)
 	profile, ok := ctx.Value(profileCtxKey).(db.User)
+	span.SetAttributes(attribute.KeyValue{
+		Key:   "profile:email",
+		Value: attribute.StringValue(profile.Email),
+	})
 	return profile, ok
 }
