@@ -9,6 +9,7 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
+	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/auth/api"
 	"vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
@@ -70,7 +71,7 @@ func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, 
 	err = txqry.CreateVerificationCode(ctx, db.CreateVerificationCodeParams{
 		Code:      code,
 		Useremail: email,
-		Expiresat: time.Now().Add(time.Hour).Unix(),
+		Expiresat: timezone.Now().Add(time.Hour).Unix(),
 	})
 	if err != nil {
 		span.RecordError(err)

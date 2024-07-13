@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/stretchr/testify/require"
 )
@@ -27,12 +28,7 @@ func TestFetchEvents(t *testing.T) {
 	cleanup := telemetry.SetupForTesting(t, "test:vcsnet")
 	defer cleanup()
 
-	tz, err := time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	events, err := FetchEvents(context.Background(), tz)
+	events, err := FetchEvents(context.Background(), timezone.Location)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,10 +37,7 @@ func TestFetchEvents(t *testing.T) {
 }
 
 func TestGetSchoolYear(t *testing.T) {
-	tz, err := time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tz := timezone.Location
 
 	testCases := []struct {
 		now      time.Time

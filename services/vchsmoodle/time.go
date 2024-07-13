@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"vcassist-backend/lib/timezone"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -36,19 +37,9 @@ func parseMonth(text string) time.Month {
 	return -1
 }
 
-var tz *time.Location
-
-func init() {
-	var err error
-	tz, err = time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		panic(err)
-	}
-}
-
 func resolveMonthDay(month time.Month, day int) time.Time {
-	now := time.Now()
-	return time.Date(now.Year(), month, day, 0, 0, 0, 0, tz)
+	now := timezone.Now()
+	return time.Date(now.Year(), month, day, 0, 0, 0, 0, timezone.Location)
 }
 
 var monthDayRegex = regexp.MustCompile(`(\w{3,9}) *(\d+)`)
