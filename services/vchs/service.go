@@ -40,13 +40,15 @@ func NewService(
 	powerschool psrpc.PowerschoolServiceClient,
 	moodle moodlerpc.MoodleServiceClient,
 	linker linkerrpc.LinkerServiceClient,
+	gradesnapshots gradesnapshotrpc.GradeSnapshotsServiceClient,
 ) Service {
 	return Service{
-		db:          database,
-		qry:         db.New(database),
-		powerschool: powerschool,
-		moodle:      moodle,
-		linker:      linker,
+		db:             database,
+		qry:            db.New(database),
+		powerschool:    powerschool,
+		moodle:         moodle,
+		linker:         linker,
+		gradesnapshots: gradesnapshots,
 	}
 }
 
