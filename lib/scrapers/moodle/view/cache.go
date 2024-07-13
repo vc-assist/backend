@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/gob"
 	"net/url"
-	"time"
 	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/purell"
 	"github.com/dgraph-io/badger/v4"
@@ -89,7 +89,7 @@ func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpa
 		return webpage{}, err
 	}
 
-	if time.Now().Unix() >= cached.ExpiresAt {
+	if timezone.Now().Unix() >= cached.ExpiresAt {
 		span.AddEvent("delete expired cache key", trace.WithAttributes(attribute.KeyValue{
 			Key:   "key",
 			Value: attribute.StringValue(key),

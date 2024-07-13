@@ -7,6 +7,7 @@ import (
 	"time"
 	"vcassist-backend/lib/htmlutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dgraph-io/badger/v4"
@@ -108,7 +109,7 @@ func (c Client) Courses(ctx context.Context) ([]Course, error) {
 	err = c.cache.set(ctx, c.ClientId, "/index.php", webpage{
 		Contents:  res.Body(),
 		Anchors:   anchors,
-		ExpiresAt: time.Now().Unix() + COURSE_LIST_LIFETIME,
+		ExpiresAt: timezone.Now().Unix() + COURSE_LIST_LIFETIME,
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -173,7 +174,7 @@ func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) 
 	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
 		Contents:  res.Body(),
 		Anchors:   anchors,
-		ExpiresAt: time.Now().Unix() + SECTION_LIST_LIFETIME,
+		ExpiresAt: timezone.Now().Unix() + SECTION_LIST_LIFETIME,
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -235,7 +236,7 @@ func (c Client) Resources(ctx context.Context, section Section) ([]Resource, err
 	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
 		Contents:  res.Body(),
 		Anchors:   anchors,
-		ExpiresAt: time.Now().Unix() + RESOURCE_LIST_LIFETIME,
+		ExpiresAt: timezone.Now().Unix() + RESOURCE_LIST_LIFETIME,
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -313,7 +314,7 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
 		Contents:  []byte(currentContents),
 		Anchors:   anchors,
-		ExpiresAt: time.Now().Unix() + CHAPTER_LIST_LIFETIME,
+		ExpiresAt: timezone.Now().Unix() + CHAPTER_LIST_LIFETIME,
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -364,7 +365,7 @@ func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, er
 	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
 		Contents:  []byte(contents),
 		Anchors:   nil,
-		ExpiresAt: time.Now().Unix() + CHAPTER_LIST_LIFETIME,
+		ExpiresAt: timezone.Now().Unix() + CHAPTER_LIST_LIFETIME,
 	})
 	if err != nil {
 		span.RecordError(err)

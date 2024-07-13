@@ -42,9 +42,7 @@ func TestClient(t *testing.T) {
 	}
 
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
-		BaseUrl:  config.BaseUrl,
-		Username: config.Username,
-		Password: config.Password,
+		BaseUrl: config.BaseUrl,
 	})
 	if err != nil {
 		t.Fatal(err)

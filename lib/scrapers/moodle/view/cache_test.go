@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/go-cmp/cmp"
@@ -72,7 +73,7 @@ func TestCache(t *testing.T) {
 			},
 		},
 		Contents:  []byte("some webpage contents"),
-		ExpiresAt: int64(time.Duration(time.Now().Unix()) + 1),
+		ExpiresAt: int64(time.Duration(timezone.Now().Unix()) + 1),
 	}
 	err = cache.set(context.Background(), "client_a", "/mod/book/view.php?id=1", page1original)
 	require.Nil(t, err)
