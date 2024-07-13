@@ -14,7 +14,7 @@ func init() {
 
 // force timezone to be in LA because sometimes our servers
 // end up on east coast which will cause disturbances when
-// manipulating dates based on <time.Time>.Year()/Month()/Day()
+// manipulating dates based on <time.Time>.Year()/Month()/Day()/Hour()/...
 func Now() time.Time {
 	return time.Now().In(Location)
 }
