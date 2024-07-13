@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync"
 	"time"
-	auth "vcassist-backend/services/auth/db"
+	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/auth/verifier"
+	gradesnapshotpb "vcassist-backend/services/gradesnapshots/api"
+	gradesnapshotrpc "vcassist-backend/services/gradesnapshots/api/apiconnect"
 	linkerrpc "vcassist-backend/services/linker/api/apiconnect"
 	pspb "vcassist-backend/services/powerschool/api"
 	psrpc "vcassist-backend/services/powerschool/api/apiconnect"
@@ -24,11 +27,12 @@ import (
 var tracer = otel.Tracer("services/vchs")
 
 type Service struct {
-	db          *sql.DB
-	qry         *db.Queries
-	powerschool psrpc.PowerschoolServiceClient
-	moodle      moodlerpc.MoodleServiceClient
-	linker      linkerrpc.LinkerServiceClient
+	db             *sql.DB
+	qry            *db.Queries
+	gradesnapshots gradesnapshotrpc.GradeSnapshotsServiceClient
+	powerschool    psrpc.PowerschoolServiceClient
+	moodle         moodlerpc.MoodleServiceClient
+	linker         linkerrpc.LinkerServiceClient
 }
 
 func NewService(
@@ -44,6 +48,72 @@ func NewService(
 		moodle:      moodle,
 		linker:      linker,
 	}
+}
+
+func (s Service) removeExpiredWorker(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 5)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			ctx, span := tracer.Start(ctx, "removeExpiredRows")
+			err := s.qry.DeleteCachedStudentDataBefore(ctx, timezone.Now().Unix())
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+			span.End()
+		}
+	}
+}
+
+func (s Service) recacheAllStudents(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "recacheAllStudents")
+	defer span.End()
+
+	studentIds, err := s.qry.GetStudents(ctx)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	for _, id := range studentIds {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := s.recacheStudentData(ctx, id)
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func (s Service) recacheWorker(ctx context.Context) {
+	ticker := time.NewTicker(time.Hour)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			now := timezone.Now()
+			if now.Hour() == 7 || now.Hour() == 10 || now.Hour() == 13 || now.Hour() == 16 {
+				s.recacheAllStudents(ctx)
+			}
+		}
+	}
+}
+
+func (s Service) StartWorker(ctx context.Context) {
+	go s.removeExpiredWorker(ctx)
+	go s.recacheWorker(ctx)
 }
 
 func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[api.GetCredentialStatusRequest]) (*connect.Response[api.GetCredentialStatusResponse], error) {
@@ -134,7 +204,7 @@ func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) 
 		return nil, err
 	}
 
-	now := time.Now().Unix()
+	now := timezone.Now().Unix()
 	if now >= cachedRow.Expiresat {
 		err := fmt.Errorf("cached data has expired")
 		span.RecordError(err)
@@ -152,23 +222,30 @@ func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) 
 	return data, nil
 }
 
-func (s Service) recacheStudentData(ctx context.Context, profile auth.User) (*api.StudentData, error) {
+func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*api.StudentData, error) {
 	ctx, span := tracer.Start(ctx, "recacheStudentData")
 	defer span.End()
 
-	psData, err := s.studentDataFromPS(ctx, profile)
+	psData, err := s.studentDataFromPS(ctx, userEmail)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get powerschool data")
 		psData = nil
 	}
-	moodleData, err := s.studentDataFromMoodle(ctx, profile)
+	moodleData, err := s.studentDataFromMoodle(ctx, userEmail)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get moodle data")
 		moodleData = nil
 	}
-	merged, err := s.mergeStudentData(ctx, psData, moodleData)
+	gradesnapshotData, err := s.studentDataFromGradesnapshots(ctx, userEmail)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get grade snapshot data")
+		gradesnapshotData = nil
+	}
+
+	merged, err := s.mergeStudentData(ctx, psData, moodleData, gradesnapshotData)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -181,12 +258,36 @@ func (s Service) recacheStudentData(ctx context.Context, profile auth.User) (*ap
 		span.SetStatus(codes.Error, err.Error())
 	}
 	err = s.qry.SetCachedStudentData(ctx, db.SetCachedStudentDataParams{
-		Studentid: profile.Email,
+		Studentid: userEmail,
 		Cached:    newCached,
 	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
+	}
+
+	now := timezone.Now()
+	snapshots := make([]*gradesnapshotpb.CourseSnapshot, len(merged.Courses))
+	for i, c := range merged.Courses {
+		snapshots[i] = &gradesnapshotpb.CourseSnapshot{
+			Course: c.Name,
+			Snapshot: &gradesnapshotpb.Snapshot{
+				Value: c.OverallGrade,
+				Time:  now.Unix(),
+			},
+		}
+	}
+	_, err = s.gradesnapshots.Push(ctx, &connect.Request[gradesnapshotpb.PushRequest]{
+		Msg: &gradesnapshotpb.PushRequest{
+			User: &gradesnapshotpb.UserSnapshot{
+				User:    userEmail,
+				Courses: snapshots,
+			},
+		},
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to push grade snapshots")
 	}
 
 	return merged, nil
@@ -210,7 +311,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		span.SetStatus(codes.Error, err.Error())
 	}
 
-	data, err := s.recacheStudentData(ctx, profile)
+	data, err := s.recacheStudentData(ctx, profile.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +328,7 @@ func (s Service) RefreshData(ctx context.Context, _ *connect.Request[api.Refresh
 
 	profile, _ := verifier.ProfileFromContext(ctx)
 
-	data, err := s.recacheStudentData(ctx, profile)
+	data, err := s.recacheStudentData(ctx, profile.Email)
 	if err != nil {
 		return nil, err
 	}

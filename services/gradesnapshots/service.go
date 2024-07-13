@@ -3,6 +3,8 @@ package gradesnapshots
 import (
 	"context"
 	"database/sql"
+	"time"
+	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/gradesnapshots/api"
 	"vcassist-backend/services/gradesnapshots/db"
 
@@ -32,8 +34,8 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 
 	span.SetAttributes(
 		attribute.KeyValue{
-			Key:   "number_users",
-			Value: attribute.IntValue(len(req.Msg.Users)),
+			Key:   "user",
+			Value: attribute.IntValue(len(req.Msg.User.User)),
 		},
 	)
 
@@ -44,30 +46,39 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 		return nil, err
 	}
 	defer tx.Rollback()
-
 	txqry := s.qry.WithTx(tx)
-	for _, user := range req.Msg.GetUsers() {
-		for _, course := range user.GetCourses() {
-			userCourseId, err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
-				User:   user.User,
-				Course: course.Course,
-			})
-			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-				return nil, err
-			}
 
-			err = txqry.CreateGradeSnapshot(ctx, db.CreateGradeSnapshotParams{
-				Usercourseid: userCourseId,
-				Time:         course.Snapshot.Time,
-				Value:        float64(course.Snapshot.Time),
-			})
-			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-				return nil, err
-			}
+	now := timezone.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, timezone.Location).Unix()
+
+	err = txqry.DeleteGradeSnapshotsAfter(ctx, startOfToday)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	user := req.Msg.User
+	for _, course := range user.GetCourses() {
+		userCourseId, err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
+			User:   user.User,
+			Course: course.Course,
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+
+		err = txqry.CreateGradeSnapshot(ctx, db.CreateGradeSnapshotParams{
+			Usercourseid: userCourseId,
+			Time:         course.Snapshot.Time,
+			Value:        float64(course.Snapshot.Time),
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 	}
 	err = tx.Commit()
