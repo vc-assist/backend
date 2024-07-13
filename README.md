@@ -49,6 +49,7 @@ as such, before running tests or doing local debugging you should run one of the
 
 here are some commands relating to linting and code generation that will probably be useful.
 
+- `go vet ./...` - typecheck all go packages
 - `sqlc generate` - generate sql wrapper code with [sqlc](https://sqlc.dev/)
 - `buf generate` - generate protobuf files with [buf](https://buf.build/)
 - `buf lint` - lint protobuf files with [buf](https://buf.build/)
