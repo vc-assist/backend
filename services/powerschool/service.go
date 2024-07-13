@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/services/powerschool/api"
 	"vcassist-backend/services/powerschool/db"
 	studentdataapi "vcassist-backend/services/studentdata/api"
+	"vcassist-backend/lib/timezone"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -78,7 +78,7 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.Get
 	studentId := req.Msg.GetStudentId()
 
 	token, err := s.qry.GetOAuthToken(ctx, studentId)
-	if token.Expiresat < time.Now().Unix() || err == sql.ErrNoRows {
+	if token.Expiresat < timezone.Now().Unix() || err == sql.ErrNoRows {
 		span.SetStatus(codes.Ok, "got expired token")
 		return &connect.Response[api.GetAuthStatusResponse]{
 			Msg: &api.GetAuthStatusResponse{
@@ -214,7 +214,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		span.SetStatus(codes.Error, "failed to exec sql query")
 		return nil, err
 	}
-	if token.Expiresat < time.Now().Unix() {
+	if token.Expiresat < timezone.Now().Unix() {
 		span.SetStatus(codes.Error, ExpiredCredentialsErr.Error())
 		return nil, ExpiredCredentialsErr
 	}
@@ -325,7 +325,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 	}
 	err = s.qry.CreateOrUpdateStudentData(ctx, db.CreateOrUpdateStudentDataParams{
 		Studentid: token.Studentid,
-		Createdat: time.Now().Unix(),
+		Createdat: timezone.Now().Unix(),
 		Cached:    serializedResponse,
 	})
 	if err != nil {
