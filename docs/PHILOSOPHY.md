@@ -11,5 +11,5 @@ This codebase has a certain degree of philosophy behind its design, I will docum
    2. You shouldn't have magical global packages/variables.
    3. You shouldn't have magical wrappers or "conventions" around existing tools/frameworks. *use existing/standard tools as much as possible*.
    4. If you must have magic, it should be separated out of this codebase and given it's own repo.
-3. Minimize Comments - You should not need to rely on comments to understand code (in most cases), if your code cannot be understood without comments it might be in need of a refactoring.
+3. Minimize Comments - You should not need to rely on comments to understand code (in most cases), if your code cannot be understood without comments it might be in need of a refactoring. Comments should instead to be used to explain unintuitive program behavior or for high-level documentation.
 
