@@ -33,9 +33,7 @@ func TestClient(t *testing.T) {
 
 	config := getTestConfig(t)
 	client, err := NewClient(ctx, ClientOptions{
-		BaseUrl:  config.BaseUrl,
-		Username: config.Username,
-		Password: config.Password,
+		BaseUrl: config.BaseUrl,
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -30,9 +30,7 @@ func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
 
 func setupClients(t testing.TB, ctx context.Context, config devenv.MoodleTestConfig) (*core.Client, view.Client) {
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
-		BaseUrl:  config.BaseUrl,
-		Username: config.Username,
-		Password: config.Password,
+		BaseUrl: config.BaseUrl,
 	})
 	if err != nil {
 		t.Fatal(err)
