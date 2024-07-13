@@ -1,11 +1,11 @@
-package vchs
+package vcs
 
 import (
 	"context"
 	linkerpb "vcassist-backend/services/linker/api"
 	linkerrpc "vcassist-backend/services/linker/api/apiconnect"
 	pspb "vcassist-backend/services/powerschool/api"
-	moodlepb "vcassist-backend/services/vchsmoodle/api"
+	moodlepb "vcassist-backend/services/vcsmoodle/api"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel/codes"

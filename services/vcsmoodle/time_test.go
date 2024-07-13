@@ -1,4 +1,4 @@
-package vchsmoodle
+package vcsmoodle
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type MonthDay struct {
 }
 
 func TestParseTOCDate(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:vchsmoodle")
+	cleanup := telemetry.SetupForTesting(t, "test:vcsmoodle")
 	defer cleanup()
 
 	testCases := []struct {

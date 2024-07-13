@@ -11,8 +11,8 @@ import (
 	"vcassist-backend/services/linker"
 	powerschoold "vcassist-backend/services/powerschool"
 	"vcassist-backend/services/studentdata/api/apiconnect"
-	"vcassist-backend/services/vchs"
-	"vcassist-backend/services/vchsmoodle"
+	"vcassist-backend/services/vcs"
+	"vcassist-backend/services/vcsmoodle"
 
 	"github.com/dgraph-io/badger/v4"
 	"golang.org/x/net/http2"
@@ -28,7 +28,7 @@ type DatabaseConfig struct {
 	GradeSnapshot configuration.Libsql `json:"grade_snapshot"`
 	Linker        configuration.Libsql `json:"linker"`
 	Powerschoold  configuration.Libsql `json:"powerschoold"`
-	VchsMoodle    configuration.Libsql `json:"vchs_moodle"`
+	vcsMoodle    configuration.Libsql `json:"vcs_moodle"`
 	Self          configuration.Libsql `json:"self"`
 }
 
@@ -73,20 +73,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db, err = config.Database.VchsMoodle.OpenDB()
+	db, err = config.Database.vcsMoodle.OpenDB()
 	if err != nil {
 		fatalerr("failed to open moodle database", err)
 	}
-	vchsmoodleService := vchsmoodle.NewService(db, moodleCache)
+	vcsmoodleService := vcsmoodle.NewService(db, moodleCache)
 
 	db, err = config.Database.Self.OpenDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	service := vchs.NewService(
+	service := vcs.NewService(
 		db,
 		powerschooldService,
-		vchsmoodleService,
+		vcsmoodleService,
 		linkerService,
 		gradesnapshotService,
 	)

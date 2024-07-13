@@ -1,4 +1,4 @@
-package vchsmoodle
+package vcsmoodle
 
 import (
 	"regexp"
@@ -31,7 +31,7 @@ var blacklistCourseKeywords = []string{
 	"impact",
 	"college",
 	"vcs",
-	"vchs",
+	"vcs",
 	"vcjh",
 	"vcassist",
 	"athletic",

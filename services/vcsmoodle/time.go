@@ -1,4 +1,4 @@
-package vchsmoodle
+package vcsmoodle
 
 import (
 	"context"
