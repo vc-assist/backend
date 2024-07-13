@@ -3,9 +3,9 @@ package linker
 import (
 	"context"
 	"database/sql"
-	"time"
 	"vcassist-backend/services/linker/api"
 	"vcassist-backend/services/linker/db"
+	"vcassist-backend/lib/timezone"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -126,7 +126,7 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 		return nil, err
 	}
 
-	now := time.Now().Unix()
+	now := timezone.Now().Unix()
 	for _, src := range req.Msg.Src.Keys {
 		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
 			Setname:  req.Msg.Src.Name,

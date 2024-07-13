@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 	"vcassist-backend/lib/scrapers/moodle/view"
+	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/vchsmoodle/api"
 
 	"github.com/PuerkitoBio/goquery"
@@ -100,7 +100,7 @@ func scrapeChapters(ctx context.Context, client view.Client, resource view.Resou
 		return "", err
 	}
 
-	now := time.Now()
+	now := timezone.Now()
 	for _, c := range chapters {
 		dates, err := parseTOCDate(ctx, c.Name)
 		if err != nil {

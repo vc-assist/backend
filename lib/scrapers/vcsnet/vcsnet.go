@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
@@ -89,7 +90,7 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 		return nil, err
 	}
 
-	schoolYear := GetSchoolYear(time.Now(), tz)
+	schoolYear := GetSchoolYear(timezone.Now(), tz)
 
 	span.SetAttributes(
 		attribute.KeyValue{

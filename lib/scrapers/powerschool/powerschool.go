@@ -8,6 +8,7 @@ import (
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
@@ -41,7 +42,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error
 	var openidToken oauth.OpenIdToken
 	err := json.Unmarshal([]byte(token), &openidToken)
 	if err != nil {
-		return time.Now(), err
+		return timezone.Now(), err
 	}
 
 	c.http.
@@ -53,7 +54,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error
 		SetHeader("profileUri", openidToken.IdToken).
 		SetHeader("ServerURL", c.http.BaseURL)
 
-	expiresAt := time.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
+	expiresAt := timezone.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
 	return expiresAt, nil
 }
 
