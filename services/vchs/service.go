@@ -226,33 +226,78 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*api
 	ctx, span := tracer.Start(ctx, "recacheStudentData")
 	defer span.End()
 
-	psData, err := s.studentDataFromPS(ctx, userEmail)
+	data := &api.StudentData{}
+
+	psres, err := s.powerschool.GetStudentData(ctx, &connect.Request[pspb.GetStudentDataRequest]{
+		Msg: &pspb.GetStudentDataRequest{
+			StudentId: userEmail,
+		},
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get powerschool data")
-		psData = nil
+	} else {
+		patchStudentDataWithPowerschool(ctx, data, psres.Msg)
 	}
-	moodleData, err := s.studentDataFromMoodle(ctx, userEmail)
+
+	moodleres, err := s.moodle.GetStudentData(ctx, &connect.Request[moodlepb.GetStudentDataRequest]{
+		Msg: &moodlepb.GetStudentDataRequest{
+			StudentId: userEmail,
+		},
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get moodle data")
-		moodleData = nil
+	} else {
+		linkMoodleToPowerschool(ctx, s.linker, moodleres.Msg, psres.Msg)
+		patchStudentDataWithMoodle(ctx, data, moodleres.Msg)
 	}
-	gradesnapshotData, err := s.studentDataFromGradesnapshots(ctx, userEmail)
+
+	now := timezone.Now()
+	snapshots := make([]*gradesnapshotpb.CourseSnapshot, len(data.Courses))
+	for i, c := range data.Courses {
+		snapshots[i] = &gradesnapshotpb.CourseSnapshot{
+			Course: c.Name,
+			Snapshot: &gradesnapshotpb.Snapshot{
+				Value: c.OverallGrade,
+				Time:  now.Unix(),
+			},
+		}
+	}
+	_, err = s.gradesnapshots.Push(ctx, &connect.Request[gradesnapshotpb.PushRequest]{
+		Msg: &gradesnapshotpb.PushRequest{
+			Snapshot: &gradesnapshotpb.UserSnapshot{
+				User:    userEmail,
+				Courses: snapshots,
+			},
+		},
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to push grade snapshots")
+	}
+
+	gradesnapshotres, err := s.gradesnapshots.Pull(ctx, &connect.Request[gradesnapshotpb.PullRequest]{
+		Msg: &gradesnapshotpb.PullRequest{
+			User: userEmail,
+		},
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get grade snapshot data")
-		gradesnapshotData = nil
+	} else {
+		patchStudentDataWithGradeSnapshots(ctx, data, gradesnapshotres.Msg)
 	}
 
-	merged, err := s.mergeStudentData(ctx, psData, moodleData, gradesnapshotData)
+	weights, err := getWeightsForPowerschool(ctx, s.linker, psres.Msg)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+		span.SetStatus(codes.Error, "failed to get weight data")
+	} else {
+		patchStudentDataWithWeights(ctx, data, weights)
 	}
 
-	newCached, err := proto.Marshal(merged)
+	newCached, err := proto.Marshal(data)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -266,31 +311,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*api
 		span.SetStatus(codes.Error, err.Error())
 	}
 
-	now := timezone.Now()
-	snapshots := make([]*gradesnapshotpb.CourseSnapshot, len(merged.Courses))
-	for i, c := range merged.Courses {
-		snapshots[i] = &gradesnapshotpb.CourseSnapshot{
-			Course: c.Name,
-			Snapshot: &gradesnapshotpb.Snapshot{
-				Value: c.OverallGrade,
-				Time:  now.Unix(),
-			},
-		}
-	}
-	_, err = s.gradesnapshots.Push(ctx, &connect.Request[gradesnapshotpb.PushRequest]{
-		Msg: &gradesnapshotpb.PushRequest{
-			User: &gradesnapshotpb.UserSnapshot{
-				User:    userEmail,
-				Courses: snapshots,
-			},
-		},
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to push grade snapshots")
-	}
-
-	return merged, nil
+	return data, nil
 }
 
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error) {
