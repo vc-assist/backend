@@ -6,11 +6,10 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
-	"time"
 	"vcassist-backend/lib/scrapers/powerschool"
-	auth "vcassist-backend/services/auth/db"
 	pspb "vcassist-backend/services/powerschool/api"
 	"vcassist-backend/services/studentdata/api"
+	"vcassist-backend/lib/timezone"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel/codes"
@@ -65,7 +64,7 @@ func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *
 	}
 	currentDay := matches[1]
 
-	now := time.Now().Unix()
+	now := timezone.Now().Unix()
 	var overallGrade int64 = -1
 	for _, term := range pscourse.GetTerms() {
 		start, err := powerschool.DecodeCourseTermTime(term.Start)
@@ -122,13 +121,13 @@ func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *
 	return course
 }
 
-func (s Service) studentDataFromPS(ctx context.Context, profile auth.User) (*api.StudentData, error) {
+func (s Service) studentDataFromPS(ctx context.Context, userEmail string) (*api.StudentData, error) {
 	ctx, span := tracer.Start(ctx, "studentDataFromPS")
 	defer span.End()
 
 	psres, err := s.powerschool.GetStudentData(ctx, &connect.Request[pspb.GetStudentDataRequest]{
 		Msg: &pspb.GetStudentDataRequest{
-			StudentId: profile.Email,
+			StudentId: userEmail,
 		},
 	})
 	if err != nil {

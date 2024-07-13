@@ -44,6 +44,15 @@ func (q *Queries) CreateUserCourse(ctx context.Context, arg CreateUserCoursePara
 	return id, err
 }
 
+const deleteGradeSnapshotsAfter = `-- name: DeleteGradeSnapshotsAfter :exec
+delete from GradeSnapshot where time > ?1
+`
+
+func (q *Queries) DeleteGradeSnapshotsAfter(ctx context.Context, after int64) error {
+	_, err := q.db.ExecContext(ctx, deleteGradeSnapshotsAfter, after)
+	return err
+}
+
 const getGradeSnapshots = `-- name: GetGradeSnapshots :many
 select FoundCourses.course, time, value from GradeSnapshot
 inner join (

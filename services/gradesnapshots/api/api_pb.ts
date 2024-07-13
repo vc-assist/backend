@@ -142,9 +142,9 @@ export class UserSnapshot extends Message<UserSnapshot> {
  */
 export class PushRequest extends Message<PushRequest> {
   /**
-   * @generated from field: repeated services.gradesnapshots.api.UserSnapshot users = 1;
+   * @generated from field: services.gradesnapshots.api.UserSnapshot snapshot = 1;
    */
-  users: UserSnapshot[] = [];
+  snapshot?: UserSnapshot;
 
   constructor(data?: PartialMessage<PushRequest>) {
     super();
@@ -154,7 +154,7 @@ export class PushRequest extends Message<PushRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "services.gradesnapshots.api.PushRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "users", kind: "message", T: UserSnapshot, repeated: true },
+    { no: 1, name: "snapshot", kind: "message", T: UserSnapshot },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushRequest {

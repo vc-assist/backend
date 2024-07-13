@@ -16,3 +16,6 @@ returning id;
 insert into GradeSnapshot(userCourseId, time, value)
 values (?, ?, ?);
 
+-- name: DeleteGradeSnapshotsAfter :exec
+delete from GradeSnapshot where time > sqlc.arg(after);
+

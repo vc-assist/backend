@@ -2,17 +2,16 @@ package vchs
 
 import (
 	"context"
-	auth "vcassist-backend/services/auth/db"
 	"vcassist-backend/services/studentdata/api"
 	moodlepb "vcassist-backend/services/vchsmoodle/api"
 
 	"connectrpc.com/connect"
 )
 
-func (s Service) studentDataFromMoodle(ctx context.Context, profile auth.User) (*api.StudentData, error) {
+func (s Service) studentDataFromMoodle(ctx context.Context, userEmail string) (*api.StudentData, error) {
 	res, err := s.moodle.GetStudentData(ctx, &connect.Request[moodlepb.GetStudentDataRequest]{
 		Msg: &moodlepb.GetStudentDataRequest{
-			StudentId: profile.Email,
+			StudentId: userEmail,
 		},
 	})
 	if err != nil {

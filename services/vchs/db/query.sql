@@ -8,5 +8,8 @@ on conflict do update set
     expiresAt = EXCLUDED.expiresAt;
 
 -- name: DeleteCachedStudentDataBefore :exec
-delete from StudentDataCache where expiresAt < ?;
+delete from StudentDataCache where expiresAt < sqlc.arg(before);
+
+-- name: GetStudents :many
+select studentId from StudentDataCache;
 

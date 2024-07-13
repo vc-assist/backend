@@ -10,11 +10,11 @@ import (
 )
 
 const deleteCachedStudentDataBefore = `-- name: DeleteCachedStudentDataBefore :exec
-delete from StudentDataCache where expiresAt < ?
+delete from StudentDataCache where expiresAt < ?1
 `
 
-func (q *Queries) DeleteCachedStudentDataBefore(ctx context.Context, expiresat int64) error {
-	_, err := q.db.ExecContext(ctx, deleteCachedStudentDataBefore, expiresat)
+func (q *Queries) DeleteCachedStudentDataBefore(ctx context.Context, before int64) error {
+	_, err := q.db.ExecContext(ctx, deleteCachedStudentDataBefore, before)
 	return err
 }
 
@@ -32,6 +32,33 @@ func (q *Queries) GetCachedStudentData(ctx context.Context, studentid string) (G
 	var i GetCachedStudentDataRow
 	err := row.Scan(&i.Expiresat, &i.Cached)
 	return i, err
+}
+
+const getStudents = `-- name: GetStudents :many
+select studentId from StudentDataCache
+`
+
+func (q *Queries) GetStudents(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getStudents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var studentid string
+		if err := rows.Scan(&studentid); err != nil {
+			return nil, err
+		}
+		items = append(items, studentid)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setCachedStudentData = `-- name: SetCachedStudentData :exec

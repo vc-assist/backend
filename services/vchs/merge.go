@@ -3,6 +3,7 @@ package vchs
 import (
 	"context"
 	"fmt"
+
 	linkerpb "vcassist-backend/services/linker/api"
 	"vcassist-backend/services/studentdata/api"
 
@@ -12,25 +13,26 @@ import (
 
 func (s Service) mergeStudentData(
 	ctx context.Context,
-	psdata *api.StudentData,
-	moodledata *api.StudentData,
+	psData *api.StudentData,
+	moodleData *api.StudentData,
+	gradesnapshotData *api.StudentData,
 ) (*api.StudentData, error) {
 	ctx, span := tracer.Start(ctx, "mergeStudentData")
 	defer span.End()
 
-	if psdata == nil {
-		return moodledata, nil
+	if psData == nil {
+		return moodleData, nil
 	}
-	if moodledata == nil {
-		return psdata, nil
+	if moodleData == nil {
+		return psData, nil
 	}
 
-	psCourseNames := make([]string, len(psdata.Courses))
-	for i, c := range psdata.Courses {
+	psCourseNames := make([]string, len(psData.Courses))
+	for i, c := range psData.Courses {
 		psCourseNames[i] = c.Name
 	}
-	moodleCourseNames := make([]string, len(moodledata.Courses))
-	for i, c := range moodledata.Courses {
+	moodleCourseNames := make([]string, len(moodleData.Courses))
+	for i, c := range moodleData.Courses {
 		moodleCourseNames[i] = c.Name
 	}
 
@@ -52,10 +54,10 @@ func (s Service) mergeStudentData(
 		return nil, err
 	}
 
-	for _, psCourse := range psdata.Courses {
+	for _, psCourse := range psData.Courses {
 		moodleName := linkRes.Msg.SrcToDst[psCourse.Name]
 		var moodleCourse *api.Course
-		for _, c := range moodledata.Courses {
+		for _, c := range moodleData.Courses {
 			if c.Name == moodleName {
 				moodleCourse = c
 				break
@@ -72,5 +74,23 @@ func (s Service) mergeStudentData(
 		psCourse.LessonPlan = moodleCourse.LessonPlan
 	}
 
-	return psdata, nil
+	for _, psCourse := range psData.Courses {
+		var snapshotCourse *api.Course
+		for _, c := range gradesnapshotData.Courses {
+			if c.Name == psCourse.Name {
+				snapshotCourse = c
+				break
+			}
+		}
+		if snapshotCourse == nil {
+			err := fmt.Errorf("could not find snapshot course by name '%s'", psCourse.Name)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			continue
+		}
+
+		psCourse.Snapshots = snapshotCourse.Snapshots
+	}
+
+	return psData, nil
 }

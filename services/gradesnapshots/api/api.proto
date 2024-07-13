@@ -17,7 +17,7 @@ message UserSnapshot {
 
 // Push
 message PushRequest {
-	repeated UserSnapshot users = 1;
+	UserSnapshot snapshot = 1;
 }
 message PushResponse {}
 
