@@ -7,6 +7,7 @@ import (
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/services/powerschool/db"
+	"vcassist-backend/lib/timezone"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/attribute"
@@ -70,7 +71,7 @@ func (d OAuthDaemon) refreshToken(ctx context.Context, original db.OAuthToken) e
 		return err
 	}
 
-	expiresAt := time.Now().Add(time.Duration(newTokenObject.ExpiresIn))
+	expiresAt := timezone.Now().Add(time.Duration(newTokenObject.ExpiresIn))
 
 	err = d.qry.CreateOrUpdateOAuthToken(ctx, db.CreateOrUpdateOAuthTokenParams{
 		Studentid: original.Studentid,
@@ -90,7 +91,7 @@ func (d OAuthDaemon) refreshAllTokens(ctx context.Context) {
 	ctx, span := tracer.Start(ctx, "oauth_daemon:refreshAllTokens")
 	defer span.End()
 
-	fiveMinutesFromNow := time.Now().Add(time.Minute * 5).Unix()
+	fiveMinutesFromNow := timezone.Now().Add(time.Minute * 5).Unix()
 	almostExpired, err := d.qry.GetExpiredTokens(ctx, fiveMinutesFromNow)
 	if err != nil {
 		span.RecordError(err)
@@ -111,7 +112,7 @@ func (d OAuthDaemon) deleteExpiredTokens(ctx context.Context) {
 	ctx, span := tracer.Start(ctx, "oauth_daemon:deleteExpiredTokens")
 	defer span.End()
 
-	err := d.qry.DeleteExpiredOAuthTokens(ctx, time.Now().Unix())
+	err := d.qry.DeleteExpiredOAuthTokens(ctx, timezone.Now().Unix())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to delete expired oauth tokens")
@@ -119,28 +120,28 @@ func (d OAuthDaemon) deleteExpiredTokens(ctx context.Context) {
 }
 
 func (d OAuthDaemon) refreshDaemon(ctx context.Context) {
-	timer := time.NewTimer(time.Minute * 1)
+	ticker := time.NewTicker(time.Minute * 1)
 	d.refreshAllTokens(ctx)
 	for {
 		select {
 		case <-ctx.Done():
-			timer.Stop()
+			ticker.Stop()
 			return
-		case <-timer.C:
+		case <-ticker.C:
 			d.refreshAllTokens(ctx)
 		}
 	}
 }
 
 func (d OAuthDaemon) deletionDaemon(ctx context.Context) {
-	timer := time.NewTimer(time.Minute * 30)
+	ticker := time.NewTicker(time.Minute * 30)
 	d.deleteExpiredTokens(ctx)
 	for {
 		select {
 		case <-ctx.Done():
-			timer.Stop()
+			ticker.Stop()
 			return
-		case <-timer.C:
+		case <-ticker.C:
 			d.deleteExpiredTokens(ctx)
 		}
 	}

@@ -62,13 +62,13 @@ func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetOAuthFlowR
 	loginUrl, err := oauth.GetLoginUrl(
 		ctx,
 		oauth.AuthCodeRequest{
-			AccessType:   oauthFlow.GetAccessType(),
-			Scope:        oauthFlow.GetScope(),
-			RedirectUri:  oauthFlow.GetRedirectUri(),
-			CodeVerifier: oauthFlow.GetCodeVerifier(),
-			ClientId:     oauthFlow.GetClientId(),
+			AccessType:   oauthFlow.GetFlow().GetAccessType(),
+			Scope:        oauthFlow.GetFlow().GetScope(),
+			RedirectUri:  oauthFlow.GetFlow().GetRedirectUri(),
+			CodeVerifier: oauthFlow.GetFlow().GetCodeVerifier(),
+			ClientId:     oauthFlow.GetFlow().GetClientId(),
 		},
-		oauthFlow.GetBaseLoginUrl(),
+		oauthFlow.GetFlow().GetBaseLoginUrl(),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -90,13 +90,13 @@ func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetO
 	token, _, err := oauth.GetToken(
 		ctx,
 		oauth.TokenRequest{
-			ClientId:     oauthFlow.GetClientId(),
-			CodeVerifier: oauthFlow.GetCodeVerifier(),
-			Scope:        oauthFlow.GetScope(),
-			RedirectUri:  oauthFlow.GetRedirectUri(),
+			ClientId:     oauthFlow.GetFlow().GetClientId(),
+			CodeVerifier: oauthFlow.GetFlow().GetCodeVerifier(),
+			Scope:        oauthFlow.GetFlow().GetScope(),
+			RedirectUri:  oauthFlow.GetFlow().GetRedirectUri(),
 			AuthCode:     authcode,
 		},
-		oauthFlow.GetTokenRequestUrl(),
+		oauthFlow.GetFlow().GetTokenRequestUrl(),
 	)
 	if err != nil {
 		t.Fatal("failed to fetch token", callbackUrl, err)
