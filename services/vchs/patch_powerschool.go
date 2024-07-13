@@ -7,60 +7,58 @@ import (
 	"slices"
 	"strconv"
 	"vcassist-backend/lib/scrapers/powerschool"
+	"vcassist-backend/lib/timezone"
 	pspb "vcassist-backend/services/powerschool/api"
 	"vcassist-backend/services/studentdata/api"
-	"vcassist-backend/lib/timezone"
 
-	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 )
 
-func assignmentFromPSAssignment(ctx context.Context, a *powerschool.AssignmentData) *api.Assignment {
-	span := trace.SpanFromContext(ctx)
+func patchAssignmentWithPowerschool(ctx context.Context, assignment *api.Assignment, psassign *powerschool.AssignmentData) {
+	ctx, span := tracer.Start(ctx, "patchAssignment:WithPowerschool")
+	defer span.End()
 
 	state := api.AssignmentState_UNSET
 	switch {
-	case a.GetAttributeLate():
+	case psassign.GetAttributeLate():
 		state = api.AssignmentState_LATE
-	case a.GetAttributeCollected():
+	case psassign.GetAttributeCollected():
 		state = api.AssignmentState_SUBMITTED
-	case a.GetAttributeMissing():
+	case psassign.GetAttributeMissing():
 		state = api.AssignmentState_MISSING
-	case a.GetAttributeIncomplete():
+	case psassign.GetAttributeIncomplete():
 		state = api.AssignmentState_INCOMPLETE
-	case a.GetAttributeExempt():
+	case psassign.GetAttributeExempt():
 		state = api.AssignmentState_EXEMPT
 	}
 
-	duedate, err := powerschool.DecodeAssignmentTime(a.GetDueDate())
+	duedate, err := powerschool.DecodeAssignmentTime(psassign.GetDueDate())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
 
-	return &api.Assignment{
-		Name:               a.GetTitle(),
-		Description:        a.GetDescription(),
-		Scored:             float32(a.GetPointsEarned()),
-		Total:              float32(a.GetPointsPossible()),
-		State:              state,
-		Time:               duedate.Unix(),
-		AssignmentTypeName: a.GetCategory(),
-	}
+	assignment.Name = psassign.GetTitle()
+	assignment.Description = psassign.GetDescription()
+	assignment.Scored = float32(psassign.GetPointsEarned())
+	assignment.Total = float32(psassign.GetPointsPossible())
+	assignment.State = state
+	assignment.Time = duedate.Unix()
+	assignment.AssignmentTypeName = psassign.GetCategory()
 }
 
 var periodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 
-func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *api.Course {
-	span := trace.SpanFromContext(ctx)
+func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscourse *powerschool.CourseData) error {
+	ctx, span := tracer.Start(ctx, "patchCourse:WithPowerschool")
+	defer span.End()
 
 	matches := periodRegex.FindStringSubmatch(pscourse.Period)
 	if len(matches) < 2 {
 		err := fmt.Errorf("could not run regex on course period '%s'", pscourse.Period)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return nil
+		return err
 	}
 	currentDay := matches[1]
 
@@ -71,13 +69,13 @@ func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			return nil
+			return err
 		}
 		end, err := powerschool.DecodeCourseTermTime(term.End)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			return nil
+			return err
 		}
 
 		if now >= start.Unix() && now < end.Unix() {
@@ -86,25 +84,21 @@ func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *
 		}
 	}
 
-	course := &api.Course{
-		Name: pscourse.GetName(),
-		Room: pscourse.GetRoom(),
-		Teacher: fmt.Sprintf(
-			"%s %s",
-			pscourse.GetTeacherFirstName(),
-			pscourse.GetTeacherLastName(),
-		),
-		TeacherEmail: pscourse.GetTeacherEmail(),
-		DayName:      currentDay,
-		// compute homework pass heuristic on frontend,
-		// just reply truthfully with what you know on backend
-		HomeworkPasses: -1,
-		OverallGrade:   float32(overallGrade),
-	}
+	course.Name = pscourse.GetName()
+	course.Room = pscourse.GetRoom()
+	course.Teacher = fmt.Sprintf(
+		"%s %s",
+		pscourse.GetTeacherFirstName(),
+		pscourse.GetTeacherLastName(),
+	)
+	course.TeacherEmail = pscourse.GetTeacherEmail()
+	course.DayName = currentDay
+	course.OverallGrade = float32(overallGrade)
 
 	var assignmentTypeNameList []string
-	for _, a := range pscourse.Assignments {
-		assignment := assignmentFromPSAssignment(ctx, a)
+	for _, psassign := range pscourse.Assignments {
+		assignment := &api.Assignment{}
+		patchAssignmentWithPowerschool(ctx, assignment, psassign)
 		assignmentTypeName := assignment.GetAssignmentTypeName()
 		if !slices.Contains(assignmentTypeNameList, assignmentTypeName) {
 			assignmentTypeNameList = append(assignmentTypeNameList, assignmentTypeName)
@@ -118,34 +112,34 @@ func courseFromPSCourse(ctx context.Context, pscourse *powerschool.CourseData) *
 		})
 	}
 
-	return course
+	return nil
 }
 
-func (s Service) studentDataFromPS(ctx context.Context, userEmail string) (*api.StudentData, error) {
-	ctx, span := tracer.Start(ctx, "studentDataFromPS")
+func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData, psdata *pspb.GetStudentDataResponse) error {
+	ctx, span := tracer.Start(ctx, "patchStudentData:WithPowerschool")
 	defer span.End()
-
-	psres, err := s.powerschool.GetStudentData(ctx, &connect.Request[pspb.GetStudentDataRequest]{
-		Msg: &pspb.GetStudentDataRequest{
-			StudentId: userEmail,
-		},
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	}
 
 	var courseListGuids []string
 	var courseList []*api.Course
 	var dayNames []string
-	for _, c := range psres.Msg.GetCourseData() {
-		course := courseFromPSCourse(ctx, c)
+	for _, pscourse := range psdata.GetCourseData() {
+		var course *api.Course
+		for _, c := range data.GetCourses() {
+			if pscourse.Name == c.Name {
+				course = c
+				break
+			}
+		}
 		if course == nil {
+			course = &api.Course{}
+		}
+
+		err := patchCourseWithPowerschool(ctx, course, pscourse)
+		if err == nil {
 			continue
 		}
 		courseList = append(courseList, course)
-		courseListGuids = append(courseListGuids, c.Guid)
+		courseListGuids = append(courseListGuids, pscourse.Guid)
 
 		currentDay := course.DayName
 		for _, day := range dayNames {
@@ -156,7 +150,7 @@ func (s Service) studentDataFromPS(ctx context.Context, userEmail string) (*api.
 		}
 	}
 
-	for _, meeting := range psres.Msg.GetMeetings().SectionMeetings {
+	for _, meeting := range psdata.GetMeetings().SectionMeetings {
 		var course *api.Course
 		for i, guid := range courseListGuids {
 			if guid == meeting.SectionGuid {
@@ -193,16 +187,15 @@ func (s Service) studentDataFromPS(ctx context.Context, userEmail string) (*api.
 		})
 	}
 
-	gpa, err := strconv.ParseFloat(psres.Msg.GetProfile().CurrentGpa, 32)
+	gpa, err := strconv.ParseFloat(psdata.GetProfile().CurrentGpa, 32)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+		return err
 	}
 
-	return &api.StudentData{
-		Gpa:      float32(gpa),
-		DayNames: dayNames,
-		Courses:  courseList,
-	}, nil
+	data.Gpa = float32(gpa)
+	data.DayNames = dayNames
+	data.Courses = courseList
+	return nil
 }

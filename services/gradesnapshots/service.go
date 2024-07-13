@@ -35,7 +35,7 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 	span.SetAttributes(
 		attribute.KeyValue{
 			Key:   "user",
-			Value: attribute.IntValue(len(req.Msg.User.User)),
+			Value: attribute.IntValue(len(req.Msg.Snapshot.User)),
 		},
 	)
 
@@ -58,7 +58,7 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 		return nil, err
 	}
 
-	user := req.Msg.User
+	user := req.Msg.Snapshot
 	for _, course := range user.GetCourses() {
 		userCourseId, err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
 			User:   user.User,
