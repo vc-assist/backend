@@ -1,9 +1,9 @@
-package vchs
+package vcs
 
 import (
 	"context"
 	"vcassist-backend/services/studentdata/api"
-	moodlepb "vcassist-backend/services/vchsmoodle/api"
+	moodlepb "vcassist-backend/services/vcsmoodle/api"
 )
 
 func patchStudentDataWithMoodle(ctx context.Context, data *api.StudentData, moodledata *moodlepb.GetStudentDataResponse) {

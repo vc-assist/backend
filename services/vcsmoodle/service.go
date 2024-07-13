@@ -1,12 +1,12 @@
-package vchsmoodle
+package vcsmoodle
 
 import (
 	"context"
 	"database/sql"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
-	"vcassist-backend/services/vchsmoodle/api"
-	"vcassist-backend/services/vchsmoodle/db"
+	"vcassist-backend/services/vcsmoodle/api"
+	"vcassist-backend/services/vcsmoodle/db"
 
 	"connectrpc.com/connect"
 	"github.com/dgraph-io/badger/v4"
@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("services/vchsmoodle")
+var tracer = otel.Tracer("services/vcsmoodle")
 
 type Service struct {
 	db    *sql.DB

@@ -1,4 +1,4 @@
-package vchs
+package vcs
 
 import (
 	_ "embed"

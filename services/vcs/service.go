@@ -1,4 +1,4 @@
-package vchs
+package vcs
 
 import (
 	"context"
@@ -14,9 +14,9 @@ import (
 	pspb "vcassist-backend/services/powerschool/api"
 	psrpc "vcassist-backend/services/powerschool/api/apiconnect"
 	"vcassist-backend/services/studentdata/api"
-	"vcassist-backend/services/vchs/db"
-	moodlepb "vcassist-backend/services/vchsmoodle/api"
-	moodlerpc "vcassist-backend/services/vchsmoodle/api/apiconnect"
+	"vcassist-backend/services/vcs/db"
+	moodlepb "vcassist-backend/services/vcsmoodle/api"
+	moodlerpc "vcassist-backend/services/vcsmoodle/api/apiconnect"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -24,7 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var tracer = otel.Tracer("services/vchs")
+var tracer = otel.Tracer("services/vcs")
 
 type Service struct {
 	db             *sql.DB

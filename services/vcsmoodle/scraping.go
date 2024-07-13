@@ -1,4 +1,4 @@
-package vchsmoodle
+package vcsmoodle
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"sync"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/vchsmoodle/api"
+	"vcassist-backend/services/vcsmoodle/api"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel/attribute"
