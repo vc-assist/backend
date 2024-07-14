@@ -380,6 +380,11 @@ export class StudentData extends Message<StudentData> {
    */
   courses: Course[] = [];
 
+  /**
+   * @generated from field: string current_day = 4;
+   */
+  currentDay = "";
+
   constructor(data?: PartialMessage<StudentData>) {
     super();
     proto3.util.initPartial(data, this);
@@ -391,6 +396,7 @@ export class StudentData extends Message<StudentData> {
     { no: 1, name: "gpa", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
     { no: 2, name: "day_names", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 3, name: "courses", kind: "message", T: Course, repeated: true },
+    { no: 4, name: "current_day", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StudentData {
