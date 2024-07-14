@@ -150,6 +150,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 		}
 	}
 
+	var currentDay string
 	for _, meeting := range psdata.GetMeetings().SectionMeetings {
 		var course *api.Course
 		for i, guid := range courseListGuids {
@@ -181,6 +182,10 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 			continue
 		}
 
+		if currentDay == "" && start.Day() == timezone.Now().Day() {
+			currentDay = course.DayName
+		}
+
 		course.Meetings = append(course.Meetings, &api.CourseMeeting{
 			StartTime: start.Unix(),
 			EndTime:   stop.Unix(),
@@ -197,5 +202,6 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 	data.Gpa = float32(gpa)
 	data.DayNames = dayNames
 	data.Courses = courseList
+	data.CurrentDay = currentDay
 	return nil
 }
