@@ -1,13 +1,13 @@
 version: v2
 plugins:
   - remote: buf.build/bufbuild/es
-    out: .
+    out: proto
     opt: target=ts
   - remote: buf.build/connectrpc/es
-    out: .
+    out: proto
     opt: target=ts
 inputs:
-  - directory: .
+  - directory: proto
     paths:
-      - ./services/studentdata
-      - ./services/auth
+      - ./vcassist/services/student_data
+      - ./vcassist/services/auth

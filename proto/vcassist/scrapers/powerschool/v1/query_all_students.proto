@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package vcassist.scrapers.powerschool.v1;
+
+message SchoolData {
+  string name = 1 [json_name = "name"];
+  string phone = 2 [json_name = "phone"];
+  string fax = 3 [json_name = "fax"];
+  string email = 4 [json_name = "email"];
+  string street_address = 5 [json_name = "streetAddress"];
+  string city = 6 [json_name = "city"];
+  string state = 7 [json_name = "state"];
+  string zip = 8 [json_name = "zip"];
+  string country = 9 [json_name = "country"];
+}
+
+message Bulletin {
+  string title = 1 [json_name = "title"];
+  string start_date = 2 [json_name = "startDate"];
+  string end_date = 3 [json_name = "endDate"];
+  string body = 4 [json_name = "body"];
+}
+
+message StudentProfile {
+  string guid = 1 [json_name = "guid"];
+  string current_gpa = 2 [json_name = "currentGPA"];
+  string first_name = 3 [json_name = "firstName"];
+  string last_name = 4 [json_name = "lastName"];
+  int32 grade_level = 5 [json_name = "gradeLevel"];
+  repeated SchoolData schools = 6 [json_name = "schools"];
+  repeated Bulletin bulletins = 7 [json_name = "bulletins"];
+}
+
+message AllStudents {
+  repeated StudentProfile students = 1 [json_name = "students"];
+}
+
+message GetAllStudentsInput {}
