@@ -9,7 +9,7 @@ import (
 	"sync"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/vcsmoodle/api"
+	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel/attribute"
@@ -156,11 +156,11 @@ func scrapeLessonPlanSection(ctx context.Context, client view.Client, section vi
 	return "", err
 }
 
-func scrapeCourseData(ctx context.Context, client view.Client, course view.Course) (*api.Course, error) {
+func scrapeCourseData(ctx context.Context, client view.Client, course view.Course) (*vcsmoodlev1.Course, error) {
 	ctx, span := tracer.Start(ctx, "scrapeCourseData")
 	defer span.End()
 
-	result := &api.Course{
+	result := &vcsmoodlev1.Course{
 		Name: course.Name,
 	}
 
@@ -204,7 +204,7 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 	return result, nil
 }
 
-func scrapeCourses(ctx context.Context, client view.Client) ([]*api.Course, error) {
+func scrapeCourses(ctx context.Context, client view.Client) ([]*vcsmoodlev1.Course, error) {
 	ctx, span := tracer.Start(ctx, "scrapeCourses")
 	defer span.End()
 
@@ -215,7 +215,7 @@ func scrapeCourses(ctx context.Context, client view.Client) ([]*api.Course, erro
 		return nil, err
 	}
 
-	var result []*api.Course
+	var result []*vcsmoodlev1.Course
 
 	wg := sync.WaitGroup{}
 	for _, c := range courses {

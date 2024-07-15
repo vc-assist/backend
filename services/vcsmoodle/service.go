@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
-	"vcassist-backend/services/vcsmoodle/api"
+	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 	"vcassist-backend/services/vcsmoodle/db"
 
 	"connectrpc.com/connect"
@@ -30,7 +30,7 @@ func NewService(database *sql.DB, cache *badger.DB) Service {
 	}
 }
 
-func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Request[api.ProvideUsernamePasswordRequest]) (*connect.Response[api.ProvideUsernamePasswordResponse], error) {
+func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]) (*connect.Response[vcsmoodlev1.ProvideUsernamePasswordResponse], error) {
 	ctx, span := tracer.Start(ctx, "ProvideUsernamePassword")
 	defer span.End()
 
@@ -45,10 +45,10 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 
-	return &connect.Response[api.ProvideUsernamePasswordResponse]{Msg: &api.ProvideUsernamePasswordResponse{}}, nil
+	return &connect.Response[vcsmoodlev1.ProvideUsernamePasswordResponse]{Msg: &vcsmoodlev1.ProvideUsernamePasswordResponse{}}, nil
 }
 
-func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error) {
+func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoodlev1.GetStudentDataRequest]) (*connect.Response[vcsmoodlev1.GetStudentDataResponse], error) {
 	ctx, span := tracer.Start(ctx, "GetStudentData")
 	defer span.End()
 
@@ -90,8 +90,8 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		return nil, err
 	}
 
-	return &connect.Response[api.GetStudentDataResponse]{
-		Msg: &api.GetStudentDataResponse{
+	return &connect.Response[vcsmoodlev1.GetStudentDataResponse]{
+		Msg: &vcsmoodlev1.GetStudentDataResponse{
 			Courses: courses,
 		},
 	}, nil

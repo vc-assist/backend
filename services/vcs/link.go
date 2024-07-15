@@ -2,10 +2,10 @@ package vcs
 
 import (
 	"context"
-	linkerpb "vcassist-backend/services/linker/api"
-	linkerrpc "vcassist-backend/services/linker/api/apiconnect"
-	pspb "vcassist-backend/services/powerschool/api"
-	moodlepb "vcassist-backend/services/vcsmoodle/api"
+	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
+	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
+	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
+	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel/codes"
@@ -13,9 +13,9 @@ import (
 
 func linkMoodleToPowerschool(
 	ctx context.Context,
-	linker linkerrpc.LinkerServiceClient,
-	moodle *moodlepb.GetStudentDataResponse,
-	ps *pspb.GetStudentDataResponse,
+	linker linkerv1connect.LinkerServiceClient,
+	moodle *vcsmoodlev1.GetStudentDataResponse,
+	ps *powerservicev1.GetStudentDataResponse,
 ) error {
 	ctx, span := tracer.Start(ctx, "linkMoodleToPowerschool")
 	defer span.End()
@@ -29,13 +29,13 @@ func linkMoodleToPowerschool(
 		psKeys[i] = c.GetName()
 	}
 
-	res, err := linker.Link(ctx, &connect.Request[linkerpb.LinkRequest]{
-		Msg: &linkerpb.LinkRequest{
-			Src: &linkerpb.Set{
+	res, err := linker.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
+		Msg: &linkerv1.LinkRequest{
+			Src: &linkerv1.Set{
 				Name: "moodle",
 				Keys: moodleKeys,
 			},
-			Dst: &linkerpb.Set{
+			Dst: &linkerv1.Set{
 				Name: "powerschool",
 				Keys: psKeys,
 			},
@@ -55,8 +55,8 @@ func linkMoodleToPowerschool(
 
 func getWeightsForPowerschool(
 	ctx context.Context,
-	linker linkerrpc.LinkerServiceClient,
-	ps *pspb.GetStudentDataResponse,
+	linker linkerv1connect.LinkerServiceClient,
+	ps *powerservicev1.GetStudentDataResponse,
 ) (weightData, error) {
 	ctx, span := tracer.Start(ctx, "getWeightsForPowerschool")
 	defer span.End()
@@ -66,13 +66,13 @@ func getWeightsForPowerschool(
 		courseNames[i] = c.GetName()
 	}
 
-	res, err := linker.Link(ctx, &connect.Request[linkerpb.LinkRequest]{
-		Msg: &linkerpb.LinkRequest{
-			Src: &linkerpb.Set{
+	res, err := linker.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
+		Msg: &linkerv1.LinkRequest{
+			Src: &linkerv1.Set{
 				Name: "weights",
 				Keys: weightCourseNames,
 			},
-			Dst: &linkerpb.Set{
+			Dst: &linkerv1.Set{
 				Name: "powerschool",
 				Keys: courseNames,
 			},

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 	"vcassist-backend/lib/configuration"
+	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
-	"vcassist-backend/services/auth/api/apiconnect"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -36,7 +36,7 @@ func main() {
 
 	service := auth.NewService(sqlite, config.Email)
 	mux := http.NewServeMux()
-	mux.Handle(apiconnect.NewAuthServiceHandler(service))
+	mux.Handle(authv1connect.NewAuthServiceHandler(service))
 
 	slog.Info("listening to gRPC...", "port", 8111)
 	err = http.ListenAndServe(

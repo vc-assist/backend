@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/auth/api"
+	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 	"vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
 
@@ -119,7 +119,7 @@ If you don't recognize this account, please ignore this email.`, code)
 	return nil
 }
 
-func (s Service) StartLogin(ctx context.Context, req *connect.Request[api.StartLoginRequest]) (*connect.Response[api.StartLoginResponse], error) {
+func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.StartLoginRequest]) (*connect.Response[authv1.StartLoginResponse], error) {
 	ctx, span := tracer.Start(ctx, "auth:StartLogin")
 	defer span.End()
 
@@ -161,7 +161,7 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[api.StartL
 		return nil, err
 	}
 
-	return &connect.Response[api.StartLoginResponse]{Msg: &api.StartLoginResponse{}}, nil
+	return &connect.Response[authv1.StartLoginResponse]{Msg: &authv1.StartLoginResponse{}}, nil
 }
 
 func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
@@ -213,7 +213,7 @@ func (s Service) createToken(ctx context.Context, txqry *db.Queries, email strin
 	return token, nil
 }
 
-func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Request[api.ConsumeVerificationCodeRequest]) (*connect.Response[api.ConsumeVerificationCodeResponse], error) {
+func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Request[authv1.ConsumeVerificationCodeRequest]) (*connect.Response[authv1.ConsumeVerificationCodeResponse], error) {
 	ctx, span := tracer.Start(ctx, "auth:ConsumeVerificationCode")
 	defer span.End()
 
@@ -249,14 +249,14 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 
-	return &connect.Response[api.ConsumeVerificationCodeResponse]{
-		Msg: &api.ConsumeVerificationCodeResponse{
+	return &connect.Response[authv1.ConsumeVerificationCodeResponse]{
+		Msg: &authv1.ConsumeVerificationCodeResponse{
 			Token: token,
 		},
 	}, nil
 }
 
-func (s Service) VerifyToken(ctx context.Context, req *connect.Request[api.VerifyTokenRequest]) (*connect.Response[api.VerifyTokenResponse], error) {
+func (s Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.VerifyTokenRequest]) (*connect.Response[authv1.VerifyTokenResponse], error) {
 	ctx, span := tracer.Start(ctx, "auth:VerifyToken")
 	defer span.End()
 
@@ -267,8 +267,8 @@ func (s Service) VerifyToken(ctx context.Context, req *connect.Request[api.Verif
 		return nil, err
 	}
 
-	return &connect.Response[api.VerifyTokenResponse]{
-		Msg: &api.VerifyTokenResponse{
+	return &connect.Response[authv1.VerifyTokenResponse]{
+		Msg: &authv1.VerifyTokenResponse{
 			Email: user.Email,
 		},
 	}, nil

@@ -8,28 +8,29 @@ import (
 	"strconv"
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
-	pspb "vcassist-backend/services/powerschool/api"
-	"vcassist-backend/services/studentdata/api"
+	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
+	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
+	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
 
 	"go.opentelemetry.io/otel/codes"
 )
 
-func patchAssignmentWithPowerschool(ctx context.Context, assignment *api.Assignment, psassign *powerschool.AssignmentData) {
+func patchAssignmentWithPowerschool(ctx context.Context, assignment *studentdatav1.Assignment, psassign *powerschoolv1.AssignmentData) {
 	ctx, span := tracer.Start(ctx, "patchAssignment:WithPowerschool")
 	defer span.End()
 
-	state := api.AssignmentState_UNSET
+	state := studentdatav1.AssignmentState_ASSIGNMENT_STATE_UNSPECIFIED
 	switch {
 	case psassign.GetAttributeLate():
-		state = api.AssignmentState_LATE
+		state = studentdatav1.AssignmentState_ASSIGNMENT_STATE_LATE
 	case psassign.GetAttributeCollected():
-		state = api.AssignmentState_SUBMITTED
+		state = studentdatav1.AssignmentState_ASSIGNMENT_STATE_SUBMITTED
 	case psassign.GetAttributeMissing():
-		state = api.AssignmentState_MISSING
+		state = studentdatav1.AssignmentState_ASSIGNMENT_STATE_MISSING
 	case psassign.GetAttributeIncomplete():
-		state = api.AssignmentState_INCOMPLETE
+		state = studentdatav1.AssignmentState_ASSIGNMENT_STATE_INCOMPLETE
 	case psassign.GetAttributeExempt():
-		state = api.AssignmentState_EXEMPT
+		state = studentdatav1.AssignmentState_ASSIGNMENT_STATE_EXEMPT
 	}
 
 	duedate, err := powerschool.DecodeAssignmentTime(psassign.GetDueDate())
@@ -49,7 +50,7 @@ func patchAssignmentWithPowerschool(ctx context.Context, assignment *api.Assignm
 
 var periodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 
-func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscourse *powerschool.CourseData) error {
+func patchCourseWithPowerschool(ctx context.Context, course *studentdatav1.Course, pscourse *powerschoolv1.CourseData) error {
 	ctx, span := tracer.Start(ctx, "patchCourse:WithPowerschool")
 	defer span.End()
 
@@ -97,7 +98,7 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 
 	var assignmentTypeNameList []string
 	for _, psassign := range pscourse.GetAssignments() {
-		assignment := &api.Assignment{}
+		assignment := &studentdatav1.Assignment{}
 		patchAssignmentWithPowerschool(ctx, assignment, psassign)
 		assignmentTypeName := assignment.GetAssignmentTypeName()
 		if !slices.Contains(assignmentTypeNameList, assignmentTypeName) {
@@ -106,7 +107,7 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 		course.Assignments = append(course.Assignments, assignment)
 	}
 	for _, typename := range assignmentTypeNameList {
-		course.AssignmentTypes = append(course.AssignmentTypes, &api.AssignmentType{
+		course.AssignmentTypes = append(course.AssignmentTypes, &studentdatav1.AssignmentType{
 			Name:   typename,
 			Weight: 0,
 		})
@@ -115,15 +116,15 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 	return nil
 }
 
-func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData, psdata *pspb.GetStudentDataResponse) error {
+func patchStudentDataWithPowerschool(ctx context.Context, data *studentdatav1.StudentData, psdata *powerservicev1.GetStudentDataResponse) error {
 	ctx, span := tracer.Start(ctx, "patchStudentData:WithPowerschool")
 	defer span.End()
 
 	var courseListGuids []string
-	var courseList []*api.Course
+	var courseList []*studentdatav1.Course
 	var dayNames []string
 	for _, pscourse := range psdata.GetCourseData() {
-		var course *api.Course
+		var course *studentdatav1.Course
 		for _, c := range data.GetCourses() {
 			if pscourse.GetName() == c.GetName() {
 				course = c
@@ -131,7 +132,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 			}
 		}
 		if course == nil {
-			course = &api.Course{}
+			course = &studentdatav1.Course{}
 		}
 
 		err := patchCourseWithPowerschool(ctx, course, pscourse)
@@ -152,7 +153,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 
 	var currentDay string
 	for _, meeting := range psdata.GetMeetings().GetSectionMeetings() {
-		var course *api.Course
+		var course *studentdatav1.Course
 		for i, guid := range courseListGuids {
 			if guid == meeting.GetSectionGuid() {
 				course = courseList[i]
@@ -186,7 +187,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 			currentDay = course.GetDayName()
 		}
 
-		course.Meetings = append(course.Meetings, &api.CourseMeeting{
+		course.Meetings = append(course.Meetings, &studentdatav1.CourseMeeting{
 			StartTime: start.Unix(),
 			EndTime:   stop.Unix(),
 		})
