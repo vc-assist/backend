@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package vcassist.services.grade_snapshots.v1;
+package vcassist.services.gradesnapshots.v1;
 
 message Snapshot {
   int64 time = 1;

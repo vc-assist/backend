@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package vcassist.services.student_data.v1;
+package vcassist.services.studentdata.v1;
 
 enum AssignmentState {
   ASSIGNMENT_STATE_UNSPECIFIED = 0;
