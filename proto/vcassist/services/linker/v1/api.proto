@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package vcassist.services.linker.v1;
+
+// GetExplicitLinks
+message GetExplicitLinksRequest {
+  string left_set = 1;
+  string right_set = 2;
+}
+message GetExplicitLinksResponse {
+  repeated string left_keys = 1;
+  repeated string right_keys = 2;
+}
+
+message ExplicitKey {
+  string set = 1;
+  string key = 2;
+}
+
+// AddExplicitLink
+message AddExplicitLinkRequest {
+  ExplicitKey left = 1;
+  ExplicitKey right = 2;
+}
+message AddExplicitLinkResponse {}
+
+// DeleteExplicitLink
+message DeleteExplicitLinkRequest {
+  ExplicitKey left = 1;
+  ExplicitKey right = 2;
+}
+message DeleteExplicitLinkResponse {}
+
+// Link
+message Set {
+  string name = 1;
+  repeated string keys = 2;
+}
+message LinkRequest {
+  Set src = 1;
+  Set dst = 2;
+}
+message LinkResponse {
+  map<string, string> src_to_dst = 1;
+}
+
+// GetKnownSets
+message GetKnownSetsRequest {}
+message GetKnownSetsResponse {
+  repeated string sets = 1;
+}
+
+// GetKnownKeys
+message KnownKey {
+  string key = 1;
+  // a unix date, if more than 6 months since last seen, delete the key
+  int64 last_seen = 2;
+}
+message GetKnownKeysRequest {
+  string set = 1;
+}
+message GetKnownKeysResponse {
+  repeated KnownKey keys = 1;
+}
+
+service LinkerService {
+  rpc GetExplicitLinks(GetExplicitLinksRequest) returns (GetExplicitLinksResponse);
+  rpc AddExplicitLink(AddExplicitLinkRequest) returns (AddExplicitLinkResponse);
+  rpc DeleteExplicitLink(DeleteExplicitLinkRequest) returns (DeleteExplicitLinkResponse);
+
+  rpc Link(LinkRequest) returns (LinkResponse);
+  rpc GetKnownSets(GetKnownSetsRequest) returns (GetKnownSetsResponse);
+  rpc GetKnownKeys(GetKnownKeysRequest) returns (GetKnownKeysResponse);
+}

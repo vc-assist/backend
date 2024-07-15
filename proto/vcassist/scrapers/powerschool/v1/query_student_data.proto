@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package vcassist.scrapers.powerschool.v1;
+
+message TermData {
+  string start = 1 [json_name = "start"];
+  string end = 2 [json_name = "end"];
+
+  message FinalGrade {
+    int32 percent = 1 [json_name = "percent"];
+    bool in_progress_status = 2 [json_name = "inProgressStatus"];
+  }
+  FinalGrade final_grade = 3 [json_name = "finalGrade"];
+}
+
+message AssignmentData {
+  string title = 1 [json_name = "title"];
+  string category = 2 [json_name = "category"];
+  string due_date = 3 [json_name = "dueDate"];
+  string description = 4 [json_name = "description"];
+  int32 points_earned = 5 [json_name = "pointsEarned"];
+  int32 points_possible = 6 [json_name = "pointsPossible"];
+  bool attribute_missing = 7 [json_name = "attributeMissing"];
+  bool attribute_late = 8 [json_name = "attributeLate"];
+  bool attribute_collected = 9 [json_name = "attributeCollected"];
+  bool attribute_exempt = 10 [json_name = "attributeExempt"];
+  bool attribute_incomplete = 11 [json_name = "attributeIncomplete"];
+}
+
+message CourseData {
+  string guid = 1 [json_name = "guid"];
+  string name = 2 [json_name = "name"];
+  string period = 3 [json_name = "period"];
+  string teacher_first_name = 4 [json_name = "teacherFirstName"];
+  string teacher_last_name = 5 [json_name = "teacherLastName"];
+  string teacher_email = 6 [json_name = "teacherEmail"];
+  string room = 7 [json_name = "room"];
+  repeated AssignmentData assignments = 8 [json_name = "assignments"];
+  repeated TermData terms = 9 [json_name = "terms"];
+}
+
+message StudentData {
+  message Student {
+    repeated CourseData sections = 1 [json_name = "sections"];
+  }
+  Student student = 1 [json_name = "guid"];
+}
+
+message GetStudentDataInput {
+  string guid = 1 [json_name = "guid"];
+}
