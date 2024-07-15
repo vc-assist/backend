@@ -35,9 +35,9 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 	defer span.End()
 
 	err := s.qry.CreateStudent(ctx, db.CreateStudentParams{
-		ID:       req.Msg.StudentId,
-		Username: req.Msg.Username,
-		Password: req.Msg.Password,
+		ID:       req.Msg.GetStudentId(),
+		Username: req.Msg.GetUsername(),
+		Password: req.Msg.GetPassword(),
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -52,7 +52,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 	ctx, span := tracer.Start(ctx, "GetStudentData")
 	defer span.End()
 
-	studentRow, err := s.qry.GetStudent(ctx, req.Msg.StudentId)
+	studentRow, err := s.qry.GetStudent(ctx, req.Msg.GetStudentId())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -74,7 +74,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		return nil, err
 	}
 	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
-		ClientId: req.Msg.StudentId,
+		ClientId: req.Msg.GetStudentId(),
 		Cache:    s.cache,
 	})
 	if err != nil {

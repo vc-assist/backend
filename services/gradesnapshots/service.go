@@ -35,7 +35,7 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 	span.SetAttributes(
 		attribute.KeyValue{
 			Key:   "user",
-			Value: attribute.IntValue(len(req.Msg.Snapshot.User)),
+			Value: attribute.IntValue(len(req.Msg.GetSnapshot().GetUser())),
 		},
 	)
 
@@ -58,11 +58,11 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 		return nil, err
 	}
 
-	user := req.Msg.Snapshot
+	user := req.Msg.GetSnapshot()
 	for _, course := range user.GetCourses() {
 		userCourseId, err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
-			User:   user.User,
-			Course: course.Course,
+			User:   user.GetUser(),
+			Course: course.GetCourse(),
 		})
 		if err != nil {
 			span.RecordError(err)
@@ -72,8 +72,8 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 
 		err = txqry.CreateGradeSnapshot(ctx, db.CreateGradeSnapshotParams{
 			Usercourseid: userCourseId,
-			Time:         course.Snapshot.Time,
-			Value:        float64(course.Snapshot.Time),
+			Time:         course.GetSnapshot().GetTime(),
+			Value:        float64(course.GetSnapshot().GetTime()),
 		})
 		if err != nil {
 			span.RecordError(err)
@@ -102,7 +102,7 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[api.PullRequest]
 		},
 	)
 
-	rows, err := s.qry.GetGradeSnapshots(ctx, req.Msg.User)
+	rows, err := s.qry.GetGradeSnapshots(ctx, req.Msg.GetUser())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

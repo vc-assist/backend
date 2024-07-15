@@ -3,9 +3,9 @@ package linker
 import (
 	"context"
 	"database/sql"
+	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/linker/api"
 	"vcassist-backend/services/linker/db"
-	"vcassist-backend/lib/timezone"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -31,8 +31,8 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[api.
 	defer span.End()
 
 	links, err := s.qry.GetExplicitLinks(ctx, db.GetExplicitLinksParams{
-		Leftset:  req.Msg.LeftSet,
-		Rightset: req.Msg.RightSet,
+		Leftset:  req.Msg.GetLeftSet(),
+		Rightset: req.Msg.GetRightSet(),
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -43,7 +43,7 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[api.
 	var leftKeys []string
 	var rightKeys []string
 	for _, l := range links {
-		if l.Rightset == req.Msg.LeftSet {
+		if l.Rightset == req.Msg.GetLeftSet() {
 			leftKeys = append(leftKeys, l.Rightkey)
 			rightKeys = append(rightKeys, l.Leftkey)
 			continue
@@ -65,10 +65,10 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[api.A
 	defer span.End()
 
 	err := s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
-		Leftset:  req.Msg.Left.Set,
-		Leftkey:  req.Msg.Left.Key,
-		Rightset: req.Msg.Right.Set,
-		Rightkey: req.Msg.Right.Key,
+		Leftset:  req.Msg.GetLeft().GetSet(),
+		Leftkey:  req.Msg.GetLeft().GetKey(),
+		Rightset: req.Msg.GetRight().GetSet(),
+		Rightkey: req.Msg.GetRight().GetKey(),
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -84,10 +84,10 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[ap
 	defer span.End()
 
 	err := s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
-		Leftset:  req.Msg.GetLeft().Set,
-		Leftkey:  req.Msg.GetLeft().Key,
-		Rightset: req.Msg.GetRight().Set,
-		Rightkey: req.Msg.GetRight().Key,
+		Leftset:  req.Msg.GetLeft().GetSet(),
+		Leftkey:  req.Msg.GetLeft().GetKey(),
+		Rightset: req.Msg.GetRight().GetSet(),
+		Rightkey: req.Msg.GetRight().GetKey(),
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -113,13 +113,13 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 	defer tx.Rollback()
 
 	txqry := s.qry.WithTx(tx)
-	err = txqry.CreateKnownSet(ctx, req.Msg.Src.Name)
+	err = txqry.CreateKnownSet(ctx, req.Msg.GetSrc().GetName())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
-	err = txqry.CreateKnownSet(ctx, req.Msg.Dst.Name)
+	err = txqry.CreateKnownSet(ctx, req.Msg.GetDst().GetName())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -127,9 +127,9 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 	}
 
 	now := timezone.Now().Unix()
-	for _, src := range req.Msg.Src.Keys {
+	for _, src := range req.Msg.GetSrc().GetKeys() {
 		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
-			Setname:  req.Msg.Src.Name,
+			Setname:  req.Msg.GetSrc().GetName(),
 			Value:    src,
 			Lastseen: now,
 		})
@@ -139,9 +139,9 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 			return nil, err
 		}
 	}
-	for _, dst := range req.Msg.Dst.Keys {
+	for _, dst := range req.Msg.GetDst().GetKeys() {
 		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
-			Setname:  req.Msg.Dst.Name,
+			Setname:  req.Msg.GetDst().GetName(),
 			Value:    dst,
 			Lastseen: now,
 		})
@@ -161,21 +161,21 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 
 	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[api.GetExplicitLinksRequest]{
 		Msg: &api.GetExplicitLinksRequest{
-			LeftSet:  req.Msg.Src.Name,
-			RightSet: req.Msg.Dst.Name,
+			LeftSet:  req.Msg.GetSrc().GetName(),
+			RightSet: req.Msg.GetDst().GetName(),
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 	mapping := make(map[string]string)
-	for i, left := range explicit.Msg.LeftKeys {
-		right := explicit.Msg.RightKeys[i]
+	for i, left := range explicit.Msg.GetLeftKeys() {
+		right := explicit.Msg.GetRightKeys()[i]
 		mapping[left] = right
 	}
 
 	var leftList []string
-	for _, left := range req.Msg.Src.Keys {
+	for _, left := range req.Msg.GetSrc().GetKeys() {
 		_, ok := mapping[left]
 		if ok {
 			continue
@@ -183,7 +183,7 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 		leftList = append(leftList, left)
 	}
 	var rightList []string
-	for _, right := range req.Msg.Dst.Keys {
+	for _, right := range req.Msg.GetDst().GetKeys() {
 		_, ok := mapping[right]
 		if ok {
 			continue

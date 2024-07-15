@@ -253,7 +253,7 @@ func TestOAuth(t *testing.T) {
 		}
 	}
 
-	meetings := foundStudentData.GetMeetings().SectionMeetings
+	meetings := foundStudentData.GetMeetings().GetSectionMeetings()
 	if len(meetings) > 0 {
 		for _, meeting := range meetings {
 			require.NotEmpty(t, meeting.GetSectionGuid())

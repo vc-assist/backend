@@ -10,10 +10,10 @@ func patchStudentDataWithMoodle(ctx context.Context, data *api.StudentData, mood
 	ctx, span := tracer.Start(ctx, "patchStudentData:WithMoodle")
 	defer span.End()
 
-	for _, moodleCourse := range moodledata.Courses {
+	for _, moodleCourse := range moodledata.GetCourses() {
 		var course *api.Course
-		for _, c := range data.Courses {
-			if c.Name == moodleCourse.Name {
+		for _, c := range data.GetCourses() {
+			if c.GetName() == moodleCourse.GetName() {
 				course = c
 				break
 			}
@@ -22,7 +22,7 @@ func patchStudentDataWithMoodle(ctx context.Context, data *api.StudentData, mood
 			course = &api.Course{}
 		}
 
-		course.RemoteMeetingLink = moodleCourse.ZoomLink
-		course.LessonPlan = moodleCourse.LessonPlan
+		course.RemoteMeetingLink = moodleCourse.GetZoomLink()
+		course.LessonPlan = moodleCourse.GetLessonPlan()
 	}
 }
