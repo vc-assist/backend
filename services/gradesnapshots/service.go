@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/gradesnapshots/api"
+	gradesnapshotsv1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
 	"vcassist-backend/services/gradesnapshots/db"
 
 	"connectrpc.com/connect"
@@ -28,7 +28,7 @@ func NewService(database *sql.DB) Service {
 	}
 }
 
-func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]) (*connect.Response[api.PushResponse], error) {
+func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1.PushRequest]) (*connect.Response[gradesnapshotsv1.PushResponse], error) {
 	ctx, span := tracer.Start(ctx, "Push")
 	defer span.End()
 
@@ -88,10 +88,10 @@ func (s Service) Push(ctx context.Context, req *connect.Request[api.PushRequest]
 		return nil, err
 	}
 
-	return &connect.Response[api.PushResponse]{Msg: &api.PushResponse{}}, nil
+	return &connect.Response[gradesnapshotsv1.PushResponse]{Msg: &gradesnapshotsv1.PushResponse{}}, nil
 }
 
-func (s Service) Pull(ctx context.Context, req *connect.Request[api.PullRequest]) (*connect.Response[api.PullResponse], error) {
+func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1.PullRequest]) (*connect.Response[gradesnapshotsv1.PullResponse], error) {
 	ctx, span := tracer.Start(ctx, "Pull")
 	defer span.End()
 
@@ -109,8 +109,8 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[api.PullRequest]
 		return nil, err
 	}
 
-	var courses []*api.CourseSnapshotList
-	var lastCourse *api.CourseSnapshotList
+	var courses []*gradesnapshotsv1.CourseSnapshotList
+	var lastCourse *gradesnapshotsv1.CourseSnapshotList
 
 	for _, r := range rows {
 		// this works because the rows are sorted by course name
@@ -125,9 +125,9 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[api.PullRequest]
 		// etc...
 		if r.Course != lastCourse.GetCourse() {
 			courses = append(courses, lastCourse)
-			lastCourse = &api.CourseSnapshotList{
+			lastCourse = &gradesnapshotsv1.CourseSnapshotList{
 				Course: r.Course,
-				Snapshots: []*api.Snapshot{
+				Snapshots: []*gradesnapshotsv1.Snapshot{
 					{
 						Time:  r.Time,
 						Value: float32(r.Value),
@@ -136,14 +136,14 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[api.PullRequest]
 			}
 			continue
 		}
-		lastCourse.Snapshots = append(lastCourse.Snapshots, &api.Snapshot{
+		lastCourse.Snapshots = append(lastCourse.Snapshots, &gradesnapshotsv1.Snapshot{
 			Time:  r.Time,
 			Value: float32(r.Value),
 		})
 	}
 
-	return &connect.Response[api.PullResponse]{
-		Msg: &api.PullResponse{
+	return &connect.Response[gradesnapshotsv1.PullResponse]{
+		Msg: &gradesnapshotsv1.PullResponse{
 			Courses: courses,
 		},
 	}, nil

@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"os"
 	"vcassist-backend/lib/configuration"
+	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
 	"vcassist-backend/services/gradesnapshots"
 	"vcassist-backend/services/linker"
-	powerschoold "vcassist-backend/services/powerschool"
-	"vcassist-backend/services/studentdata/api/apiconnect"
+	"vcassist-backend/services/powerservice"
 	"vcassist-backend/services/vcs"
 	"vcassist-backend/services/vcsmoodle"
 
@@ -27,8 +27,8 @@ func fatalerr(message string, err error) {
 type DatabaseConfig struct {
 	GradeSnapshot configuration.Libsql `json:"grade_snapshot"`
 	Linker        configuration.Libsql `json:"linker"`
-	Powerschoold  configuration.Libsql `json:"powerschoold"`
-	vcsMoodle    configuration.Libsql `json:"vcs_moodle"`
+	Powerservice  configuration.Libsql `json:"powerservice"`
+	VcsMoodle     configuration.Libsql `json:"vcs_moodle"`
 	Self          configuration.Libsql `json:"self"`
 }
 
@@ -55,14 +55,14 @@ func main() {
 	}
 	linkerService := linker.NewService(db)
 
-	db, err = config.Database.Powerschoold.OpenDB()
+	db, err = config.Database.Powerservice.OpenDB()
 	if err != nil {
 		fatalerr("failed to open powerschoold database", err)
 	}
-	powerschooldService := powerschoold.NewService(
+	powerschooldService := powerservice.NewService(
 		db,
 		"https://vcsnet.powerschool.com",
-		powerschoold.OAuthConfig{
+		powerservice.OAuthConfig{
 			BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
 			RefreshUrl:   "https://oauth2.googleapis.com/token",
 			ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
@@ -73,7 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db, err = config.Database.vcsMoodle.OpenDB()
+	db, err = config.Database.VcsMoodle.OpenDB()
 	if err != nil {
 		fatalerr("failed to open moodle database", err)
 	}
@@ -92,7 +92,7 @@ func main() {
 	)
 
 	mux := http.NewServeMux()
-	mux.Handle(apiconnect.NewStudentDataServiceHandler(service))
+	mux.Handle(studentdatav1connect.NewStudentDataServiceHandler(service))
 
 	slog.Info("listening to gRPC...", "port", 9111)
 	err = http.ListenAndServe(

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 	"vcassist-backend/lib/telemetry"
-	"vcassist-backend/services/linker/api"
+	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 
 	_ "embed"
 
@@ -44,8 +44,8 @@ func TestService(t *testing.T) {
 	defer cancel()
 
 	{
-		res, err := service.GetKnownKeys(ctx, &connect.Request[api.GetKnownKeysRequest]{
-			Msg: &api.GetKnownKeysRequest{},
+		res, err := service.GetKnownKeys(ctx, &connect.Request[linkerv1.GetKnownKeysRequest]{
+			Msg: &linkerv1.GetKnownKeysRequest{},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -53,8 +53,8 @@ func TestService(t *testing.T) {
 		require.Equal(t, len(res.Msg.GetKeys()), 0, "expected no known keys")
 	}
 	{
-		res, err := service.GetKnownSets(ctx, &connect.Request[api.GetKnownSetsRequest]{
-			Msg: &api.GetKnownSetsRequest{},
+		res, err := service.GetKnownSets(ctx, &connect.Request[linkerv1.GetKnownSetsRequest]{
+			Msg: &linkerv1.GetKnownSetsRequest{},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -62,8 +62,8 @@ func TestService(t *testing.T) {
 		require.Equal(t, len(res.Msg.GetSets()), 0, "expected no known sets")
 	}
 	{
-		res, err := service.GetExplicitLinks(ctx, &connect.Request[api.GetExplicitLinksRequest]{
-			Msg: &api.GetExplicitLinksRequest{
+		res, err := service.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
+			Msg: &linkerv1.GetExplicitLinksRequest{
 				LeftSet:  "random set",
 				RightSet: "random set 2",
 			},
@@ -75,13 +75,13 @@ func TestService(t *testing.T) {
 		require.Equal(t, len(res.Msg.GetRightKeys()), 0, "expected no explicit links to exist")
 	}
 
-	_, err := service.AddExplicitLink(ctx, &connect.Request[api.AddExplicitLinkRequest]{
-		Msg: &api.AddExplicitLinkRequest{
-			Left: &api.ExplicitKey{
+	_, err := service.AddExplicitLink(ctx, &connect.Request[linkerv1.AddExplicitLinkRequest]{
+		Msg: &linkerv1.AddExplicitLinkRequest{
+			Left: &linkerv1.ExplicitKey{
 				Set: "powerschool",
 				Key: "Physics 1 (H)",
 			},
-			Right: &api.ExplicitKey{
+			Right: &linkerv1.ExplicitKey{
 				Set: "moodle",
 				Key: "Physics 1",
 			},
@@ -90,13 +90,13 @@ func TestService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = service.AddExplicitLink(ctx, &connect.Request[api.AddExplicitLinkRequest]{
-		Msg: &api.AddExplicitLinkRequest{
-			Left: &api.ExplicitKey{
+	_, err = service.AddExplicitLink(ctx, &connect.Request[linkerv1.AddExplicitLinkRequest]{
+		Msg: &linkerv1.AddExplicitLinkRequest{
+			Left: &linkerv1.ExplicitKey{
 				Set: "moodle",
 				Key: "Physics 1 Honors",
 			},
-			Right: &api.ExplicitKey{
+			Right: &linkerv1.ExplicitKey{
 				Set: "powerschool",
 				Key: "Physics 1 (H)",
 			},
@@ -106,9 +106,9 @@ func TestService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	linkRes, err := service.Link(ctx, &connect.Request[api.LinkRequest]{
-		Msg: &api.LinkRequest{
-			Src: &api.Set{
+	linkRes, err := service.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
+		Msg: &linkerv1.LinkRequest{
+			Src: &linkerv1.Set{
 				Name: "powerschool",
 				Keys: []string{
 					"Physics 1 (H)",
@@ -116,7 +116,7 @@ func TestService(t *testing.T) {
 					"AP Human Geography",
 				},
 			},
-			Dst: &api.Set{
+			Dst: &linkerv1.Set{
 				Name: "powerschool",
 				Keys: []string{
 					"Physics 1",

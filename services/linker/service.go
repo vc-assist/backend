@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/linker/api"
+	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
@@ -26,7 +26,7 @@ func NewService(database *sql.DB) Service {
 	}
 }
 
-func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[api.GetExplicitLinksRequest]) (*connect.Response[api.GetExplicitLinksResponse], error) {
+func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[linkerv1.GetExplicitLinksRequest]) (*connect.Response[linkerv1.GetExplicitLinksResponse], error) {
 	ctx, span := tracer.Start(ctx, "GetExplicitLinks")
 	defer span.End()
 
@@ -52,15 +52,15 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[api.
 		rightKeys = append(rightKeys, l.Rightkey)
 	}
 
-	return &connect.Response[api.GetExplicitLinksResponse]{
-		Msg: &api.GetExplicitLinksResponse{
+	return &connect.Response[linkerv1.GetExplicitLinksResponse]{
+		Msg: &linkerv1.GetExplicitLinksResponse{
 			LeftKeys:  leftKeys,
 			RightKeys: rightKeys,
 		},
 	}, nil
 }
 
-func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[api.AddExplicitLinkRequest]) (*connect.Response[api.AddExplicitLinkResponse], error) {
+func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linkerv1.AddExplicitLinkRequest]) (*connect.Response[linkerv1.AddExplicitLinkResponse], error) {
 	ctx, span := tracer.Start(ctx, "AddExplicitLink")
 	defer span.End()
 
@@ -76,10 +76,10 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[api.A
 		return nil, err
 	}
 
-	return &connect.Response[api.AddExplicitLinkResponse]{Msg: &api.AddExplicitLinkResponse{}}, nil
+	return &connect.Response[linkerv1.AddExplicitLinkResponse]{Msg: &linkerv1.AddExplicitLinkResponse{}}, nil
 }
 
-func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[api.DeleteExplicitLinkRequest]) (*connect.Response[api.DeleteExplicitLinkResponse], error) {
+func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[linkerv1.DeleteExplicitLinkRequest]) (*connect.Response[linkerv1.DeleteExplicitLinkResponse], error) {
 	ctx, span := tracer.Start(ctx, "DeleteExplicitLink")
 	defer span.End()
 
@@ -95,12 +95,12 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[ap
 		return nil, err
 	}
 
-	return &connect.Response[api.DeleteExplicitLinkResponse]{
-		Msg: &api.DeleteExplicitLinkResponse{},
+	return &connect.Response[linkerv1.DeleteExplicitLinkResponse]{
+		Msg: &linkerv1.DeleteExplicitLinkResponse{},
 	}, nil
 }
 
-func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]) (*connect.Response[api.LinkResponse], error) {
+func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
 	ctx, span := tracer.Start(ctx, "Link")
 	defer span.End()
 
@@ -159,8 +159,8 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 		return nil, err
 	}
 
-	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[api.GetExplicitLinksRequest]{
-		Msg: &api.GetExplicitLinksRequest{
+	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
+		Msg: &linkerv1.GetExplicitLinksRequest{
 			LeftSet:  req.Msg.GetSrc().GetName(),
 			RightSet: req.Msg.GetDst().GetName(),
 		},
@@ -198,14 +198,14 @@ func (s Service) Link(ctx context.Context, req *connect.Request[api.LinkRequest]
 		mapping[link.Left] = link.Right
 	}
 
-	return &connect.Response[api.LinkResponse]{
-		Msg: &api.LinkResponse{
+	return &connect.Response[linkerv1.LinkResponse]{
+		Msg: &linkerv1.LinkResponse{
 			SrcToDst: mapping,
 		},
 	}, nil
 }
 
-func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[api.GetKnownSetsRequest]) (*connect.Response[api.GetKnownSetsResponse], error) {
+func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[linkerv1.GetKnownSetsRequest]) (*connect.Response[linkerv1.GetKnownSetsResponse], error) {
 	ctx, span := tracer.Start(ctx, "GetKnownSets")
 	defer span.End()
 
@@ -216,12 +216,12 @@ func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[api.GetK
 		return nil, err
 	}
 
-	return &connect.Response[api.GetKnownSetsResponse]{
-		Msg: &api.GetKnownSetsResponse{Sets: sets},
+	return &connect.Response[linkerv1.GetKnownSetsResponse]{
+		Msg: &linkerv1.GetKnownSetsResponse{Sets: sets},
 	}, nil
 }
 
-func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[api.GetKnownKeysRequest]) (*connect.Response[api.GetKnownKeysResponse], error) {
+func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[linkerv1.GetKnownKeysRequest]) (*connect.Response[linkerv1.GetKnownKeysResponse], error) {
 	ctx, span := tracer.Start(ctx, "GetKnownKeys")
 	defer span.End()
 
@@ -232,16 +232,16 @@ func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[api.GetK
 		return nil, err
 	}
 
-	keys := make([]*api.KnownKey, len(rows))
+	keys := make([]*linkerv1.KnownKey, len(rows))
 	for i, r := range rows {
-		keys[i] = &api.KnownKey{
+		keys[i] = &linkerv1.KnownKey{
 			Key:      r.Value,
 			LastSeen: r.Lastseen,
 		}
 	}
 
-	return &connect.Response[api.GetKnownKeysResponse]{
-		Msg: &api.GetKnownKeysResponse{
+	return &connect.Response[linkerv1.GetKnownKeysResponse]{
+		Msg: &linkerv1.GetKnownKeysResponse{
 			Keys: keys,
 		},
 	}, nil

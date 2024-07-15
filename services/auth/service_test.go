@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"testing"
 	"vcassist-backend/lib/telemetry"
-	"vcassist-backend/services/auth/api"
+	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 
 	"connectrpc.com/connect"
 	"github.com/go-resty/resty/v2"
@@ -104,8 +104,8 @@ func TestLoginFlow(t *testing.T) {
 
 	userEmail := "bob@email.com"
 
-	_, err := service.StartLogin(ctx, &connect.Request[api.StartLoginRequest]{
-		Msg: &api.StartLoginRequest{
+	_, err := service.StartLogin(ctx, &connect.Request[authv1.StartLoginRequest]{
+		Msg: &authv1.StartLoginRequest{
 			Email: userEmail,
 		},
 	})
@@ -114,8 +114,8 @@ func TestLoginFlow(t *testing.T) {
 	}
 	code := getVerificationCodeFromEmail(t)
 
-	res, err := service.ConsumeVerificationCode(ctx, &connect.Request[api.ConsumeVerificationCodeRequest]{
-		Msg: &api.ConsumeVerificationCodeRequest{
+	res, err := service.ConsumeVerificationCode(ctx, &connect.Request[authv1.ConsumeVerificationCodeRequest]{
+		Msg: &authv1.ConsumeVerificationCodeRequest{
 			Email:        userEmail,
 			ProvidedCode: code,
 		},
@@ -129,8 +129,8 @@ func TestLoginFlow(t *testing.T) {
 		Value: attribute.StringValue(token),
 	}))
 
-	userRes, err := service.VerifyToken(ctx, &connect.Request[api.VerifyTokenRequest]{
-		Msg: &api.VerifyTokenRequest{
+	userRes, err := service.VerifyToken(ctx, &connect.Request[authv1.VerifyTokenRequest]{
+		Msg: &authv1.VerifyTokenRequest{
 			Token: token,
 		},
 	})
