@@ -5,8 +5,6 @@
 ## Project structure
 
 - `docs/` - additional documentation
-- `cmd/` - all official entrypoints/build targets
-   - `vcsd/` - the service that combines powerschool and moodle data into a format fit for the frontend.
 - `services/` - gRPC services
    - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
    - `powerservice/` - the service that fetches a student's powerschool data given a valid key in keychain.
@@ -15,6 +13,9 @@
    - `studentdata/` - the interface all student data providers must fulfill to talk to the frontend
    - `vcsmoodle/` - the service for getting student data specific to vcs flavored moodle
    - `vcs/` - the student data provider for vcs
+- `cmd/` - all official entrypoints/build targets
+   - `auth/` - the entrypoint to the `auth` service
+   - `vcs/` - the entrypoint to the `vcs` service
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms
 - `dev/` - code for setting up the development environment
@@ -63,6 +64,6 @@ Here are some commands relating to linting and code generation that will probabl
 
 ## Testing
 
-- `go test ./lib/... ./cmd/authd` - runs all tests that don't require manual interaction
-- `go test ./cmd/powerschoold` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test ./lib/... ./service/auth` - runs all tests that don't require manual interaction
+- `go test ./service/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 
