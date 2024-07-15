@@ -3,38 +3,37 @@ syntax = "proto3";
 package services.gradesnapshots.api;
 
 message Snapshot {
-	int64 time = 1;
-	float value = 2;
+  int64 time = 1;
+  float value = 2;
 }
 message CourseSnapshot {
-	string course = 1;
-	Snapshot snapshot = 2;
+  string course = 1;
+  Snapshot snapshot = 2;
 }
 message UserSnapshot {
-	string user = 1;
-	repeated CourseSnapshot courses = 2;
+  string user = 1;
+  repeated CourseSnapshot courses = 2;
 }
 
 // Push
 message PushRequest {
-	UserSnapshot snapshot = 1;
+  UserSnapshot snapshot = 1;
 }
 message PushResponse {}
 
 // Pull
 message CourseSnapshotList {
-	string course = 1;
-	repeated Snapshot snapshots = 2;
+  string course = 1;
+  repeated Snapshot snapshots = 2;
 }
 message PullRequest {
-	string user = 1;
+  string user = 1;
 }
 message PullResponse {
-	repeated CourseSnapshotList courses = 1;
+  repeated CourseSnapshotList courses = 1;
 }
 
 service GradeSnapshotsService {
-	rpc Push(PushRequest) returns (PushResponse);
-	rpc Pull(PullRequest) returns (PullResponse);
+  rpc Push(PushRequest) returns (PushResponse);
+  rpc Pull(PullRequest) returns (PullResponse);
 }
-

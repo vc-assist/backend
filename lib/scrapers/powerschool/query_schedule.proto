@@ -3,18 +3,17 @@ syntax = "proto3";
 package lib.scrapers.powerschool;
 
 message CourseMeeting {
-	string section_guid = 1 [json_name = "sectionGuid"];
-	string start = 2 [json_name = "start"];
-	string stop = 3 [json_name = "stop"];
+  string section_guid = 1 [json_name = "sectionGuid"];
+  string start = 2 [json_name = "start"];
+  string stop = 3 [json_name = "stop"];
 }
 
 message CourseMeetingList {
-	repeated CourseMeeting section_meetings = 1 [json_name = "sectionMeetings"];
+  repeated CourseMeeting section_meetings = 1 [json_name = "sectionMeetings"];
 }
 
 message GetCourseMeetingListInput {
-	repeated string section_guids = 1 [json_name = "sectionGuids"];
-	string start = 2 [json_name = "start"];
-	string stop = 3 [json_name = "stop"];
+  repeated string section_guids = 1 [json_name = "sectionGuids"];
+  string start = 2 [json_name = "start"];
+  string stop = 3 [json_name = "stop"];
 }
-

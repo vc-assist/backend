@@ -3,28 +3,27 @@ syntax = "proto3";
 package cmd.authd.api;
 
 message StartLoginRequest {
-	string email = 1;
+  string email = 1;
 }
 message StartLoginResponse {}
 
 message ConsumeVerificationCodeRequest {
-	string email = 1;
-	string provided_code = 2;
+  string email = 1;
+  string provided_code = 2;
 }
 message ConsumeVerificationCodeResponse {
-	string token = 1;
+  string token = 1;
 }
 
 message VerifyTokenRequest {
-	string token = 1;
+  string token = 1;
 }
 message VerifyTokenResponse {
-	string email = 1;
+  string email = 1;
 }
 
 service AuthService {
-	rpc StartLogin(StartLoginRequest) returns (StartLoginResponse);
-	rpc ConsumeVerificationCode(ConsumeVerificationCodeRequest) returns (ConsumeVerificationCodeResponse);
-	rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc StartLogin(StartLoginRequest) returns (StartLoginResponse);
+  rpc ConsumeVerificationCode(ConsumeVerificationCodeRequest) returns (ConsumeVerificationCodeResponse);
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
 }
-
