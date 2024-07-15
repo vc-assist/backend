@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package vcassist.services.powerschool.v1;
+package vcassist.services.powerservice.v1;
 
 import "vcassist/scrapers/powerschool/v1/query_all_students.proto";
 import "vcassist/scrapers/powerschool/v1/query_schedule.proto";

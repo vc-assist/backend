@@ -1,4 +1,4 @@
-package powerschoold
+package powerservice
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/powerschool/db"
+	"vcassist-backend/services/powerservice/db"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
