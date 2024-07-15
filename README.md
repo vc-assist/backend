@@ -51,7 +51,8 @@ here are some commands relating to linting and code generation that will probabl
 
 - `go vet ./...` - typecheck all go packages
 - `sqlc generate` - generate sql wrapper code with [sqlc](https://sqlc.dev/)
-- `buf generate` - generate protobuf files with [buf](https://buf.build/)
+- `buf generate --template buf.gen-go.yaml` - generate golang protobuf code with [buf](https://buf.build/)
+- `buf generate --template buf.gen-ts.yaml` - generate typescript protobuf code with [buf](https://buf.build/)
 - `buf lint` - lint protobuf files with [buf](https://buf.build/)
 - `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent segmentation faults when chaining stuff together
 
