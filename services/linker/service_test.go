@@ -50,7 +50,7 @@ func TestService(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		require.Equal(t, len(res.Msg.Keys), 0, "expected no known keys")
+		require.Equal(t, len(res.Msg.GetKeys()), 0, "expected no known keys")
 	}
 	{
 		res, err := service.GetKnownSets(ctx, &connect.Request[api.GetKnownSetsRequest]{
@@ -59,7 +59,7 @@ func TestService(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		require.Equal(t, len(res.Msg.Sets), 0, "expected no known sets")
+		require.Equal(t, len(res.Msg.GetSets()), 0, "expected no known sets")
 	}
 	{
 		res, err := service.GetExplicitLinks(ctx, &connect.Request[api.GetExplicitLinksRequest]{
@@ -71,8 +71,8 @@ func TestService(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		require.Equal(t, len(res.Msg.LeftKeys), 0, "expected no explicit links to exist")
-		require.Equal(t, len(res.Msg.RightKeys), 0, "expected no explicit links to exist")
+		require.Equal(t, len(res.Msg.GetLeftKeys()), 0, "expected no explicit links to exist")
+		require.Equal(t, len(res.Msg.GetRightKeys()), 0, "expected no explicit links to exist")
 	}
 
 	_, err := service.AddExplicitLink(ctx, &connect.Request[api.AddExplicitLinkRequest]{
@@ -136,7 +136,7 @@ func TestService(t *testing.T) {
 			"Physics 1 (H)":  "Physics 1",
 			"AP Calculus BC": "AP Calculus BC (H)",
 		},
-		linkRes.Msg.SrcToDst,
+		linkRes.Msg.GetSrcToDst(),
 	)
 	if diff != "" {
 		t.Fatal(diff)

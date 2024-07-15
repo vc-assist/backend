@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
+	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/powerschool/api"
 	"vcassist-backend/services/powerschool/db"
 	studentdataapi "vcassist-backend/services/studentdata/api"
-	"vcassist-backend/lib/timezone"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -256,7 +256,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		return nil, err
 	}
 
-	if studentData.Student == nil {
+	if studentData.GetStudent() == nil {
 		span.SetStatus(codes.Ok, "student data unavailable, only returning profile...")
 		return &connect.Response[api.GetStudentDataResponse]{
 			Msg: &api.GetStudentDataResponse{Profile: psStudent},
@@ -274,13 +274,13 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 	txqry := s.qry.WithTx(tx)
 	for _, c := range courseList {
 		err = txqry.CreateOrUpdateKnownCourse(ctx, db.CreateOrUpdateKnownCourseParams{
-			Guid:             c.Guid,
-			Name:             c.Name,
-			Teacherfirstname: sql.NullString{String: c.TeacherFirstName},
-			Teacherlastname:  sql.NullString{String: c.TeacherLastName},
-			Teacheremail:     sql.NullString{String: c.TeacherEmail},
-			Period:           sql.NullString{String: c.Period},
-			Room:             sql.NullString{String: c.Room},
+			Guid:             c.GetGuid(),
+			Name:             c.GetName(),
+			Teacherfirstname: sql.NullString{String: c.GetTeacherFirstName()},
+			Teacherlastname:  sql.NullString{String: c.GetTeacherLastName()},
+			Teacheremail:     sql.NullString{String: c.GetTeacherEmail()},
+			Period:           sql.NullString{String: c.GetPeriod()},
+			Room:             sql.NullString{String: c.GetRoom()},
 		})
 		if err != nil {
 			span.RecordError(err)

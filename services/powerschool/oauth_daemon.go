@@ -109,7 +109,7 @@ func (d OAuthDaemon) refreshAllTokens(ctx context.Context) {
 		if err != nil {
 			continue
 		}
-		d.refreshCounter.Add(1)
+		d.refreshCounter.Add(ctx, 1)
 	}
 }
 

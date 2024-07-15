@@ -149,9 +149,9 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[a
 					Id:   "powerschool",
 					Name: "PowerSchool",
 					LoginFlow: &api.CredentialStatus_Oauth{
-						Oauth: psoauthflow.Msg.Flow,
+						Oauth: psoauthflow.Msg.GetFlow(),
 					},
-					Provided: psauthstatus.Msg.IsAuthenticated,
+					Provided: psauthstatus.Msg.GetIsAuthenticated(),
 				},
 			},
 		},
@@ -164,7 +164,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[api
 
 	profile, _ := verifier.ProfileFromContext(ctx)
 
-	switch req.Msg.Id {
+	switch req.Msg.GetId() {
 	case "powerschool":
 		_, err := s.powerschool.ProvideOAuth(ctx, &connect.Request[pspb.ProvideOAuthRequest]{
 			Msg: &pspb.ProvideOAuthRequest{
@@ -180,9 +180,9 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[api
 	case "moodle":
 		_, err := s.moodle.ProvideUsernamePassword(ctx, &connect.Request[moodlepb.ProvideUsernamePasswordRequest]{
 			Msg: &moodlepb.ProvideUsernamePasswordRequest{
-				StudentId: req.Msg.Id,
-				Username:  req.Msg.GetUsernamePassword().Username,
-				Password:  req.Msg.GetUsernamePassword().Password,
+				StudentId: req.Msg.GetId(),
+				Username:  req.Msg.GetUsernamePassword().GetUsername(),
+				Password:  req.Msg.GetUsernamePassword().GetPassword(),
 			},
 		})
 		if err != nil {
@@ -256,12 +256,12 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*api
 	}
 
 	now := timezone.Now()
-	snapshots := make([]*gradesnapshotpb.CourseSnapshot, len(data.Courses))
-	for i, c := range data.Courses {
+	snapshots := make([]*gradesnapshotpb.CourseSnapshot, len(data.GetCourses()))
+	for i, c := range data.GetCourses() {
 		snapshots[i] = &gradesnapshotpb.CourseSnapshot{
-			Course: c.Name,
+			Course: c.GetName(),
 			Snapshot: &gradesnapshotpb.Snapshot{
-				Value: c.OverallGrade,
+				Value: c.GetOverallGrade(),
 				Time:  now.Unix(),
 			},
 		}

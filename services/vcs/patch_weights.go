@@ -9,10 +9,10 @@ func patchStudentDataWithWeights(ctx context.Context, data *api.StudentData, wei
 	ctx, span := tracer.Start(ctx, "patchStudentDataWithWeights")
 	defer span.End()
 
-	for _, course := range data.Courses {
+	for _, course := range data.GetCourses() {
 		var weightList map[string]float32
 		for courseName, w := range weights {
-			if course.Name == courseName {
+			if course.GetName() == courseName {
 				weightList = w
 				break
 			}

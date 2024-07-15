@@ -20,13 +20,13 @@ func linkMoodleToPowerschool(
 	ctx, span := tracer.Start(ctx, "linkMoodleToPowerschool")
 	defer span.End()
 
-	moodleKeys := make([]string, len(moodle.Courses))
-	for i, c := range moodle.Courses {
-		moodleKeys[i] = c.Name
+	moodleKeys := make([]string, len(moodle.GetCourses()))
+	for i, c := range moodle.GetCourses() {
+		moodleKeys[i] = c.GetName()
 	}
-	psKeys := make([]string, len(ps.CourseData))
-	for i, c := range ps.CourseData {
-		psKeys[i] = c.Name
+	psKeys := make([]string, len(ps.GetCourseData()))
+	for i, c := range ps.GetCourseData() {
+		psKeys[i] = c.GetName()
 	}
 
 	res, err := linker.Link(ctx, &connect.Request[linkerpb.LinkRequest]{
@@ -47,8 +47,8 @@ func linkMoodleToPowerschool(
 		return err
 	}
 
-	for _, c := range moodle.Courses {
-		c.Name = res.Msg.SrcToDst[c.Name]
+	for _, c := range moodle.GetCourses() {
+		c.Name = res.Msg.GetSrcToDst()[c.GetName()]
 	}
 	return nil
 }
@@ -61,9 +61,9 @@ func getWeightsForPowerschool(
 	ctx, span := tracer.Start(ctx, "getWeightsForPowerschool")
 	defer span.End()
 
-	courseNames := make([]string, len(ps.CourseData))
-	for i, c := range ps.CourseData {
-		courseNames[i] = c.Name
+	courseNames := make([]string, len(ps.GetCourseData()))
+	for i, c := range ps.GetCourseData() {
+		courseNames[i] = c.GetName()
 	}
 
 	res, err := linker.Link(ctx, &connect.Request[linkerpb.LinkRequest]{
@@ -85,7 +85,7 @@ func getWeightsForPowerschool(
 	}
 
 	data := make(weightData)
-	for weightCourseName, powerschoolName := range res.Msg.SrcToDst {
+	for weightCourseName, powerschoolName := range res.Msg.GetSrcToDst() {
 		data[powerschoolName] = weights[weightCourseName]
 	}
 	return data, nil

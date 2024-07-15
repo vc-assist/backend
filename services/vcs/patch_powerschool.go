@@ -53,9 +53,9 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 	ctx, span := tracer.Start(ctx, "patchCourse:WithPowerschool")
 	defer span.End()
 
-	matches := periodRegex.FindStringSubmatch(pscourse.Period)
+	matches := periodRegex.FindStringSubmatch(pscourse.GetPeriod())
 	if len(matches) < 2 {
-		err := fmt.Errorf("could not run regex on course period '%s'", pscourse.Period)
+		err := fmt.Errorf("could not run regex on course period '%s'", pscourse.GetPeriod())
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -65,13 +65,13 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 	now := timezone.Now().Unix()
 	var overallGrade int64 = -1
 	for _, term := range pscourse.GetTerms() {
-		start, err := powerschool.DecodeCourseTermTime(term.Start)
+		start, err := powerschool.DecodeCourseTermTime(term.GetStart())
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
-		end, err := powerschool.DecodeCourseTermTime(term.End)
+		end, err := powerschool.DecodeCourseTermTime(term.GetEnd())
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -79,7 +79,7 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 		}
 
 		if now >= start.Unix() && now < end.Unix() {
-			overallGrade = int64(term.FinalGrade.GetPercent())
+			overallGrade = int64(term.GetFinalGrade().GetPercent())
 			break
 		}
 	}
@@ -96,7 +96,7 @@ func patchCourseWithPowerschool(ctx context.Context, course *api.Course, pscours
 	course.OverallGrade = float32(overallGrade)
 
 	var assignmentTypeNameList []string
-	for _, psassign := range pscourse.Assignments {
+	for _, psassign := range pscourse.GetAssignments() {
 		assignment := &api.Assignment{}
 		patchAssignmentWithPowerschool(ctx, assignment, psassign)
 		assignmentTypeName := assignment.GetAssignmentTypeName()
@@ -125,7 +125,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 	for _, pscourse := range psdata.GetCourseData() {
 		var course *api.Course
 		for _, c := range data.GetCourses() {
-			if pscourse.Name == c.Name {
+			if pscourse.GetName() == c.GetName() {
 				course = c
 				break
 			}
@@ -139,9 +139,9 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 			continue
 		}
 		courseList = append(courseList, course)
-		courseListGuids = append(courseListGuids, pscourse.Guid)
+		courseListGuids = append(courseListGuids, pscourse.GetGuid())
 
-		currentDay := course.DayName
+		currentDay := course.GetDayName()
 		for _, day := range dayNames {
 			if day == currentDay {
 				dayNames = append(dayNames, currentDay)
@@ -151,10 +151,10 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 	}
 
 	var currentDay string
-	for _, meeting := range psdata.GetMeetings().SectionMeetings {
+	for _, meeting := range psdata.GetMeetings().GetSectionMeetings() {
 		var course *api.Course
 		for i, guid := range courseListGuids {
-			if guid == meeting.SectionGuid {
+			if guid == meeting.GetSectionGuid() {
 				course = courseList[i]
 				break
 			}
@@ -162,7 +162,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 		if course == nil {
 			err := fmt.Errorf(
 				"could not find corresponding course for SectionMeeting with guid '%s'",
-				meeting.SectionGuid,
+				meeting.GetSectionGuid(),
 			)
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -183,7 +183,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 		}
 
 		if currentDay == "" && start.Day() == timezone.Now().Day() {
-			currentDay = course.DayName
+			currentDay = course.GetDayName()
 		}
 
 		course.Meetings = append(course.Meetings, &api.CourseMeeting{
@@ -192,7 +192,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *api.StudentData,
 		})
 	}
 
-	gpa, err := strconv.ParseFloat(psdata.GetProfile().CurrentGpa, 32)
+	gpa, err := strconv.ParseFloat(psdata.GetProfile().GetCurrentGpa(), 32)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

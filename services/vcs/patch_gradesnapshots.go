@@ -10,10 +10,10 @@ func patchStudentDataWithGradeSnapshots(ctx context.Context, data *api.StudentDa
 	ctx, span := tracer.Start(ctx, "patchStudentData:WithGradeSnapshots")
 	defer span.End()
 
-	for i, snapshotcourse := range gradesnapshotdata.Courses {
+	for i, snapshotcourse := range gradesnapshotdata.GetCourses() {
 		var course *api.Course
-		for _, c := range data.Courses {
-			if course.Name == c.Name {
+		for _, c := range data.GetCourses() {
+			if course.GetName() == c.GetName() {
 				course = c
 				break
 			}
@@ -22,15 +22,15 @@ func patchStudentDataWithGradeSnapshots(ctx context.Context, data *api.StudentDa
 			course = &api.Course{}
 		}
 
-		snapshots := make([]*api.GradeSnapshot, len(snapshotcourse.Snapshots))
-		for i, snap := range snapshotcourse.Snapshots {
+		snapshots := make([]*api.GradeSnapshot, len(snapshotcourse.GetSnapshots()))
+		for i, snap := range snapshotcourse.GetSnapshots() {
 			snapshots[i] = &api.GradeSnapshot{
-				Time:  snap.Time,
-				Value: snap.Value,
+				Time:  snap.GetTime(),
+				Value: snap.GetValue(),
 			}
 		}
 		data.Courses[i] = &api.Course{
-			Name:      snapshotcourse.Course,
+			Name:      snapshotcourse.GetCourse(),
 			Snapshots: snapshots,
 		}
 	}
