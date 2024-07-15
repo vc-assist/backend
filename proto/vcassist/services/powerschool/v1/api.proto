@@ -5,7 +5,7 @@ package vcassist.services.powerschool.v1;
 import "vcassist/scrapers/powerschool/v1/query_all_students.proto";
 import "vcassist/scrapers/powerschool/v1/query_schedule.proto";
 import "vcassist/scrapers/powerschool/v1/query_student_data.proto";
-import "vcassist/services/student_data/v1/api.proto";
+import "vcassist/services/studentdata/v1/api.proto";
 
 // GetAuthStatus
 message GetAuthStatusRequest {
@@ -18,7 +18,7 @@ message GetAuthStatusResponse {
 // GetOAuthFlow
 message GetOAuthFlowRequest {}
 message GetOAuthFlowResponse {
-  vcassist.services.student_data.v1.OAuthFlow flow = 1;
+  vcassist.services.studentdata.v1.OAuthFlow flow = 1;
 }
 
 // ProvideOAuth

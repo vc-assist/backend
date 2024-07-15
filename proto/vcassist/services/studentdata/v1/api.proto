@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package vcassist.services.student_data.v1;
+package vcassist.services.studentdata.v1;
 
-import "vcassist/services/student_data/v1/student_data.proto";
+import "vcassist/services/studentdata/v1/student_data.proto";
 
 message OAuthFlow {
   string base_login_url = 1;
@@ -48,13 +48,13 @@ message ProvideCredentialResponse {}
 // GetStudentData
 message GetStudentDataRequest {}
 message GetStudentDataResponse {
-  vcassist.services.student_data.v1.StudentData data = 1;
+  vcassist.services.studentdata.v1.StudentData data = 1;
 }
 
 // RefreshData
 message RefreshDataRequest {}
 message RefreshDataResponse {
-  vcassist.services.student_data.v1.StudentData refreshed = 1;
+  vcassist.services.studentdata.v1.StudentData refreshed = 1;
 }
 
 service StudentDataService {
