@@ -10,3 +10,4 @@ inputs:
   - directory: .
     paths:
       - ./services/studentdata
+      - ./services/auth
