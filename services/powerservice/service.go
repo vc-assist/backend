@@ -1,15 +1,16 @@
-package powerschoold
+package powerservice
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/scrapers/powerschool"
+	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
-	"vcassist-backend/services/powerschool/api"
-	"vcassist-backend/services/powerschool/db"
-	studentdataapi "vcassist-backend/services/studentdata/api"
+	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
+	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
+	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
+	"vcassist-backend/services/powerservice/db"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -17,7 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var tracer = otel.Tracer("services/powerschoold")
+var tracer = otel.Tracer("services/powerschoolv1.")
 
 type OAuthConfig struct {
 	BaseLoginUrl string `json:"base_login_url"`
@@ -41,7 +42,7 @@ func NewService(database *sql.DB, baseUrl string, oauth OAuthConfig) Service {
 	}
 }
 
-func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[api.GetKnownCoursesRequest]) (*connect.Response[api.GetKnownCoursesResponse], error) {
+func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[powerservicev1.GetKnownCoursesRequest]) (*connect.Response[powerservicev1.GetKnownCoursesResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetKnownCourses")
 	defer span.End()
 
@@ -52,9 +53,9 @@ func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[api.G
 		return nil, err
 	}
 
-	res := make([]*api.KnownCourse, len(courses))
+	res := make([]*powerservicev1.KnownCourse, len(courses))
 	for i, c := range courses {
-		res[i] = &api.KnownCourse{
+		res[i] = &powerservicev1.KnownCourse{
 			Guid:             c.Guid,
 			Name:             c.Name,
 			Period:           c.Period.String,
@@ -64,14 +65,14 @@ func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[api.G
 			TeacherEmail:     c.Teacheremail.String,
 		}
 	}
-	return &connect.Response[api.GetKnownCoursesResponse]{
-		Msg: &api.GetKnownCoursesResponse{
+	return &connect.Response[powerservicev1.GetKnownCoursesResponse]{
+		Msg: &powerservicev1.GetKnownCoursesResponse{
 			Courses: res,
 		},
 	}, nil
 }
 
-func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.GetAuthStatusRequest]) (*connect.Response[api.GetAuthStatusResponse], error) {
+func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerservicev1.GetAuthStatusRequest]) (*connect.Response[powerservicev1.GetAuthStatusResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetAuthStatus")
 	defer span.End()
 
@@ -80,8 +81,8 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.Get
 	token, err := s.qry.GetOAuthToken(ctx, studentId)
 	if token.Expiresat < timezone.Now().Unix() || err == sql.ErrNoRows {
 		span.SetStatus(codes.Ok, "got expired token")
-		return &connect.Response[api.GetAuthStatusResponse]{
-			Msg: &api.GetAuthStatusResponse{
+		return &connect.Response[powerservicev1.GetAuthStatusResponse]{
+			Msg: &powerservicev1.GetAuthStatusResponse{
 				IsAuthenticated: false,
 			},
 		}, nil
@@ -93,14 +94,14 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[api.Get
 	}
 
 	span.SetStatus(codes.Ok, "token found")
-	return &connect.Response[api.GetAuthStatusResponse]{
-		Msg: &api.GetAuthStatusResponse{
+	return &connect.Response[powerservicev1.GetAuthStatusResponse]{
+		Msg: &powerservicev1.GetAuthStatusResponse{
 			IsAuthenticated: token.Token != "",
 		},
 	}, nil
 }
 
-func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[api.GetOAuthFlowRequest]) (*connect.Response[api.GetOAuthFlowResponse], error) {
+func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[powerservicev1.GetOAuthFlowRequest]) (*connect.Response[powerservicev1.GetOAuthFlowResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetAuthFlow")
 	defer span.End()
 
@@ -117,9 +118,9 @@ func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[api.GetOAu
 		return nil, err
 	}
 
-	return &connect.Response[api.GetOAuthFlowResponse]{
-		Msg: &api.GetOAuthFlowResponse{
-			Flow: &studentdataapi.OAuthFlow{
+	return &connect.Response[powerservicev1.GetOAuthFlowResponse]{
+		Msg: &powerservicev1.GetOAuthFlowResponse{
+			Flow: &studentdatav1.OAuthFlow{
 				BaseLoginUrl:    s.oauth.BaseLoginUrl,
 				AccessType:      "offline",
 				Scope:           "openid email profile",
@@ -132,14 +133,14 @@ func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[api.GetOAu
 	}, nil
 }
 
-func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[api.ProvideOAuthRequest]) (*connect.Response[api.ProvideOAuthResponse], error) {
+func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerservicev1.ProvideOAuthRequest]) (*connect.Response[powerservicev1.ProvideOAuthResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:ProvideOAuth")
 	defer span.End()
 
-	client, err := powerschool.NewClient(s.baseUrl)
+	client, err := scraper.NewClient(s.baseUrl)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create powerschool client")
+		span.SetStatus(codes.Error, "failed to create powerschool scraper")
 		return nil, err
 	}
 
@@ -189,13 +190,13 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[api.Prov
 		return nil, err
 	}
 
-	return &connect.Response[api.ProvideOAuthResponse]{Msg: &api.ProvideOAuthResponse{}}, nil
+	return &connect.Response[powerservicev1.ProvideOAuthResponse]{Msg: &powerservicev1.ProvideOAuthResponse{}}, nil
 }
 
 var NoCredentialsErr = fmt.Errorf("you don't have any credentials that can request student data")
 var ExpiredCredentialsErr = fmt.Errorf("your credentials have expired, please call ProvideOAuth again")
 
-func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.GetStudentDataRequest]) (*connect.Response[api.GetStudentDataResponse], error) {
+func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powerservicev1.GetStudentDataRequest]) (*connect.Response[powerservicev1.GetStudentDataResponse], error) {
 	ctx, span := tracer.Start(ctx, "service:GetStudentData")
 	defer span.End()
 
@@ -219,10 +220,10 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		return nil, ExpiredCredentialsErr
 	}
 
-	client, err := powerschool.NewClient(s.baseUrl)
+	client, err := scraper.NewClient(s.baseUrl)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create powerschool client")
+		span.SetStatus(codes.Error, "failed to create powerschoolv1.client")
 		return nil, err
 	}
 	_, err = client.LoginOAuth(ctx, token.Token)
@@ -240,14 +241,14 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		return nil, err
 	}
 	if len(allStudents.GetStudents()) == 0 {
-		err := fmt.Errorf("could not find student profile, are your powerschool credentials expired?")
+		err := fmt.Errorf("could not find student profile, are your powerschoolv1.credentials expired?")
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	psStudent := allStudents.GetStudents()[0]
-	studentData, err := client.GetStudentData(ctx, &powerschool.GetStudentDataInput{
+	studentData, err := client.GetStudentData(ctx, &powerschoolv1.GetStudentDataInput{
 		Guid: psStudent.GetGuid(),
 	})
 	if err != nil {
@@ -258,8 +259,8 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 
 	if studentData.GetStudent() == nil {
 		span.SetStatus(codes.Ok, "student data unavailable, only returning profile...")
-		return &connect.Response[api.GetStudentDataResponse]{
-			Msg: &api.GetStudentDataResponse{Profile: psStudent},
+		return &connect.Response[powerservicev1.GetStudentDataResponse]{
+			Msg: &powerservicev1.GetStudentDataResponse{Profile: psStudent},
 		}, nil
 	}
 
@@ -298,9 +299,9 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		guids[i] = course.GetGuid()
 	}
 
-	var courseMeetingList *powerschool.CourseMeetingList
+	var courseMeetingList *powerschoolv1.CourseMeetingList
 	if len(guids) > 0 {
-		courseMeetingList, err = client.GetCourseMeetingList(ctx, &powerschool.GetCourseMeetingListInput{
+		courseMeetingList, err = client.GetCourseMeetingList(ctx, &powerschoolv1.GetCourseMeetingListInput{
 			SectionGuids: guids,
 		})
 		if err != nil {
@@ -311,7 +312,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 	}
 
 	// cache and return response
-	response := &api.GetStudentDataResponse{
+	response := &powerservicev1.GetStudentDataResponse{
 		Profile:    psStudent,
 		CourseData: courseList,
 		Meetings:   courseMeetingList,
@@ -334,7 +335,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[api.Ge
 		return nil, err
 	}
 
-	return &connect.Response[api.GetStudentDataResponse]{
+	return &connect.Response[powerservicev1.GetStudentDataResponse]{
 		Msg: response,
 	}, nil
 }

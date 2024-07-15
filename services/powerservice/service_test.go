@@ -1,4 +1,4 @@
-package powerschoold
+package powerservice
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/telemetry"
-	"vcassist-backend/services/powerschool/api"
+	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 
 	_ "embed"
 
@@ -50,7 +50,7 @@ func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) 
 	}
 }
 
-func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *api.GetOAuthFlowResponse {
+func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *powerservicev1.GetOAuthFlowResponse {
 	authFlow, err := service.GetOAuthFlow(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *api.GetOA
 	return authFlow.Msg
 }
 
-func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetOAuthFlowResponse) string {
+func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *powerservicev1.GetOAuthFlowResponse) string {
 	loginUrl, err := oauth.GetLoginUrl(
 		ctx,
 		oauth.AuthCodeRequest{
@@ -76,7 +76,7 @@ func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetOAuthFlowR
 	return loginUrl
 }
 
-func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *api.GetOAuthFlowResponse, callbackUrl string) string {
+func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *powerservicev1.GetOAuthFlowResponse, callbackUrl string) string {
 	parsed, err := url.Parse(strings.Trim(string(callbackUrl), " \n\t"))
 	if err != nil {
 		t.Fatal("failed to parse callback url", callbackUrl, err)
@@ -179,8 +179,8 @@ func provideNewToken(t testing.TB, ctx context.Context, service Service, id stri
 	fmt.Println(token)
 	fmt.Println("=======================")
 
-	_, err := service.ProvideOAuth(ctx, &connect.Request[api.ProvideOAuthRequest]{
-		Msg: &api.ProvideOAuthRequest{
+	_, err := service.ProvideOAuth(ctx, &connect.Request[powerservicev1.ProvideOAuthRequest]{
+		Msg: &powerservicev1.ProvideOAuthRequest{
 			StudentId: id,
 			Token:     token,
 		},
@@ -191,8 +191,8 @@ func provideNewToken(t testing.TB, ctx context.Context, service Service, id stri
 
 	foundToken, err := service.GetAuthStatus(
 		ctx,
-		&connect.Request[api.GetAuthStatusRequest]{
-			Msg: &api.GetAuthStatusRequest{
+		&connect.Request[powerservicev1.GetAuthStatusRequest]{
+			Msg: &powerservicev1.GetAuthStatusRequest{
 				StudentId: id,
 			},
 		},
@@ -214,8 +214,8 @@ func TestOAuth(t *testing.T) {
 
 	hasAuth, err := service.GetAuthStatus(
 		ctx,
-		&connect.Request[api.GetAuthStatusRequest]{
-			Msg: &api.GetAuthStatusRequest{
+		&connect.Request[powerservicev1.GetAuthStatusRequest]{
+			Msg: &powerservicev1.GetAuthStatusRequest{
 				StudentId: studentId,
 			},
 		},
@@ -224,8 +224,8 @@ func TestOAuth(t *testing.T) {
 		provideNewToken(t, ctx, service, studentId)
 	}
 
-	studentDataRes, err := service.GetStudentData(ctx, &connect.Request[api.GetStudentDataRequest]{
-		Msg: &api.GetStudentDataRequest{
+	studentDataRes, err := service.GetStudentData(ctx, &connect.Request[powerservicev1.GetStudentDataRequest]{
+		Msg: &powerservicev1.GetStudentDataRequest{
 			StudentId: studentId,
 		},
 	})
@@ -276,8 +276,8 @@ func TestBasicNotFound(t *testing.T) {
 
 	res, err := service.GetAuthStatus(
 		ctx,
-		&connect.Request[api.GetAuthStatusRequest]{
-			Msg: &api.GetAuthStatusRequest{
+		&connect.Request[powerservicev1.GetAuthStatusRequest]{
+			Msg: &powerservicev1.GetAuthStatusRequest{
 				StudentId: id,
 			},
 		},
@@ -287,8 +287,8 @@ func TestBasicNotFound(t *testing.T) {
 	}
 	require.False(t, res.Msg.GetIsAuthenticated())
 
-	_, err = service.GetStudentData(ctx, &connect.Request[api.GetStudentDataRequest]{
-		Msg: &api.GetStudentDataRequest{
+	_, err = service.GetStudentData(ctx, &connect.Request[powerservicev1.GetStudentDataRequest]{
+		Msg: &powerservicev1.GetStudentDataRequest{
 			StudentId: id,
 		},
 	})
