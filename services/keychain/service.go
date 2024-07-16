@@ -143,11 +143,12 @@ func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.S
 	defer span.End()
 
 	err := s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
-		Namespace:  req.Msg.Namespace,
-		ID:         req.Msg.Id,
-		Token:      req.Msg.GetKey().Token,
-		RefreshUrl: req.Msg.Key.RefreshUrl,
-		ClientID:   req.Msg.Key.ClientId,
+		Namespace:  req.Msg.GetNamespace(),
+		ID:         req.Msg.GetId(),
+		Token:      req.Msg.GetKey().GetToken(),
+		RefreshUrl: req.Msg.GetKey().GetRefreshUrl(),
+		ClientID:   req.Msg.GetKey().GetClientId(),
+		ExpiresAt:  req.Msg.GetKey().GetExpiresAt(),
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -165,14 +166,16 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 	defer span.End()
 
 	row, err := s.qry.GetOAuth(ctx, db.GetOAuthParams{
-		Namespace: req.Msg.Namespace,
-		ID:        req.Msg.Id,
+		Namespace: req.Msg.GetNamespace(),
+		ID:        req.Msg.GetId(),
 	})
 	if err == sql.ErrNoRows || row.ExpiresAt < timezone.Now().Unix() {
-		err := fmt.Errorf("no such key '%s' found", req.Msg.Id)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+		span.SetStatus(codes.Error, fmt.Sprintf("no such key '%s' found", req.Msg.GetId()))
+		return &connect.Response[keychainv1.GetOAuthResponse]{
+			Msg: &keychainv1.GetOAuthResponse{
+				Key: nil,
+			},
+		}, nil
 	}
 	if err != nil {
 		span.RecordError(err)
@@ -196,10 +199,10 @@ func (s Service) SetUsernamePassword(ctx context.Context, req *connect.Request[k
 	defer span.End()
 
 	err := s.qry.CreateUsernamePassword(ctx, db.CreateUsernamePasswordParams{
-		Namespace: req.Msg.Namespace,
-		ID:        req.Msg.Id,
-		Username:  req.Msg.Key.Username,
-		Password:  req.Msg.Key.Password,
+		Namespace: req.Msg.GetNamespace(),
+		ID:        req.Msg.GetId(),
+		Username:  req.Msg.GetKey().GetUsername(),
+		Password:  req.Msg.GetKey().GetPassword(),
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -217,14 +220,16 @@ func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[k
 	defer span.End()
 
 	row, err := s.qry.GetUsernamePassword(ctx, db.GetUsernamePasswordParams{
-		Namespace: req.Msg.Namespace,
-		ID:        req.Msg.Id,
+		Namespace: req.Msg.GetNamespace(),
+		ID:        req.Msg.GetId(),
 	})
 	if err == sql.ErrNoRows {
-		err := fmt.Errorf("no such key '%s' found", req.Msg.Id)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+		span.SetStatus(codes.Error, fmt.Sprintf("no such key '%s' found", req.Msg.GetId()))
+		return &connect.Response[keychainv1.GetUsernamePasswordResponse]{
+			Msg: &keychainv1.GetUsernamePasswordResponse{
+				Key: nil,
+			},
+		}, nil
 	}
 	if err != nil {
 		span.RecordError(err)

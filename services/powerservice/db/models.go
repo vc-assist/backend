@@ -18,16 +18,6 @@ type KnownCourse struct {
 	Room             sql.NullString
 }
 
-type OAuthToken struct {
-	Studentid string
-	Token     string
-	Expiresat int64
-}
-
-type Student struct {
-	ID string
-}
-
 type StudentDatum struct {
 	Studentid string
 	Cached    []byte

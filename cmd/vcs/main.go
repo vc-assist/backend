@@ -9,6 +9,7 @@ import (
 	"vcassist-backend/lib/configuration"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
 	"vcassist-backend/services/gradesnapshots"
+	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/linker"
 	"vcassist-backend/services/powerservice"
 	"vcassist-backend/services/vcs"
@@ -25,10 +26,10 @@ func fatalerr(message string, err error) {
 }
 
 type DatabaseConfig struct {
+	Keychain      configuration.Libsql `json:"keychain"`
 	GradeSnapshot configuration.Libsql `json:"grade_snapshot"`
 	Linker        configuration.Libsql `json:"linker"`
 	Powerservice  configuration.Libsql `json:"powerservice"`
-	VcsMoodle     configuration.Libsql `json:"vcs_moodle"`
 	Self          configuration.Libsql `json:"self"`
 }
 
@@ -55,12 +56,19 @@ func main() {
 	}
 	linkerService := linker.NewService(db)
 
+	db, err = config.Database.Keychain.OpenDB()
+	if err != nil {
+		fatalerr("failed to open keychain database", err)
+	}
+	keychainService := keychain.NewService(db)
+
 	db, err = config.Database.Powerservice.OpenDB()
 	if err != nil {
 		fatalerr("failed to open powerschoold database", err)
 	}
 	powerschooldService := powerservice.NewService(
 		db,
+		keychainService,
 		"https://vcsnet.powerschool.com",
 		powerservice.OAuthConfig{
 			BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -73,11 +81,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db, err = config.Database.VcsMoodle.OpenDB()
-	if err != nil {
-		fatalerr("failed to open moodle database", err)
-	}
-	vcsmoodleService := vcsmoodle.NewService(db, moodleCache)
+	vcsmoodleService := vcsmoodle.NewService(moodleCache)
 
 	db, err = config.Database.Self.OpenDB()
 	if err != nil {

@@ -16,6 +16,7 @@ import (
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/telemetry"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
+	"vcassist-backend/services/keychain"
 
 	_ "embed"
 
@@ -150,23 +151,15 @@ func setup(t testing.TB, dbname string) (Service, func()) {
 		t.Fatal(err)
 	}
 
+	keychainService := keychain.NewService(sqlite)
 	oauthConfig := OAuthConfig{
 		BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
 		RefreshUrl:   "https://oauth2.googleapis.com/token",
 		ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 	}
-
-	oauthd, err := NewOAuthDaemon(sqlite, oauthConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	oauthdCtx, cancelOAuthd := context.WithCancel(context.Background())
-	oauthd.Start(oauthdCtx)
-
-	service := NewService(sqlite, "https://vcsnet.powerschool.com", oauthConfig)
+	service := NewService(sqlite, keychainService, "https://vcsnet.powerschool.com", oauthConfig)
 
 	return service, func() {
-		cancelOAuthd()
 		cleanupTel()
 	}
 }

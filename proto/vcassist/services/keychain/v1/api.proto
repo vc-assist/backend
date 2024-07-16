@@ -11,6 +11,7 @@ message OAuthKey {
   string token = 1;
   string refresh_url = 2;
   string client_id = 3;
+  int64 expires_at = 4;
 }
 
 // SetOAuth
@@ -35,6 +36,7 @@ message GetOAuthRequest {
   string id = 2;
 }
 message GetOAuthResponse {
+  // this will be null if a key cannot be found or is expired
   OAuthKey key = 1;
 }
 
@@ -44,6 +46,7 @@ message GetUsernamePasswordRequest {
   string id = 2;
 }
 message GetUsernamePasswordResponse {
+  // this will be null if a key cannot be found or is expired
   UsernamePasswordKey key = 1;
 }
 

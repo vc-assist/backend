@@ -2,11 +2,11 @@ package vcsmoodle
 
 import (
 	"context"
-	"database/sql"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
+	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
+	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
-	"vcassist-backend/services/vcsmoodle/db"
 
 	"connectrpc.com/connect"
 	"github.com/dgraph-io/badger/v4"
@@ -16,28 +16,55 @@ import (
 
 var tracer = otel.Tracer("services/vcsmoodle")
 
+const keychainNamespace = "vcsmoodle"
+
 type Service struct {
-	db    *sql.DB
-	qry   *db.Queries
-	cache *badger.DB
+	cache    *badger.DB
+	keychain keychainv1connect.KeychainServiceClient
 }
 
-func NewService(database *sql.DB, cache *badger.DB) Service {
+func NewService(cache *badger.DB) Service {
 	return Service{
-		db:    database,
-		qry:   db.New(database),
 		cache: cache,
 	}
+}
+
+func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcsmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcsmoodlev1.GetAuthStatusResponse], error) {
+	ctx, span := tracer.Start(ctx, "GetAuthStatus")
+	defer span.End()
+
+	existing, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
+		Msg: &keychainv1.GetUsernamePasswordRequest{
+			Namespace: keychainNamespace,
+			Id:        req.Msg.GetStudentId(),
+		},
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	return &connect.Response[vcsmoodlev1.GetAuthStatusResponse]{
+		Msg: &vcsmoodlev1.GetAuthStatusResponse{
+			Provided: existing.Msg.GetKey() != nil,
+		},
+	}, nil
 }
 
 func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]) (*connect.Response[vcsmoodlev1.ProvideUsernamePasswordResponse], error) {
 	ctx, span := tracer.Start(ctx, "ProvideUsernamePassword")
 	defer span.End()
 
-	err := s.qry.CreateStudent(ctx, db.CreateStudentParams{
-		ID:       req.Msg.GetStudentId(),
-		Username: req.Msg.GetUsername(),
-		Password: req.Msg.GetPassword(),
+	_, err := s.keychain.SetUsernamePassword(ctx, &connect.Request[keychainv1.SetUsernamePasswordRequest]{
+		Msg: &keychainv1.SetUsernamePasswordRequest{
+			Namespace: keychainNamespace,
+			Id:        req.Msg.GetStudentId(),
+			Key: &keychainv1.UsernamePasswordKey{
+				Username: req.Msg.GetUsername(),
+				Password: req.Msg.GetPassword(),
+			},
+		},
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -52,7 +79,12 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 	ctx, span := tracer.Start(ctx, "GetStudentData")
 	defer span.End()
 
-	studentRow, err := s.qry.GetStudent(ctx, req.Msg.GetStudentId())
+	res, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
+		Msg: &keychainv1.GetUsernamePasswordRequest{
+			Namespace: keychainNamespace,
+			Id:        req.Msg.GetStudentId(),
+		},
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -67,7 +99,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
-	err = coreClient.LoginUsernamePassword(ctx, studentRow.Username, studentRow.Password)
+	err = coreClient.LoginUsernamePassword(ctx, res.Msg.GetKey().GetUsername(), res.Msg.GetKey().GetPassword())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

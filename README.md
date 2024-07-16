@@ -7,6 +7,7 @@
 - `docs/` - additional documentation
 - `services/` - gRPC services
    - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
+   - `keychain/` - the service that handles storing, retrieving, and keeping fresh user credentials
    - `powerservice/` - the service that fetches a student's powerschool data given a valid key in keychain.
    - `gradesnapshots/` - a service that can store and retrieve grade snapshots.
    - `linker/` - a service that does hybrid automatic and manual data linking
