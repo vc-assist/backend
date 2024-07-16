@@ -18,9 +18,10 @@ message OAuthFlow {
 message CredentialStatus {
   string id = 1;
   string name = 2;
-  bool provided = 3;
+  string picture = 3;
+  bool provided = 4;
   oneof login_flow {
-    OAuthFlow oauth = 4;
+    OAuthFlow oauth = 5;
   }
 }
 message GetCredentialStatusRequest {}

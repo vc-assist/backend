@@ -2,6 +2,14 @@ syntax = "proto3";
 
 package vcassist.services.vcsmoodle.v1;
 
+// GetAuthStatus
+message GetAuthStatusRequest {
+  string student_id = 1;
+}
+message GetAuthStatusResponse {
+  bool provided = 1;
+}
+
 // ProvideUsernamePassword
 message ProvideUsernamePasswordRequest {
   string student_id = 1;
@@ -24,6 +32,7 @@ message GetStudentDataResponse {
 }
 
 service MoodleService {
+  rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
   rpc ProvideUsernamePassword(ProvideUsernamePasswordRequest) returns (ProvideUsernamePasswordResponse);
   rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
 }
