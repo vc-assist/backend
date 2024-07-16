@@ -97,7 +97,12 @@ export class CredentialStatus extends Message<CredentialStatus> {
   name = "";
 
   /**
-   * @generated from field: bool provided = 3;
+   * @generated from field: string picture = 3;
+   */
+  picture = "";
+
+  /**
+   * @generated from field: bool provided = 4;
    */
   provided = false;
 
@@ -106,7 +111,7 @@ export class CredentialStatus extends Message<CredentialStatus> {
    */
   loginFlow: {
     /**
-     * @generated from field: vcassist.services.studentdata.v1.OAuthFlow oauth = 4;
+     * @generated from field: vcassist.services.studentdata.v1.OAuthFlow oauth = 5;
      */
     value: OAuthFlow;
     case: "oauth";
@@ -122,8 +127,9 @@ export class CredentialStatus extends Message<CredentialStatus> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "provided", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: "oauth", kind: "message", T: OAuthFlow, oneof: "login_flow" },
+    { no: 3, name: "picture", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "provided", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: "oauth", kind: "message", T: OAuthFlow, oneof: "login_flow" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CredentialStatus {
