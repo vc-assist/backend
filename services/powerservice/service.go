@@ -8,6 +8,8 @@ import (
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
 	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
+	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
+	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
 	"vcassist-backend/services/powerservice/db"
@@ -18,7 +20,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var tracer = otel.Tracer("services/powerschoolv1.")
+var tracer = otel.Tracer("services/powerschool")
+
+const keychainNamespace = "powerservice"
 
 type OAuthConfig struct {
 	BaseLoginUrl string `json:"base_login_url"`
@@ -27,23 +31,30 @@ type OAuthConfig struct {
 }
 
 type Service struct {
-	baseUrl string
-	db      *sql.DB
-	oauth   OAuthConfig
-	qry     *db.Queries
+	baseUrl  string
+	db       *sql.DB
+	oauth    OAuthConfig
+	qry      *db.Queries
+	keychain keychainv1connect.KeychainServiceClient
 }
 
-func NewService(database *sql.DB, baseUrl string, oauth OAuthConfig) Service {
+func NewService(
+	database *sql.DB,
+	keychain keychainv1connect.KeychainServiceClient,
+	baseUrl string,
+	oauth OAuthConfig,
+) Service {
 	return Service{
-		baseUrl: baseUrl,
-		oauth:   oauth,
-		db:      database,
-		qry:     db.New(database),
+		baseUrl:  baseUrl,
+		oauth:    oauth,
+		db:       database,
+		qry:      db.New(database),
+		keychain: keychain,
 	}
 }
 
 func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[powerservicev1.GetKnownCoursesRequest]) (*connect.Response[powerservicev1.GetKnownCoursesResponse], error) {
-	ctx, span := tracer.Start(ctx, "service:GetKnownCourses")
+	ctx, span := tracer.Start(ctx, "GetKnownCourses")
 	defer span.End()
 
 	courses, err := s.qry.GetKnownCourses(ctx)
@@ -73,13 +84,22 @@ func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[power
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerservicev1.GetAuthStatusRequest]) (*connect.Response[powerservicev1.GetAuthStatusResponse], error) {
-	ctx, span := tracer.Start(ctx, "service:GetAuthStatus")
+	ctx, span := tracer.Start(ctx, "GetAuthStatus")
 	defer span.End()
 
 	studentId := req.Msg.GetStudentId()
-
-	token, err := s.qry.GetOAuthToken(ctx, studentId)
-	if token.Expiresat < timezone.Now().Unix() || err == sql.ErrNoRows {
+	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
+		Msg: &keychainv1.GetOAuthRequest{
+			Namespace: keychainNamespace,
+			Id:        studentId,
+		},
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+	if res.Msg.GetKey() == nil || res.Msg.GetKey().GetExpiresAt() < timezone.Now().Unix() {
 		span.SetStatus(codes.Ok, "got expired token")
 		return &connect.Response[powerservicev1.GetAuthStatusResponse]{
 			Msg: &powerservicev1.GetAuthStatusResponse{
@@ -87,22 +107,17 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerse
 			},
 		}, nil
 	}
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to exec sql query")
-		return nil, err
-	}
 
 	span.SetStatus(codes.Ok, "token found")
 	return &connect.Response[powerservicev1.GetAuthStatusResponse]{
 		Msg: &powerservicev1.GetAuthStatusResponse{
-			IsAuthenticated: token.Token != "",
+			IsAuthenticated: true,
 		},
 	}, nil
 }
 
 func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[powerservicev1.GetOAuthFlowRequest]) (*connect.Response[powerservicev1.GetOAuthFlowResponse], error) {
-	ctx, span := tracer.Start(ctx, "service:GetAuthFlow")
+	ctx, span := tracer.Start(ctx, "GetAuthFlow")
 	defer span.End()
 
 	if (s.oauth == OAuthConfig{}) {
@@ -134,7 +149,7 @@ func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[powerservi
 }
 
 func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerservicev1.ProvideOAuthRequest]) (*connect.Response[powerservicev1.ProvideOAuthResponse], error) {
-	ctx, span := tracer.Start(ctx, "service:ProvideOAuth")
+	ctx, span := tracer.Start(ctx, "ProvideOAuth")
 	defer span.End()
 
 	client, err := scraper.NewClient(s.baseUrl)
@@ -170,54 +185,49 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerser
 		tx.Commit()
 	}()
 
-	qry := s.qry.WithTx(tx)
-
-	studentId := req.Msg.GetStudentId()
-	err = qry.CreateStudent(ctx, studentId)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to exec sql query (1)")
-		return nil, err
-	}
-	err = qry.CreateOrUpdateOAuthToken(ctx, db.CreateOrUpdateOAuthTokenParams{
-		Studentid: studentId,
-		Token:     token,
-		Expiresat: expiresAt.Unix(),
+	_, err = s.keychain.SetOAuth(ctx, &connect.Request[keychainv1.SetOAuthRequest]{
+		Msg: &keychainv1.SetOAuthRequest{
+			Namespace: keychainNamespace,
+			Id:        req.Msg.GetStudentId(),
+			Key: &keychainv1.OAuthKey{
+				Token:      token,
+				RefreshUrl: s.oauth.RefreshUrl,
+				ClientId:   s.oauth.ClientId,
+				ExpiresAt:  expiresAt.Unix(),
+			},
+		},
 	})
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to exec sql query (2)")
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	return &connect.Response[powerservicev1.ProvideOAuthResponse]{Msg: &powerservicev1.ProvideOAuthResponse{}}, nil
 }
 
-var NoCredentialsErr = fmt.Errorf("you don't have any credentials that can request student data")
-var ExpiredCredentialsErr = fmt.Errorf("your credentials have expired, please call ProvideOAuth again")
-
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powerservicev1.GetStudentDataRequest]) (*connect.Response[powerservicev1.GetStudentDataResponse], error) {
-	ctx, span := tracer.Start(ctx, "service:GetStudentData")
+	ctx, span := tracer.Start(ctx, "GetStudentData")
 	defer span.End()
 
 	studentId := req.Msg.GetStudentId()
 
-	// get oauth token & login
-	token, err := s.qry.GetOAuthToken(ctx, studentId)
-	if err == sql.ErrNoRows {
-		// if we are to support other auth methods in the future
-		// you would add additional code to handle it in this branch
-		span.SetStatus(codes.Error, NoCredentialsErr.Error())
-		return nil, NoCredentialsErr
-	}
+	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
+		Msg: &keychainv1.GetOAuthRequest{
+			Namespace: keychainNamespace,
+			Id:        studentId,
+		},
+	})
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to exec sql query")
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
-	if token.Expiresat < timezone.Now().Unix() {
-		span.SetStatus(codes.Error, ExpiredCredentialsErr.Error())
-		return nil, ExpiredCredentialsErr
+	if res.Msg.GetKey() == nil {
+		err := fmt.Errorf("no oauth credentials provided")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	client, err := scraper.NewClient(s.baseUrl)
@@ -226,14 +236,13 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		span.SetStatus(codes.Error, "failed to create powerschoolv1.client")
 		return nil, err
 	}
-	_, err = client.LoginOAuth(ctx, token.Token)
+	_, err = client.LoginOAuth(ctx, res.Msg.GetKey().GetToken())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to login with oauth token")
 		return nil, err
 	}
 
-	// fetch data
 	allStudents, err := client.GetAllStudents(ctx)
 	if err != nil {
 		span.RecordError(err)
@@ -325,7 +334,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		return nil, err
 	}
 	err = s.qry.CreateOrUpdateStudentData(ctx, db.CreateOrUpdateStudentDataParams{
-		Studentid: token.Studentid,
+		Studentid: studentId,
 		Createdat: timezone.Now().Unix(),
 		Cached:    serializedResponse,
 	})
