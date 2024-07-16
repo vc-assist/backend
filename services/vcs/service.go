@@ -124,15 +124,26 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 
 	profile, _ := verifier.ProfileFromContext(ctx)
 
-	psoauthflow, err := s.powerschool.GetOAuthFlow(ctx, &connect.Request[powerservicev1.GetOAuthFlowRequest]{Msg: &powerservicev1.GetOAuthFlowRequest{}})
+	psOAuthFlow, err := s.powerschool.GetOAuthFlow(ctx, &connect.Request[powerservicev1.GetOAuthFlowRequest]{Msg: &powerservicev1.GetOAuthFlowRequest{}})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
-	psauthstatus, err := s.powerschool.GetAuthStatus(ctx, &connect.Request[powerservicev1.GetAuthStatusRequest]{
+	psAuthStatus, err := s.powerschool.GetAuthStatus(ctx, &connect.Request[powerservicev1.GetAuthStatusRequest]{
 		Msg: &powerservicev1.GetAuthStatusRequest{
+			StudentId: profile.Email,
+		},
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	moodleAuthStatus, err := s.moodle.GetAuthStatus(ctx, &connect.Request[vcsmoodlev1.GetAuthStatusRequest]{
+		Msg: &vcsmoodlev1.GetAuthStatusRequest{
 			StudentId: profile.Email,
 		},
 	})
@@ -146,12 +157,22 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 		Msg: &studentdatav1.GetCredentialStatusResponse{
 			Statuses: []*studentdatav1.CredentialStatus{
 				{
-					Id:   "powerschool",
-					Name: "PowerSchool",
+					Id:      "powerschool",
+					Name:    "PowerSchool",
+					Picture: "/icons/powerschool.jpg",
 					LoginFlow: &studentdatav1.CredentialStatus_Oauth{
-						Oauth: psoauthflow.Msg.GetFlow(),
+						Oauth: psOAuthFlow.Msg.GetFlow(),
 					},
-					Provided: psauthstatus.Msg.GetIsAuthenticated(),
+					Provided: psAuthStatus.Msg.GetIsAuthenticated(),
+				},
+				{
+					Id:      "moodle",
+					Name:    "Moodle",
+					Picture: "/icons/moodle.jpg",
+					LoginFlow: &studentdatav1.CredentialStatus_UsernamePassword{
+						UsernamePassword: &studentdatav1.UsernamePasswordFlow{},
+					},
+					Provided: moodleAuthStatus.Msg.GetProvided(),
 				},
 			},
 		},

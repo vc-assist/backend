@@ -8,6 +8,37 @@ import { Message, proto3 } from "@bufbuild/protobuf";
 import { StudentData } from "./student_data_pb.js";
 
 /**
+ * @generated from message vcassist.services.studentdata.v1.UsernamePasswordFlow
+ */
+export class UsernamePasswordFlow extends Message<UsernamePasswordFlow> {
+  constructor(data?: PartialMessage<UsernamePasswordFlow>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.studentdata.v1.UsernamePasswordFlow";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UsernamePasswordFlow {
+    return new UsernamePasswordFlow().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UsernamePasswordFlow {
+    return new UsernamePasswordFlow().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UsernamePasswordFlow {
+    return new UsernamePasswordFlow().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UsernamePasswordFlow | PlainMessage<UsernamePasswordFlow> | undefined, b: UsernamePasswordFlow | PlainMessage<UsernamePasswordFlow> | undefined): boolean {
+    return proto3.util.equals(UsernamePasswordFlow, a, b);
+  }
+}
+
+/**
  * @generated from message vcassist.services.studentdata.v1.OAuthFlow
  */
 export class OAuthFlow extends Message<OAuthFlow> {
@@ -111,7 +142,13 @@ export class CredentialStatus extends Message<CredentialStatus> {
    */
   loginFlow: {
     /**
-     * @generated from field: vcassist.services.studentdata.v1.OAuthFlow oauth = 5;
+     * @generated from field: vcassist.services.studentdata.v1.UsernamePasswordFlow username_password = 5;
+     */
+    value: UsernamePasswordFlow;
+    case: "usernamePassword";
+  } | {
+    /**
+     * @generated from field: vcassist.services.studentdata.v1.OAuthFlow oauth = 6;
      */
     value: OAuthFlow;
     case: "oauth";
@@ -129,7 +166,8 @@ export class CredentialStatus extends Message<CredentialStatus> {
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "picture", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "provided", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 5, name: "oauth", kind: "message", T: OAuthFlow, oneof: "login_flow" },
+    { no: 5, name: "username_password", kind: "message", T: UsernamePasswordFlow, oneof: "login_flow" },
+    { no: 6, name: "oauth", kind: "message", T: OAuthFlow, oneof: "login_flow" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CredentialStatus {
