@@ -54,10 +54,10 @@ func NewService(
 
 func (s Service) removeExpiredWorker(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
-			ticker.Stop()
 			return
 		case <-ticker.C:
 			ctx, span := tracer.Start(ctx, "removeExpiredRows")
@@ -99,10 +99,10 @@ func (s Service) recacheAllStudents(ctx context.Context) {
 
 func (s Service) recacheWorker(ctx context.Context) {
 	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
-			ticker.Stop()
 			return
 		case <-ticker.C:
 			now := timezone.Now()

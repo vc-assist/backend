@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "services/powerschool/db/query.sql"
-    schema: "services/powerschool/db/schema.sql"
+    queries: "services/powerservice/db/query.sql"
+    schema: "services/powerservice/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "services/powerschool/db"
+        out: "services/powerservice/db"
   - engine: "sqlite"
     queries: "services/auth/db/query.sql"
     schema: "services/auth/db/schema.sql"
@@ -42,3 +42,10 @@ sql:
       go:
         package: "db"
         out: "services/vcs/db"
+  - engine: "sqlite"
+    queries: "services/keychain/db/query.sql"
+    schema: "services/keychain/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "services/keychain/db"

@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package vcassist.services.keychain.v1;
+
+message UsernamePasswordKey {
+  string username = 1;
+  string password = 2;
+}
+
+message OAuthKey {
+  string token = 1;
+  string refresh_url = 2;
+  string client_id = 3;
+}
+
+// SetOAuth
+message SetOAuthRequest {
+  string namespace = 1;
+  string id = 2;
+  OAuthKey key = 3;
+}
+message SetOAuthResponse {}
+
+// SetUsernamePassword
+message SetUsernamePasswordRequest {
+  string namespace = 1;
+  string id = 2;
+  UsernamePasswordKey key = 3;
+}
+message SetUsernamePasswordResponse {}
+
+// GetOAuth
+message GetOAuthRequest {
+  string namespace = 1;
+  string id = 2;
+}
+message GetOAuthResponse {
+  OAuthKey key = 1;
+}
+
+// GetUsernamePassword
+message GetUsernamePasswordRequest {
+  string namespace = 1;
+  string id = 2;
+}
+message GetUsernamePasswordResponse {
+  UsernamePasswordKey key = 1;
+}
+
+service KeychainService {
+  rpc SetOAuth(SetOAuthRequest) returns (SetOAuthResponse);
+  rpc GetOAuth(GetOAuthRequest) returns (GetOAuthResponse);
+  rpc SetUsernamePassword(SetUsernamePasswordRequest) returns (SetUsernamePasswordResponse);
+  rpc GetUsernamePassword(GetUsernamePasswordRequest) returns (GetUsernamePasswordResponse);
+}
