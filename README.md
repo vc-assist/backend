@@ -23,7 +23,8 @@
    - `local_stack/` - docker compose stuff for setting up grafana and other things locally
    - `.state/ (gitignore'd)` - internal state (like secrets, usernames, passwords, etc...) that are used by tests and other dev/local-only processes
 - `buf.yaml` - [buf.yaml](https://buf.build/docs/configuration/v2/buf-gen-yaml)
-- `buf.gen.yaml` - [buf.gen.yaml](https://buf.build/docs/configuration/v2/buf-gen-yaml)
+- `buf.gen-go.yaml` - [buf.gen.yaml](https://buf.build/docs/configuration/v2/buf-gen-yaml) for golang code
+- `buf.gen-ts.yaml` - [buf.gen.yaml](https://buf.build/docs/configuration/v2/buf-gen-yaml) for typescript code
 - `sqlc.yaml` - [sqlc.yaml](https://docs.sqlc.dev/en/latest/reference/config.html)
 - `telemetry.json5` - configuration of telemetry for development
 
