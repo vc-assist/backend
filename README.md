@@ -1,6 +1,6 @@
 # Backend
 
-> WIP rewrite of the vcassist backend in golang.
+> The vcassist backend.
 
 ## Project structure
 
