@@ -23,9 +23,10 @@ type Service struct {
 	keychain keychainv1connect.KeychainServiceClient
 }
 
-func NewService(cache *badger.DB) Service {
+func NewService(cache *badger.DB, keychain keychainv1connect.KeychainServiceClient) Service {
 	return Service{
-		cache: cache,
+		cache:    cache,
+		keychain: keychain,
 	}
 }
 
