@@ -16,7 +16,7 @@ type MonthDay struct {
 }
 
 func TestParseTOCDate(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:vcsmoodle")
+	cleanup := telemetry.SetupForTesting(t, "test:services/vcsmoodle")
 	defer cleanup()
 
 	testCases := []struct {

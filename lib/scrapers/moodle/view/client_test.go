@@ -29,7 +29,7 @@ func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
 }
 
 func TestClient(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:moodle/view")
+	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/view")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestClient")

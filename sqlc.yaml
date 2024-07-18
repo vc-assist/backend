@@ -29,13 +29,6 @@ sql:
         package: "db"
         out: "services/linker/db"
   - engine: "sqlite"
-    queries: "services/vcsmoodle/db/query.sql"
-    schema: "services/vcsmoodle/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/vcsmoodle/db"
-  - engine: "sqlite"
     queries: "services/vcs/db/query.sql"
     schema: "services/vcs/db/schema.sql"
     gen:

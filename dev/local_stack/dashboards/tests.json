@@ -26,6 +26,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -58,7 +59,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 3,
+      "id": 7,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -80,7 +81,7 @@
           },
           "filters": [
             {
-              "id": "2174b33c",
+              "id": "02268b1b",
               "operator": "=",
               "scope": "span"
             },
@@ -90,24 +91,25 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "test:auth"
+                "test:services/gradesnapshots"
               ],
               "valueType": "string"
             }
           ],
           "groupBy": [
             {
-              "id": "6a07aa4a",
+              "id": "1ce8a1d4",
               "scope": "span"
             }
           ],
+          "key": "Q-c0af88aa-7bd6-404c-8eb4-6504598900d9-0",
           "limit": 20,
           "queryType": "traceqlSearch",
           "refId": "A",
           "tableType": "traces"
         }
       ],
-      "title": "test:auth",
+      "title": "test:services/gradesnapshots",
       "transformations": [
         {
           "id": "filterByRefId",
@@ -266,44 +268,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Name"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 271
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Start time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 160
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Trace ID"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 137
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -311,7 +276,7 @@
         "x": 0,
         "y": 8
       },
-      "id": 2,
+      "id": 3,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -322,8 +287,7 @@
           ],
           "show": false
         },
-        "showHeader": true,
-        "sortBy": []
+        "showHeader": true
       },
       "pluginVersion": "11.0.0",
       "targets": [
@@ -334,7 +298,7 @@
           },
           "filters": [
             {
-              "id": "f3238e82",
+              "id": "2174b33c",
               "operator": "=",
               "scope": "span"
             },
@@ -344,21 +308,14 @@
               "scope": "resource",
               "tag": "service.name",
               "value": [
-                "test:powerschoold"
+                "test:auth"
               ],
               "valueType": "string"
-            },
-            {
-              "id": "status",
-              "operator": "=",
-              "scope": "intrinsic",
-              "tag": "status",
-              "valueType": "keyword"
             }
           ],
           "groupBy": [
             {
-              "id": "614ab235",
+              "id": "6a07aa4a",
               "scope": "span"
             }
           ],
@@ -368,7 +325,7 @@
           "tableType": "traces"
         }
       ],
-      "title": "test:powerschoold",
+      "title": "test:auth",
       "transformations": [
         {
           "id": "filterByRefId",
@@ -723,6 +680,159 @@
         }
       ],
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 271
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Start time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 137
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "filters": [
+            {
+              "id": "f3238e82",
+              "operator": "=",
+              "scope": "span"
+            },
+            {
+              "id": "service-name",
+              "operator": "=",
+              "scope": "resource",
+              "tag": "service.name",
+              "value": [
+                "test:powerschoold"
+              ],
+              "valueType": "string"
+            },
+            {
+              "id": "status",
+              "operator": "=",
+              "scope": "intrinsic",
+              "tag": "status",
+              "valueType": "keyword"
+            }
+          ],
+          "groupBy": [
+            {
+              "id": "614ab235",
+              "scope": "span"
+            }
+          ],
+          "limit": 20,
+          "queryType": "traceqlSearch",
+          "refId": "A",
+          "tableType": "traces"
+        }
+      ],
+      "title": "test:powerservice",
+      "transformations": [
+        {
+          "id": "filterByRefId",
+          "options": {
+            "include": "traces"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Service": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "schemaVersion": 39,
@@ -739,6 +849,6 @@
   "timezone": "browser",
   "title": "Tests",
   "uid": "cdpdk9gxo4l4wd",
-  "version": 5,
+  "version": 6,
   "weekStart": ""
 }

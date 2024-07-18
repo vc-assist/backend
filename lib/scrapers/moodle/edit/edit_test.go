@@ -81,7 +81,7 @@ func setup(t testing.TB, ctx context.Context) Course {
 }
 
 func TestSections(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:moodle/edit")
+	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/edit")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestCourse")

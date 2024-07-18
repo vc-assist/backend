@@ -22,7 +22,7 @@ import (
 var schema string
 
 func setup(t testing.TB) (Service, func()) {
-	cleanup := telemetry.SetupForTesting(t, "test:linker")
+	cleanup := telemetry.SetupForTesting(t, "test:services/linker")
 
 	sqlite, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
