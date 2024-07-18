@@ -11,7 +11,7 @@ import (
 )
 
 func setupTelemetry(t testing.TB) func(testing.TB) {
-	tel, err := telemetry.SetupFromEnv(context.Background(), "test:vcsnet")
+	tel, err := telemetry.SetupFromEnv(context.Background(), "test:scrapers/vcsnet")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func setupTelemetry(t testing.TB) func(testing.TB) {
 }
 
 func TestFetchEvents(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:vcsnet")
+	cleanup := telemetry.SetupForTesting(t, "test:scrapers/vcsnet")
 	defer cleanup()
 
 	events, err := FetchEvents(context.Background(), timezone.Location)

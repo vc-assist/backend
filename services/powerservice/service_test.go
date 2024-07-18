@@ -140,7 +140,7 @@ func promptForToken(t testing.TB, ctx context.Context, service Service) (string,
 var schemaSql string
 
 func setup(t testing.TB, dbname string) (Service, func()) {
-	cleanupTel := telemetry.SetupForTesting(t, "test:powerschoold")
+	cleanupTel := telemetry.SetupForTesting(t, "test:services/powerservice")
 
 	sqlite, err := sql.Open("sqlite", dbname)
 	if err != nil {
