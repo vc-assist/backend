@@ -1,0 +1,112 @@
+package vcsmoodle
+
+import (
+	"context"
+	"testing"
+	"time"
+	devenv "vcassist-backend/dev/env"
+	"vcassist-backend/lib/testutil"
+	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
+	"vcassist-backend/services/keychain"
+	keychaindb "vcassist-backend/services/keychain/db"
+
+	"connectrpc.com/connect"
+	"github.com/dgraph-io/badger/v4"
+	"github.com/stretchr/testify/require"
+)
+
+func setup(t testing.TB) (Service, func()) {
+	keyRes, cleanupKeychain := testutil.SetupService(t, testutil.ServiceParams{
+		Name:     "services/keychain",
+		DbSchema: keychaindb.Schema,
+	})
+	_, cleanupSelf := testutil.SetupService(t, testutil.ServiceParams{
+		Name: "services/vcsmoodle",
+	})
+
+	cache, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keychainService := keychain.NewService(keyRes.DB)
+	s := NewService(cache, keychainService)
+
+	return s, func() {
+		cleanupKeychain()
+		cleanupSelf()
+	}
+}
+
+func TestService(t *testing.T) {
+	service, cleanup := setup(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	config, err := devenv.GetStateConfig[devenv.MoodleTestConfig]("moodle_config.json5")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		res, err := service.GetAuthStatus(ctx, &connect.Request[vcsmoodlev1.GetAuthStatusRequest]{
+			Msg: &vcsmoodlev1.GetAuthStatusRequest{
+				StudentId: "unknown-id",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		require.False(t, res.Msg.GetProvided())
+	}
+
+	studentId := "test-student"
+	{
+		_, err = service.ProvideUsernamePassword(ctx, &connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]{
+			Msg: &vcsmoodlev1.ProvideUsernamePasswordRequest{
+				StudentId: studentId,
+				Username:  config.Username,
+				Password:  config.Password,
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	{
+		res, err := service.GetAuthStatus(ctx, &connect.Request[vcsmoodlev1.GetAuthStatusRequest]{
+			Msg: &vcsmoodlev1.GetAuthStatusRequest{
+				StudentId: studentId,
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		require.True(t, res.Msg.GetProvided())
+	}
+	{
+		res, err := service.GetStudentData(ctx, &connect.Request[vcsmoodlev1.GetStudentDataRequest]{
+			Msg: &vcsmoodlev1.GetStudentDataRequest{
+				StudentId: studentId,
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		require.Greater(t, len(res.Msg.GetCourses()), 0)
+
+		for _, c := range res.Msg.GetCourses() {
+			require.NotEmpty(t, c.GetName())
+			lessonPlan := c.GetLessonPlan()
+			zoomLink := c.GetZoomLink()
+			if lessonPlan == "" {
+				t.Log("WARN", c.GetName(), "has an empty lesson plan")
+			}
+			if zoomLink == "" {
+				t.Log("WARN", c.GetName(), "has an empty zoom link")
+			}
+		}
+	}
+}
