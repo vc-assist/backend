@@ -276,23 +276,18 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		patchStudentDataWithMoodle(ctx, data, moodleres.Msg)
 	}
 
-	now := timezone.Now()
-	snapshots := make([]*gradesnapshotsv1.CourseSnapshot, len(data.GetCourses()))
+	courseSnapshots := make([]*gradesnapshotsv1.PushRequest_Course, len(data.GetCourses()))
 	for i, c := range data.GetCourses() {
-		snapshots[i] = &gradesnapshotsv1.CourseSnapshot{
+		courseSnapshots[i] = &gradesnapshotsv1.PushRequest_Course{
 			Course: c.GetName(),
-			Snapshot: &gradesnapshotsv1.Snapshot{
-				Value: c.GetOverallGrade(),
-				Time:  now.Unix(),
-			},
+			Value:  c.GetOverallGrade(),
 		}
 	}
 	_, err = s.gradesnapshots.Push(ctx, &connect.Request[gradesnapshotsv1.PushRequest]{
 		Msg: &gradesnapshotsv1.PushRequest{
-			Snapshot: &gradesnapshotsv1.UserSnapshot{
-				User:    userEmail,
-				Courses: snapshots,
-			},
+			User:    userEmail,
+			Time:    timezone.Now().Unix(),
+			Courses: courseSnapshots,
 		},
 	})
 	if err != nil {

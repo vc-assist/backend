@@ -32,12 +32,7 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	ctx, span := tracer.Start(ctx, "Push")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "user",
-			Value: attribute.IntValue(len(req.Msg.GetSnapshot().GetUser())),
-		},
-	)
+	span.SetAttributes(attribute.String("user", req.Msg.GetUser()))
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -48,20 +43,34 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	defer tx.Rollback()
 	txqry := s.qry.WithTx(tx)
 
-	now := timezone.Now()
-	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, timezone.Location).Unix()
+	snapshotTime := time.Unix(req.Msg.GetTime(), 0)
+	startOfToday := time.Date(snapshotTime.Year(), snapshotTime.Month(), snapshotTime.Day(), 0, 0, 0, 0, timezone.Location).Unix()
+	startOfTommorow := time.Date(snapshotTime.Year(), snapshotTime.Month(), snapshotTime.Day()+1, 0, 0, 0, 0, timezone.Location).Unix()
 
-	err = txqry.DeleteGradeSnapshotsAfter(ctx, startOfToday)
+	err = txqry.DeleteGradeSnapshotsIn(ctx, db.DeleteGradeSnapshotsInParams{
+		After:  startOfToday,
+		Before: startOfTommorow,
+		User:   req.Msg.GetUser(),
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
-	user := req.Msg.GetSnapshot()
-	for _, course := range user.GetCourses() {
-		userCourseId, err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
-			User:   user.GetUser(),
+	for _, course := range req.Msg.GetCourses() {
+		err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
+			User:   req.Msg.GetUser(),
+			Course: course.GetCourse(),
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+
+		userCourseId, err := txqry.GetUserCourseId(ctx, db.GetUserCourseIdParams{
+			User:   req.Msg.GetUser(),
 			Course: course.GetCourse(),
 		})
 		if err != nil {
@@ -71,9 +80,9 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 		}
 
 		err = txqry.CreateGradeSnapshot(ctx, db.CreateGradeSnapshotParams{
-			Usercourseid: userCourseId,
-			Time:         course.GetSnapshot().GetTime(),
-			Value:        float64(course.GetSnapshot().GetTime()),
+			UserCourseID: userCourseId,
+			Time:         req.Msg.GetTime(),
+			Value:        float64(course.GetValue()),
 		})
 		if err != nil {
 			span.RecordError(err)
@@ -95,12 +104,7 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	ctx, span := tracer.Start(ctx, "Pull")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "user",
-			Value: attribute.StringValue(req.Msg.GetUser()),
-		},
-	)
+	span.SetAttributes(attribute.String("user", req.Msg.GetUser()))
 
 	rows, err := s.qry.GetGradeSnapshots(ctx, req.Msg.GetUser())
 	if err != nil {
@@ -109,8 +113,8 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1
 		return nil, err
 	}
 
-	var courses []*gradesnapshotsv1.CourseSnapshotList
-	var lastCourse *gradesnapshotsv1.CourseSnapshotList
+	var courses []*gradesnapshotsv1.PullResponse_Course
+	var lastCourse *gradesnapshotsv1.PullResponse_Course
 
 	for _, r := range rows {
 		// this works because the rows are sorted by course name
@@ -124,22 +128,20 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1
 		// course 2 | time 2 | 70
 		// etc...
 		if r.Course != lastCourse.GetCourse() {
-			courses = append(courses, lastCourse)
-			lastCourse = &gradesnapshotsv1.CourseSnapshotList{
-				Course: r.Course,
-				Snapshots: []*gradesnapshotsv1.Snapshot{
-					{
-						Time:  r.Time,
-						Value: float32(r.Value),
-					},
-				},
+			if lastCourse != nil {
+				courses = append(courses, lastCourse)
 			}
-			continue
+			lastCourse = &gradesnapshotsv1.PullResponse_Course{
+				Course: r.Course,
+			}
 		}
-		lastCourse.Snapshots = append(lastCourse.Snapshots, &gradesnapshotsv1.Snapshot{
+		lastCourse.Snapshots = append(lastCourse.Snapshots, &gradesnapshotsv1.PullResponse_Course_Snapshot{
 			Time:  r.Time,
 			Value: float32(r.Value),
 		})
+	}
+	if lastCourse != nil {
+		courses = append(courses, lastCourse)
 	}
 
 	return &connect.Response[gradesnapshotsv1.PullResponse]{

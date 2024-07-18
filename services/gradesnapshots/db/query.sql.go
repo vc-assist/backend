@@ -10,26 +10,25 @@ import (
 )
 
 const createGradeSnapshot = `-- name: CreateGradeSnapshot :exec
-insert into GradeSnapshot(userCourseId, time, value)
+insert into GradeSnapshot(user_course_id, time, value)
 values (?, ?, ?)
 `
 
 type CreateGradeSnapshotParams struct {
-	Usercourseid int64
+	UserCourseID int64
 	Time         int64
 	Value        float64
 }
 
 func (q *Queries) CreateGradeSnapshot(ctx context.Context, arg CreateGradeSnapshotParams) error {
-	_, err := q.db.ExecContext(ctx, createGradeSnapshot, arg.Usercourseid, arg.Time, arg.Value)
+	_, err := q.db.ExecContext(ctx, createGradeSnapshot, arg.UserCourseID, arg.Time, arg.Value)
 	return err
 }
 
-const createUserCourse = `-- name: CreateUserCourse :one
+const createUserCourse = `-- name: CreateUserCourse :exec
 insert into UserCourse(user, course)
 values (?, ?)
 on conflict do nothing
-returning id
 `
 
 type CreateUserCourseParams struct {
@@ -37,19 +36,32 @@ type CreateUserCourseParams struct {
 	Course string
 }
 
-func (q *Queries) CreateUserCourse(ctx context.Context, arg CreateUserCourseParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, createUserCourse, arg.User, arg.Course)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
+func (q *Queries) CreateUserCourse(ctx context.Context, arg CreateUserCourseParams) error {
+	_, err := q.db.ExecContext(ctx, createUserCourse, arg.User, arg.Course)
+	return err
 }
 
-const deleteGradeSnapshotsAfter = `-- name: DeleteGradeSnapshotsAfter :exec
-delete from GradeSnapshot where time > ?1
+const deleteGradeSnapshotsIn = `-- name: DeleteGradeSnapshotsIn :exec
+delete from GradeSnapshot where
+rowid in (
+    select rowid from GradeSnapshot as SubSnapshot
+    inner join (
+        select id, user, course from UserCourse where user = ?
+    ) as FoundCourses
+        on FoundCourses.id = SubSnapshot.user_course_id
+    and SubSnapshot.time > ?2
+    and SubSnapshot.time < ?3
+)
 `
 
-func (q *Queries) DeleteGradeSnapshotsAfter(ctx context.Context, after int64) error {
-	_, err := q.db.ExecContext(ctx, deleteGradeSnapshotsAfter, after)
+type DeleteGradeSnapshotsInParams struct {
+	User   string
+	After  int64
+	Before int64
+}
+
+func (q *Queries) DeleteGradeSnapshotsIn(ctx context.Context, arg DeleteGradeSnapshotsInParams) error {
+	_, err := q.db.ExecContext(ctx, deleteGradeSnapshotsIn, arg.User, arg.After, arg.Before)
 	return err
 }
 
@@ -58,8 +70,8 @@ select FoundCourses.course, time, value from GradeSnapshot
 inner join (
     select id, user, course from UserCourse where user = ?
 ) as FoundCourses
-    on FoundCourses.id = userCourseId
-order by (FoundCourses.course, time)
+    on FoundCourses.id = user_course_id
+order by FoundCourses.course, time
 `
 
 type GetGradeSnapshotsRow struct {
@@ -89,4 +101,20 @@ func (q *Queries) GetGradeSnapshots(ctx context.Context, user string) ([]GetGrad
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUserCourseId = `-- name: GetUserCourseId :one
+select id from UserCourse where user = ? and course = ?
+`
+
+type GetUserCourseIdParams struct {
+	User   string
+	Course string
+}
+
+func (q *Queries) GetUserCourseId(ctx context.Context, arg GetUserCourseIdParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUserCourseId, arg.User, arg.Course)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }

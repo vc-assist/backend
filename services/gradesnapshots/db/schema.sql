@@ -6,11 +6,10 @@ create table UserCourse (
 );
 
 create table GradeSnapshot (
-    userCourseId integer not null,
+    user_course_id integer not null,
     time integer not null,
     value real not null,
-    primary key (userCourseId, time),
-    foreign key (userCourseId) references UserCourse(id)
+    foreign key (user_course_id) references UserCourse(id)
         on update cascade
         on delete cascade
 );
