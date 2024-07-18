@@ -199,7 +199,7 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 			}()
 		}
 	}
-	wg.Done()
+	wg.Wait()
 
 	return result, nil
 }
@@ -236,7 +236,7 @@ func scrapeCourses(ctx context.Context, client view.Client) ([]*vcsmoodlev1.Cour
 			result = append(result, course)
 		}()
 	}
-	wg.Done()
+	wg.Wait()
 
 	return result, nil
 }
