@@ -28,7 +28,10 @@ func TestFetchEvents(t *testing.T) {
 	cleanup := telemetry.SetupForTesting(t, "test:scrapers/vcsnet")
 	defer cleanup()
 
-	events, err := FetchEvents(context.Background(), timezone.Location)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	events, err := FetchEvents(ctx, timezone.Location)
 	if err != nil {
 		t.Fatal(err)
 	}
