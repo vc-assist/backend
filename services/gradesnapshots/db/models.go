@@ -5,7 +5,7 @@
 package db
 
 type GradeSnapshot struct {
-	Usercourseid int64
+	UserCourseID int64
 	Time         int64
 	Value        float64
 }

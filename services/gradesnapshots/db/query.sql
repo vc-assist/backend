@@ -3,19 +3,30 @@ select FoundCourses.course, time, value from GradeSnapshot
 inner join (
     select * from UserCourse where user = ?
 ) as FoundCourses
-    on FoundCourses.id = userCourseId
-order by (FoundCourses.course, time);
+    on FoundCourses.id = user_course_id
+order by FoundCourses.course, time;
 
--- name: CreateUserCourse :one
+-- name: CreateUserCourse :exec
 insert into UserCourse(user, course)
 values (?, ?)
-on conflict do nothing
-returning id;
+on conflict do nothing;
+
+-- name: GetUserCourseId :one
+select id from UserCourse where user = ? and course = ?;
 
 -- name: CreateGradeSnapshot :exec
-insert into GradeSnapshot(userCourseId, time, value)
+insert into GradeSnapshot(user_course_id, time, value)
 values (?, ?, ?);
 
--- name: DeleteGradeSnapshotsAfter :exec
-delete from GradeSnapshot where time > sqlc.arg(after);
+-- name: DeleteGradeSnapshotsIn :exec
+delete from GradeSnapshot where
+rowid in (
+    select rowid from GradeSnapshot as SubSnapshot
+    inner join (
+        select * from UserCourse where user = ?
+    ) as FoundCourses
+        on FoundCourses.id = SubSnapshot.user_course_id
+    and SubSnapshot.time > sqlc.arg(after)
+    and SubSnapshot.time < sqlc.arg(before)
+)
 
