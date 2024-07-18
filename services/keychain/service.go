@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/timezone"
@@ -165,12 +164,17 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 	ctx, span := tracer.Start(ctx, "GetOAuth")
 	defer span.End()
 
+	span.SetAttributes(
+		attribute.String("namespace", req.Msg.Namespace),
+		attribute.String("id", req.Msg.Id),
+	)
+
 	row, err := s.qry.GetOAuth(ctx, db.GetOAuthParams{
 		Namespace: req.Msg.GetNamespace(),
 		ID:        req.Msg.GetId(),
 	})
 	if err == sql.ErrNoRows || row.ExpiresAt < timezone.Now().Unix() {
-		span.SetStatus(codes.Error, fmt.Sprintf("no such key '%s' found", req.Msg.GetId()))
+		span.SetStatus(codes.Error, "key not found")
 		return &connect.Response[keychainv1.GetOAuthResponse]{
 			Msg: &keychainv1.GetOAuthResponse{
 				Key: nil,
@@ -219,12 +223,17 @@ func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[k
 	ctx, span := tracer.Start(ctx, "GetUsernamePassword")
 	defer span.End()
 
+	span.SetAttributes(
+		attribute.String("namespace", req.Msg.Namespace),
+		attribute.String("id", req.Msg.Id),
+	)
+
 	row, err := s.qry.GetUsernamePassword(ctx, db.GetUsernamePasswordParams{
 		Namespace: req.Msg.GetNamespace(),
 		ID:        req.Msg.GetId(),
 	})
 	if err == sql.ErrNoRows {
-		span.SetStatus(codes.Error, fmt.Sprintf("no such key '%s' found", req.Msg.GetId()))
+		span.SetStatus(codes.Error, "key not found")
 		return &connect.Response[keychainv1.GetUsernamePasswordResponse]{
 			Msg: &keychainv1.GetUsernamePasswordResponse{
 				Key: nil,
