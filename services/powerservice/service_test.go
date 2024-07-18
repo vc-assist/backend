@@ -2,7 +2,6 @@ package powerservice
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -14,9 +13,10 @@ import (
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/testutil"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	"vcassist-backend/services/keychain"
+	"vcassist-backend/services/powerservice/db"
 
 	_ "embed"
 
@@ -140,28 +140,21 @@ func promptForToken(t testing.TB, ctx context.Context, service Service) (string,
 var schemaSql string
 
 func setup(t testing.TB, dbname string) (Service, func()) {
-	cleanupTel := telemetry.SetupForTesting(t, "test:services/powerservice")
+	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
+		Name:     "services/powerservice",
+		DbSchema: db.Schema,
+		DbPath:   dbname,
+	})
 
-	sqlite, err := sql.Open("sqlite", dbname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = sqlite.Exec(schemaSql)
-	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		t.Fatal(err)
-	}
-
-	keychainService := keychain.NewService(sqlite)
+	keychainService := keychain.NewService(res.DB)
 	oauthConfig := OAuthConfig{
 		BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
 		RefreshUrl:   "https://oauth2.googleapis.com/token",
 		ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 	}
-	service := NewService(sqlite, keychainService, "https://vcsnet.powerschool.com", oauthConfig)
+	service := NewService(res.DB, keychainService, "https://vcsnet.powerschool.com", oauthConfig)
 
-	return service, func() {
-		cleanupTel()
-	}
+	return service, cleanup
 }
 
 func provideNewToken(t testing.TB, ctx context.Context, service Service, id string) {
@@ -197,7 +190,7 @@ func provideNewToken(t testing.TB, ctx context.Context, service Service, id stri
 }
 
 func TestOAuth(t *testing.T) {
-	service, cleanup := setup(t, "oauth_test_state.db")
+	service, cleanup := setup(t, "test.oauth.db")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestOAuth")

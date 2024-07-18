@@ -2,12 +2,12 @@ package gradesnapshots
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/testutil"
 	"vcassist-backend/lib/timezone"
 	gradesnapshotsv1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
+	"vcassist-backend/services/gradesnapshots/db"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -17,28 +17,13 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-//go:embed db/schema.sql
-var schema string
-
-func setup(t *testing.T) (Service, func()) {
-	cleanup := telemetry.SetupForTesting(t, "test:services/gradesnapshots")
-
-	sqlite, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = sqlite.Exec(schema)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s := NewService(sqlite)
-	return s, cleanup
-}
-
 func TestService(t *testing.T) {
-	service, cleanup := setup(t)
+	setup, cleanup := testutil.SetupService(t, testutil.ServiceParams{
+		Name:     "services/gradesnapshots",
+		DbSchema: db.Schema,
+	})
 	defer cleanup()
+	service := NewService(setup.DB)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

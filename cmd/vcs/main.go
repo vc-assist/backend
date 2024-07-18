@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"vcassist-backend/lib/configuration"
+	configlibsql "vcassist-backend/lib/configuration/libsql"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
 	"vcassist-backend/services/gradesnapshots"
 	"vcassist-backend/services/keychain"
@@ -26,11 +27,11 @@ func fatalerr(message string, err error) {
 }
 
 type DatabaseConfig struct {
-	Keychain      configuration.Libsql `json:"keychain"`
-	GradeSnapshot configuration.Libsql `json:"grade_snapshot"`
-	Linker        configuration.Libsql `json:"linker"`
-	Powerservice  configuration.Libsql `json:"powerservice"`
-	Self          configuration.Libsql `json:"self"`
+	Keychain      configlibsql.Struct `json:"keychain"`
+	GradeSnapshot configlibsql.Struct `json:"grade_snapshot"`
+	Linker        configlibsql.Struct `json:"linker"`
+	Powerservice  configlibsql.Struct `json:"powerservice"`
+	Self          configlibsql.Struct `json:"self"`
 }
 
 type Config struct {
@@ -81,7 +82,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	vcsmoodleService := vcsmoodle.NewService(moodleCache)
+	vcsmoodleService := vcsmoodle.NewService(moodleCache, keychainService)
 
 	db, err = config.Database.Self.OpenDB()
 	if err != nil {

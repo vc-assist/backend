@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"vcassist-backend/lib/configuration"
 )
 
 var modName = regexp.MustCompile(`(?m)^module *([\w\-_]+)$`)
@@ -42,13 +43,20 @@ func GetWorkspaceRoot() (string, error) {
 	return "", os.ErrNotExist
 }
 
-func GetStateFile(path string) ([]byte, error) {
+func GetStateFilePath(path string) (string, error) {
 	root, err := GetWorkspaceRoot()
+	if err != nil {
+		return "", err
+	}
+	configPath := filepath.Join(root, "dev/.state", path)
+	return configPath, nil
+}
+
+func GetStateFile(path string) ([]byte, error) {
+	configPath, err := GetStateFilePath(path)
 	if err != nil {
 		return nil, err
 	}
-
-	configPath := filepath.Join(root, "dev/.state", path)
 	contents, err := os.ReadFile(configPath)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("no file at %s", configPath)
@@ -56,17 +64,28 @@ func GetStateFile(path string) ([]byte, error) {
 	return contents, err
 }
 
-func ResolvePath(path string) (string, error) {
-	if strings.HasPrefix(path, "<dev_state>") {
-		root, err := GetWorkspaceRoot()
-		if err != nil {
-			return "", err
-		}
-
-		subpath := strings.Replace(path, "<dev_state>/", "", 1)
-		statepath := filepath.Join(root, "dev/.state", subpath)
-
-		return statepath, nil
+func GetStateConfig[T any](path string) (T, error) {
+	configPath, err := GetStateFilePath(path)
+	if err != nil {
+		var out T
+		return out, err
 	}
-	return path, nil
+	out, err := configuration.ReadConfig[T](configPath)
+	return out, err
+}
+
+func ResolvePath(path string) (string, error) {
+	if !strings.HasPrefix(path, "<dev_state>") {
+		return path, nil
+	}
+
+	root, err := GetWorkspaceRoot()
+	if err != nil {
+		return "", err
+	}
+
+	subpath := strings.Replace(path, "<dev_state>/", "", 1)
+	statepath := filepath.Join(root, "dev/.state", subpath)
+
+	return statepath, nil
 }

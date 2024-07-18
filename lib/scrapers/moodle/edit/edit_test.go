@@ -2,7 +2,6 @@ package edit
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -14,19 +13,6 @@ import (
 	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/require"
 )
-
-func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
-	contents, err := devenv.GetStateFile("moodle_config.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cached devenv.MoodleTestConfig
-	err = json.Unmarshal(contents, &cached)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return cached
-}
 
 func setupClients(t testing.TB, ctx context.Context, config devenv.MoodleTestConfig) (*core.Client, view.Client) {
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
@@ -56,7 +42,10 @@ func setupClients(t testing.TB, ctx context.Context, config devenv.MoodleTestCon
 }
 
 func setup(t testing.TB, ctx context.Context) Course {
-	config := getTestConfig(t)
+	config, err := devenv.GetStateConfig[devenv.MoodleTestConfig]("moodle_config.json5")
+	if err != nil {
+		t.Fatal(err)
+	}
 	coreClient, viewClient := setupClients(t, ctx, config)
 
 	courses, err := viewClient.Courses(ctx)
