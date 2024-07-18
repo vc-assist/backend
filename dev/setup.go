@@ -39,7 +39,7 @@ func CreateLocalStack() error {
 }
 
 func SetupMoodleTests() error {
-	_, err := os.Stat("dev/.state/moodle_config.json")
+	_, err := os.Stat("dev/.state/moodle_config.json5")
 	if !os.IsNotExist(err) {
 		slog.Info("moodle credentials have already been set")
 		return err
@@ -90,12 +90,12 @@ func SetupMoodleTests() error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile("dev/.state/moodle_config.json", cached, 0777)
+	err = os.WriteFile("dev/.state/moodle_config.json5", cached, 0777)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("moodle test configuration written to `dev/.state/moodle_config.json`, make sure you check it to ensure it's correct.")
+	slog.Info("moodle test configuration written to `dev/.state/moodle_config.json5`, make sure you check it to ensure it's correct.")
 
 	return nil
 }

@@ -165,8 +165,8 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("namespace", req.Msg.Namespace),
-		attribute.String("id", req.Msg.Id),
+		attribute.String("namespace", req.Msg.GetNamespace()),
+		attribute.String("id", req.Msg.GetId()),
 	)
 
 	row, err := s.qry.GetOAuth(ctx, db.GetOAuthParams{
@@ -224,8 +224,8 @@ func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[k
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("namespace", req.Msg.Namespace),
-		attribute.String("id", req.Msg.Id),
+		attribute.String("namespace", req.Msg.GetNamespace()),
+		attribute.String("id", req.Msg.GetId()),
 	)
 
 	row, err := s.qry.GetUsernamePassword(ctx, db.GetUsernamePasswordParams{

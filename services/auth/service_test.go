@@ -2,12 +2,11 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"log"
 	"regexp"
 	"testing"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/testutil"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 
 	"connectrpc.com/connect"
@@ -37,16 +36,10 @@ func TestGenerateCode(t *testing.T) {
 var schemaSql string
 
 func setup(t testing.TB) (Service, func()) {
-	cleanup := telemetry.SetupForTesting(t, "test:services/auth")
-
-	sqlite, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = sqlite.Exec(schemaSql)
-	if err != nil {
-		t.Fatal(err)
-	}
+	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
+		Name:     "services/auth",
+		DbSchema: schemaSql,
+	})
 
 	// suppress logging
 	testcontainers.Logger = log.New(io.Discard, "", 0)
@@ -66,7 +59,7 @@ func setup(t testing.TB) (Service, func()) {
 		t.Fatal(err)
 	}
 
-	service := NewService(sqlite, EmailConfig{
+	service := NewService(res.DB, EmailConfig{
 		Server:       "localhost",
 		Port:         1025,
 		EmailAddress: "alice@email.com",

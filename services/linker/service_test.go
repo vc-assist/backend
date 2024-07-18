@@ -2,43 +2,25 @@ package linker
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"testing"
 	"time"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/testutil"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
-
-	_ "embed"
-
-	_ "modernc.org/sqlite"
+	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 )
 
-//go:embed db/schema.sql
-var schema string
-
-func setup(t testing.TB) (Service, func()) {
-	cleanup := telemetry.SetupForTesting(t, "test:services/linker")
-
-	sqlite, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = sqlite.Exec(schema)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return NewService(sqlite), cleanup
-}
-
 func TestService(t *testing.T) {
-	service, cleanup := setup(t)
+	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
+		Name:     "services/linker",
+		DbSchema: db.Schema,
+	})
 	defer cleanup()
+	service := NewService(res.DB)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

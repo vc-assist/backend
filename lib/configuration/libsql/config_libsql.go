@@ -1,4 +1,4 @@
-package configuration
+package configlibsql
 
 import (
 	"database/sql"
@@ -8,13 +8,13 @@ import (
 	"github.com/tursodatabase/go-libsql"
 )
 
-type Libsql struct {
+type Struct struct {
 	File      string `json:"file"`
 	Url       string `json:"url"`
 	AuthToken string `json:"auth_token"`
 }
 
-func (config Libsql) OpenDB() (*sql.DB, error) {
+func (config Struct) OpenDB() (*sql.DB, error) {
 	if config.Url == "" {
 		dbpath, err := devenv.ResolvePath(config.File)
 		if err != nil {

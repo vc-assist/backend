@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"vcassist-backend/lib/configuration"
+	configlibsql "vcassist-backend/lib/configuration/libsql"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
 
@@ -18,8 +19,8 @@ func fatalerr(message string, err error) {
 }
 
 type AuthConfig struct {
-	Email  auth.EmailConfig     `json:"email"`
-	Libsql configuration.Libsql `json:"database"`
+	Email  auth.EmailConfig    `json:"email"`
+	Libsql configlibsql.Struct `json:"database"`
 }
 
 func main() {
