@@ -131,6 +131,8 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
+
 			events, err := parseCalendar(ctx, link.String(), tz)
 			if err != nil {
 				span.RecordError(err)
@@ -141,8 +143,6 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 			resultLock.Lock()
 			defer resultLock.Unlock()
 			result = append(result, events...)
-
-			wg.Done()
 		}()
 	}
 
