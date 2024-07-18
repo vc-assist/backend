@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 	devenv "vcassist-backend/dev/env"
+	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/testutil"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 	"vcassist-backend/services/keychain"
@@ -45,9 +46,9 @@ func TestService(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	config, err := devenv.GetStateConfig[devenv.MoodleTestConfig]("moodle_config.json5")
+	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("vcsmoodle.json5")
 	if err != nil {
-		t.Fatal(err)
+		t.Skip("skipping test because no valid test config was found at .dev/state/vcsmoodle.json5")
 	}
 
 	{
@@ -67,8 +68,8 @@ func TestService(t *testing.T) {
 		_, err = service.ProvideUsernamePassword(ctx, &connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]{
 			Msg: &vcsmoodlev1.ProvideUsernamePasswordRequest{
 				StudentId: studentId,
-				Username:  config.Username,
-				Password:  config.Password,
+				Username:  coreConfig.Username,
+				Password:  coreConfig.Password,
 			},
 		})
 		if err != nil {
