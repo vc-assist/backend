@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupClients(t testing.TB, ctx context.Context, config devenv.MoodleTestConfig) (*core.Client, view.Client) {
+func setupClients(t testing.TB, ctx context.Context, config core.TestConfig) (*core.Client, view.Client) {
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
 		BaseUrl: config.BaseUrl,
 	})
@@ -41,12 +41,20 @@ func setupClients(t testing.TB, ctx context.Context, config devenv.MoodleTestCon
 	return coreClient, client
 }
 
+type TestConfig struct {
+	TargetCourse string `json:"target_course"`
+}
+
 func setup(t testing.TB, ctx context.Context) Course {
-	config, err := devenv.GetStateConfig[devenv.MoodleTestConfig]("moodle_config.json5")
+	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("moodle/core.json5")
 	if err != nil {
-		t.Fatal(err)
+		t.Skip("skipping moodle/core test because there is no valid test config at .dev/state/moodle/core.json5")
 	}
-	coreClient, viewClient := setupClients(t, ctx, config)
+	config, err := devenv.GetStateConfig[TestConfig]("moodle/edit.json5")
+	if err != nil {
+		t.Skip("skipping moodle/edit test because there is no valid test config at .dev/state/moodle/edit.json5")
+	}
+	coreClient, viewClient := setupClients(t, ctx, coreConfig)
 
 	courses, err := viewClient.Courses(ctx)
 	if err != nil {
@@ -56,7 +64,7 @@ func setup(t testing.TB, ctx context.Context) Course {
 	t.Log("courses", courses)
 
 	for _, c := range courses {
-		if c.Name == config.EditConfig.TargetCourse {
+		if c.Name == config.TargetCourse {
 			course, err := NewCourse(ctx, c.Id(), coreClient)
 			if err != nil {
 				t.Fatal(err)
@@ -65,7 +73,7 @@ func setup(t testing.TB, ctx context.Context) Course {
 		}
 	}
 
-	t.Fatalf("failed to find specified target course '%s'", config.EditConfig.TargetCourse)
+	t.Fatalf("failed to find specified target course '%s'", config.TargetCourse)
 	return Course{}
 }
 

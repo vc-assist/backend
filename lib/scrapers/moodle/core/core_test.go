@@ -16,9 +16,9 @@ func TestClient(t *testing.T) {
 	ctx, span := tracer.Start(context.Background(), "TestClient")
 	defer span.End()
 
-	config, err := devenv.GetStateConfig[devenv.MoodleTestConfig]("moodle_config.json5")
+	config, err := devenv.GetStateConfig[TestConfig]("moodle/core.json5")
 	if err != nil {
-		t.Fatal(err)
+		t.Skip("skipping moodle/core test because there is no valid test config at .dev/state/moodle/core.json5")
 	}
 	client, err := NewClient(ctx, ClientOptions{
 		BaseUrl: config.BaseUrl,

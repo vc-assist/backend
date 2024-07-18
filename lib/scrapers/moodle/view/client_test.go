@@ -2,7 +2,6 @@ package view
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
@@ -14,18 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getTestConfig(t testing.TB) devenv.MoodleTestConfig {
-	contents, err := devenv.GetStateFile("moodle_config.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var cached devenv.MoodleTestConfig
-	err = json.Unmarshal(contents, &cached)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return cached
+type TestConfig struct {
+	TargetCourse string `json:"target_course"`
 }
 
 func TestClient(t *testing.T) {
@@ -35,26 +24,34 @@ func TestClient(t *testing.T) {
 	ctx, span := tracer.Start(context.Background(), "TestClient")
 	defer span.End()
 
-	config := getTestConfig(t)
+	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("moodle/core.json5")
+	if err != nil {
+		t.Skip("skipping because failed to read test config at .dev/state/moodle/core.json5")
+	}
+	config, err := devenv.GetStateConfig[TestConfig]("moodle/view.json5")
+	if err != nil {
+		t.Skip("skipping because there is no test config at .dev/state/moodle/view.json5")
+	}
+
 	cache, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
-		BaseUrl: config.BaseUrl,
+		BaseUrl: coreConfig.BaseUrl,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = coreClient.LoginUsernamePassword(ctx, config.Username, config.Password)
+	err = coreClient.LoginUsernamePassword(ctx, coreConfig.Username, coreConfig.Password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	client, err := NewClient(ctx, coreClient, ClientOptions{
 		Cache:    cache,
-		ClientId: config.Username,
+		ClientId: coreConfig.Username,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +71,7 @@ func TestClient(t *testing.T) {
 			if c == (Course{}) {
 				t.Fatal("got empty course in course list")
 			}
-			if c.Name == config.ViewConfig.TargetCourse {
+			if c.Name == config.TargetCourse {
 				targetCourse = c
 				break
 			}
@@ -82,7 +79,7 @@ func TestClient(t *testing.T) {
 	})
 
 	if targetCourse == (Course{}) {
-		t.Fatal("could not find target course", config.ViewConfig.TargetCourse)
+		t.Fatal("could not find target course", config.TargetCourse)
 	}
 
 	t.Run("TestSections", func(t *testing.T) {
