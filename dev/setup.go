@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
-
-	"golang.org/x/exp/slog"
 )
 
 func cmd(name string, args ...string) {
