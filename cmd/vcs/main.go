@@ -9,6 +9,7 @@ import (
 	"vcassist-backend/lib/configuration"
 	configlibsql "vcassist-backend/lib/configuration/libsql"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
+	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/gradesnapshots"
 	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/linker"
@@ -16,6 +17,7 @@ import (
 	"vcassist-backend/services/vcs"
 	"vcassist-backend/services/vcsmoodle"
 
+	"connectrpc.com/connect"
 	"github.com/dgraph-io/badger/v4"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -27,6 +29,7 @@ func fatalerr(message string, err error) {
 }
 
 type DatabaseConfig struct {
+	Auth          configlibsql.Struct `json:"auth"`
 	Keychain      configlibsql.Struct `json:"keychain"`
 	GradeSnapshot configlibsql.Struct `json:"grade_snapshot"`
 	Linker        configlibsql.Struct `json:"linker"`
@@ -96,8 +99,18 @@ func main() {
 		gradesnapshotService,
 	)
 
+	db, err = config.Database.Auth.OpenDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	verify := verifier.NewVerifier(db)
+	authInterceptor := verifier.NewAuthInterceptor(verify)
+
 	mux := http.NewServeMux()
-	mux.Handle(studentdatav1connect.NewStudentDataServiceHandler(service))
+	mux.Handle(studentdatav1connect.NewStudentDataServiceHandler(
+		service,
+		connect.WithInterceptors(authInterceptor),
+	))
 
 	slog.Info("listening to gRPC...", "port", 9111)
 	err = http.ListenAndServe(
