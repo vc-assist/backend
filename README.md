@@ -69,6 +69,6 @@ Here are some commands relating to linting and code generation that will probabl
 ## Testing
 
 - `go test -v ./lib/... ./services/auth ./services/vcsmoodle` - runs all tests that don't require manual interaction
-- `go test ./services/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test -v ./services/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 - `go clean -testcache` - cleans test cache, may be useful if telemetry isn't working
 

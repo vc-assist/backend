@@ -11,6 +11,7 @@ import (
 	"time"
 	"vcassist-backend/lib/timezone"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
+	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
 
@@ -36,13 +37,15 @@ type Service struct {
 	verifier verifier.Verifier
 }
 
-func NewService(database *sql.DB, email EmailConfig) Service {
-	return Service{
-		db:       database,
-		qry:      db.New(database),
-		email:    email,
-		verifier: verifier.NewVerifier(database),
-	}
+func NewService(database *sql.DB, email EmailConfig) authv1connect.AuthServiceClient {
+	return authv1connect.NewInstrumentedAuthServiceClient(
+		Service{
+			db:       database,
+			qry:      db.New(database),
+			email:    email,
+			verifier: verifier.NewVerifier(database),
+		},
+	)
 }
 
 func generateVerificationCode() (string, error) {
@@ -59,7 +62,7 @@ func generateVerificationCode() (string, error) {
 }
 
 func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
-	ctx, span := tracer.Start(ctx, "auth:createVerificationCode")
+	ctx, span := tracer.Start(ctx, "createVerificationCode")
 	defer span.End()
 
 	code, err = generateVerificationCode()
@@ -83,7 +86,7 @@ func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, 
 }
 
 func (s Service) sendVerificationCode(ctx context.Context, userEmail, code string) error {
-	ctx, span := tracer.Start(ctx, "auth:sendVerificationCode")
+	ctx, span := tracer.Start(ctx, "sendVerificationCode")
 	defer span.End()
 
 	mail := email.NewEmail()
@@ -120,13 +123,8 @@ If you don't recognize this account, please ignore this email.`, code)
 }
 
 func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.StartLoginRequest]) (*connect.Response[authv1.StartLoginResponse], error) {
-	ctx, span := tracer.Start(ctx, "auth:StartLogin")
-	defer span.End()
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to begin transaction")
 		return nil, err
 	}
 	defer tx.Rollback()
@@ -136,28 +134,20 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.Sta
 
 	err = txqry.EnsureUserExists(ctx, email)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "got unexpected error while ensuring user exists")
 		return nil, err
 	}
 	code, err := s.createVerificationCode(ctx, txqry, email)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create verification code")
 		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to commit transaction")
 		return nil, err
 	}
 
 	err = s.sendVerificationCode(ctx, email, code)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to send verification code")
 		return nil, err
 	}
 
@@ -165,7 +155,7 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.Sta
 }
 
 func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
-	ctx, span := tracer.Start(ctx, "auth:verifyAndDeleteCode")
+	ctx, span := tracer.Start(ctx, "verifyAndDeleteCode")
 	defer span.End()
 
 	email, err := txqry.GetUserFromCode(ctx, code)
@@ -189,7 +179,7 @@ func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, ema
 }
 
 func (s Service) createToken(ctx context.Context, txqry *db.Queries, email string) (string, error) {
-	ctx, span := tracer.Start(ctx, "auth:createToken")
+	ctx, span := tracer.Start(ctx, "createToken")
 	defer span.End()
 
 	nonce := make([]byte, 32)
@@ -214,13 +204,8 @@ func (s Service) createToken(ctx context.Context, txqry *db.Queries, email strin
 }
 
 func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Request[authv1.ConsumeVerificationCodeRequest]) (*connect.Response[authv1.ConsumeVerificationCodeResponse], error) {
-	ctx, span := tracer.Start(ctx, "auth:ConsumeVerificationCode")
-	defer span.End()
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "could not start transaction")
 		return nil, err
 	}
 	defer tx.Rollback()
@@ -231,21 +216,15 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 
 	err = s.verifyAndDeleteCode(ctx, txqry, email, providedCode)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to verify or delete verification code")
 		return nil, err
 	}
 	token, err := s.createToken(ctx, txqry, email)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create token")
 		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to commit transaction")
 		return nil, err
 	}
 
@@ -257,13 +236,8 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 }
 
 func (s Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.VerifyTokenRequest]) (*connect.Response[authv1.VerifyTokenResponse], error) {
-	ctx, span := tracer.Start(ctx, "auth:VerifyToken")
-	defer span.End()
-
 	user, err := s.verifier.VerifyToken(ctx, req.Msg.GetToken())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 

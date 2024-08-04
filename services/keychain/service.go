@@ -8,6 +8,7 @@ import (
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/timezone"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
+	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/services/keychain/db"
 
 	"connectrpc.com/connect"
@@ -23,11 +24,16 @@ type Service struct {
 	qry *db.Queries
 }
 
-func NewService(database *sql.DB) Service {
-	return Service{
+func NewService(ctx context.Context, database *sql.DB) keychainv1connect.KeychainServiceClient {
+	s := Service{
 		db:  database,
 		qry: db.New(database),
 	}
+
+	go s.refreshOAuthDaemon(ctx)
+	go s.deleteOAuthDaemon(ctx)
+
+	return keychainv1connect.NewInstrumentedKeychainServiceClient(s)
 }
 
 func (s Service) refreshOAuthKey(ctx context.Context, original db.OAuth) error {
@@ -132,15 +138,7 @@ func (s Service) deleteOAuthDaemon(ctx context.Context) {
 	}
 }
 
-func (s Service) StartOAuthDaemon(ctx context.Context) {
-	go s.refreshOAuthDaemon(ctx)
-	go s.deleteOAuthDaemon(ctx)
-}
-
 func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.SetOAuthRequest]) (*connect.Response[keychainv1.SetOAuthResponse], error) {
-	ctx, span := tracer.Start(ctx, "SetOAuth")
-	defer span.End()
-
 	err := s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
 		Namespace:  req.Msg.GetNamespace(),
 		ID:         req.Msg.GetId(),
@@ -150,8 +148,6 @@ func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.S
 		ExpiresAt:  req.Msg.GetKey().GetExpiresAt(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -161,20 +157,11 @@ func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.S
 }
 
 func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.GetOAuthRequest]) (*connect.Response[keychainv1.GetOAuthResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetOAuth")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("namespace", req.Msg.GetNamespace()),
-		attribute.String("id", req.Msg.GetId()),
-	)
-
 	row, err := s.qry.GetOAuth(ctx, db.GetOAuthParams{
 		Namespace: req.Msg.GetNamespace(),
 		ID:        req.Msg.GetId(),
 	})
 	if err == sql.ErrNoRows || row.ExpiresAt < timezone.Now().Unix() {
-		span.SetStatus(codes.Error, "key not found")
 		return &connect.Response[keychainv1.GetOAuthResponse]{
 			Msg: &keychainv1.GetOAuthResponse{
 				Key: nil,
@@ -182,8 +169,6 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 		}, nil
 	}
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -199,9 +184,6 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 }
 
 func (s Service) SetUsernamePassword(ctx context.Context, req *connect.Request[keychainv1.SetUsernamePasswordRequest]) (*connect.Response[keychainv1.SetUsernamePasswordResponse], error) {
-	ctx, span := tracer.Start(ctx, "SetUsernamePassword")
-	defer span.End()
-
 	err := s.qry.CreateUsernamePassword(ctx, db.CreateUsernamePasswordParams{
 		Namespace: req.Msg.GetNamespace(),
 		ID:        req.Msg.GetId(),
@@ -209,8 +191,6 @@ func (s Service) SetUsernamePassword(ctx context.Context, req *connect.Request[k
 		Password:  req.Msg.GetKey().GetPassword(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -220,20 +200,11 @@ func (s Service) SetUsernamePassword(ctx context.Context, req *connect.Request[k
 }
 
 func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[keychainv1.GetUsernamePasswordRequest]) (*connect.Response[keychainv1.GetUsernamePasswordResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetUsernamePassword")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("namespace", req.Msg.GetNamespace()),
-		attribute.String("id", req.Msg.GetId()),
-	)
-
 	row, err := s.qry.GetUsernamePassword(ctx, db.GetUsernamePasswordParams{
 		Namespace: req.Msg.GetNamespace(),
 		ID:        req.Msg.GetId(),
 	})
 	if err == sql.ErrNoRows {
-		span.SetStatus(codes.Error, "key not found")
 		return &connect.Response[keychainv1.GetUsernamePasswordResponse]{
 			Msg: &keychainv1.GetUsernamePasswordResponse{
 				Key: nil,
@@ -241,8 +212,6 @@ func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[k
 		}, nil
 	}
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 

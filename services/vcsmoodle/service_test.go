@@ -8,6 +8,7 @@ import (
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/testutil"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
+	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/keychain"
 	keychaindb "vcassist-backend/services/keychain/db"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setup(t testing.TB) (Service, func()) {
+func setup(t testing.TB) (vcsmoodlev1connect.MoodleServiceClient, func()) {
 	keyRes, cleanupKeychain := testutil.SetupService(t, testutil.ServiceParams{
 		Name:     "services/keychain",
 		DbSchema: keychaindb.Schema,
@@ -30,12 +31,14 @@ func setup(t testing.TB) (Service, func()) {
 		t.Fatal(err)
 	}
 
-	keychainService := keychain.NewService(keyRes.DB)
+	ctx, cancelKeychain := context.WithCancel(context.Background())
+	keychainService := keychain.NewService(ctx, keyRes.DB)
 	s := NewService(cache, keychainService)
 
 	return s, func() {
 		cleanupKeychain()
 		cleanupSelf()
+		cancelKeychain()
 	}
 }
 

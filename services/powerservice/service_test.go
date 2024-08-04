@@ -15,7 +15,9 @@ import (
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/testutil"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
+	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	"vcassist-backend/services/keychain"
+	keychaindb "vcassist-backend/services/keychain/db"
 	"vcassist-backend/services/powerservice/db"
 
 	_ "embed"
@@ -51,8 +53,8 @@ func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) 
 	}
 }
 
-func getOAuthFlow(t testing.TB, ctx context.Context, service Service) *powerservicev1.GetOAuthFlowResponse {
-	authFlow, err := service.GetOAuthFlow(ctx, nil)
+func getOAuthFlow(t testing.TB, ctx context.Context, service powerservicev1connect.PowerschoolServiceClient) *powerservicev1.GetOAuthFlowResponse {
+	authFlow, err := service.GetOAuthFlow(ctx, &connect.Request[powerservicev1.GetOAuthFlowRequest]{Msg: &powerservicev1.GetOAuthFlowRequest{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +108,7 @@ func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *powerser
 	return token
 }
 
-func promptForToken(t testing.TB, ctx context.Context, service Service) (string, func(t testing.TB)) {
+func promptForToken(t testing.TB, ctx context.Context, service powerservicev1connect.PowerschoolServiceClient) (string, func(t testing.TB)) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -139,14 +141,21 @@ func promptForToken(t testing.TB, ctx context.Context, service Service) (string,
 //go:embed db/schema.sql
 var schemaSql string
 
-func setup(t testing.TB, dbname string) (Service, func()) {
+func setup(t testing.TB, dbname string) (powerservicev1connect.PowerschoolServiceClient, func()) {
 	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
 		Name:     "services/powerservice",
 		DbSchema: db.Schema,
 		DbPath:   dbname,
 	})
+	keychainRes, cleanupKeychain := testutil.SetupService(t, testutil.ServiceParams{
+		Name:     "services/keychain",
+		DbSchema: keychaindb.Schema,
+		DbPath:   dbname,
+	})
 
-	keychainService := keychain.NewService(res.DB)
+	ctx, cancelKeychain := context.WithCancel(context.Background())
+
+	keychainService := keychain.NewService(ctx, keychainRes.DB)
 	oauthConfig := OAuthConfig{
 		BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
 		RefreshUrl:   "https://oauth2.googleapis.com/token",
@@ -154,10 +163,14 @@ func setup(t testing.TB, dbname string) (Service, func()) {
 	}
 	service := NewService(res.DB, keychainService, "https://vcsnet.powerschool.com", oauthConfig)
 
-	return service, cleanup
+	return service, func() {
+		cleanupKeychain()
+		cleanup()
+		cancelKeychain()
+	}
 }
 
-func provideNewToken(t testing.TB, ctx context.Context, service Service, id string) {
+func provideNewToken(t testing.TB, ctx context.Context, service powerservicev1connect.PowerschoolServiceClient, id string) {
 	token, cleanup := promptForToken(t, ctx, service)
 	defer cleanup(t)
 
@@ -190,7 +203,7 @@ func provideNewToken(t testing.TB, ctx context.Context, service Service, id stri
 }
 
 func TestOAuth(t *testing.T) {
-	service, cleanup := setup(t, "test.oauth.db")
+	service, cleanup := setup(t, "<dev_state>/powerservice_test.oauth.db")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestOAuth")

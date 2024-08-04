@@ -35,12 +35,12 @@ func NewClient(baseUrl string) (*Client, error) {
 	return &Client{http: client}, nil
 }
 
-func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error) {
+func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.Time, err error) {
 	ctx, span := tracer.Start(ctx, "client:LoginOAuth")
 	defer span.End()
 
 	var openidToken oauth.OpenIdToken
-	err := json.Unmarshal([]byte(token), &openidToken)
+	err = json.Unmarshal([]byte(token), &openidToken)
 	if err != nil {
 		return timezone.Now(), err
 	}
@@ -54,7 +54,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (time.Time, error
 		SetHeader("profileUri", openidToken.IdToken).
 		SetHeader("ServerURL", c.http.BaseURL)
 
-	expiresAt := timezone.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
+	expiresAt = timezone.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
 	return expiresAt, nil
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log/slog"
 	"net/http"
@@ -73,7 +74,7 @@ func main() {
 		fatalerr("failed to open keychain database", err)
 	}
 	keychainService := keychainv1connect.NewInstrumentedKeychainServiceClient(
-		keychain.NewService(db),
+		keychain.NewService(context.Background(), db),
 	)
 
 	db, err = config.Database.Powerservice.OpenDB()

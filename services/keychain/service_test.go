@@ -18,12 +18,11 @@ func TestService(t *testing.T) {
 		DbSchema: db.Schema,
 	})
 	defer cleanup()
-	service := NewService(res.DB)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	service.StartOAuthDaemon(ctx)
+	service := NewService(ctx, res.DB)
 
 	{
 		res, err := service.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{

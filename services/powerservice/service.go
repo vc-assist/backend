@@ -11,12 +11,14 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
+	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
 	"vcassist-backend/services/powerservice/db"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -43,24 +45,21 @@ func NewService(
 	keychain keychainv1connect.KeychainServiceClient,
 	baseUrl string,
 	oauth OAuthConfig,
-) Service {
-	return Service{
-		baseUrl:  baseUrl,
-		oauth:    oauth,
-		db:       database,
-		qry:      db.New(database),
-		keychain: keychain,
-	}
+) powerservicev1connect.PowerschoolServiceClient {
+	return powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
+		Service{
+			baseUrl:  baseUrl,
+			oauth:    oauth,
+			db:       database,
+			qry:      db.New(database),
+			keychain: keychain,
+		},
+	)
 }
 
 func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[powerservicev1.GetKnownCoursesRequest]) (*connect.Response[powerservicev1.GetKnownCoursesResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetKnownCourses")
-	defer span.End()
-
 	courses, err := s.qry.GetKnownCourses(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to exec sql query")
 		return nil, err
 	}
 
@@ -84,8 +83,7 @@ func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[power
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerservicev1.GetAuthStatusRequest]) (*connect.Response[powerservicev1.GetAuthStatusResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetAuthStatus")
-	defer span.End()
+	span := trace.SpanFromContext(ctx)
 
 	studentId := req.Msg.GetStudentId()
 	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
@@ -95,8 +93,6 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerse
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	if res.Msg.GetKey() == nil || res.Msg.GetKey().GetExpiresAt() < timezone.Now().Unix() {
@@ -117,19 +113,13 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerse
 }
 
 func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[powerservicev1.GetOAuthFlowRequest]) (*connect.Response[powerservicev1.GetOAuthFlowResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetAuthFlow")
-	defer span.End()
-
 	if (s.oauth == OAuthConfig{}) {
 		err := fmt.Errorf("non-oauth authentication is not supported yet")
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	codeVerifier, err := oauth.GenerateCodeVerifier()
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to generate code verifier")
 		return nil, err
 	}
 
@@ -149,13 +139,8 @@ func (s Service) GetOAuthFlow(ctx context.Context, _ *connect.Request[powerservi
 }
 
 func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerservicev1.ProvideOAuthRequest]) (*connect.Response[powerservicev1.ProvideOAuthResponse], error) {
-	ctx, span := tracer.Start(ctx, "ProvideOAuth")
-	defer span.End()
-
 	client, err := scraper.NewClient(s.baseUrl)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create powerschool scraper")
 		return nil, err
 	}
 
@@ -163,27 +148,8 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerser
 
 	expiresAt, err := client.LoginOAuth(ctx, token)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to login")
 		return nil, fmt.Errorf("failed to login: %s", err.Error())
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to start transaction")
-		return nil, err
-	}
-	defer func() {
-		// err will be set to the latest err when this function
-		// is called (which is everywhere there is a return after this)
-		// because of the wonders of closures
-		if err != nil {
-			tx.Rollback()
-			return
-		}
-		tx.Commit()
-	}()
 
 	_, err = s.keychain.SetOAuth(ctx, &connect.Request[keychainv1.SetOAuthRequest]{
 		Msg: &keychainv1.SetOAuthRequest{
@@ -198,8 +164,6 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerser
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -207,8 +171,7 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerser
 }
 
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powerservicev1.GetStudentDataRequest]) (*connect.Response[powerservicev1.GetStudentDataResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetStudentData")
-	defer span.End()
+	span := trace.SpanFromContext(ctx)
 
 	studentId := req.Msg.GetStudentId()
 
@@ -219,40 +182,28 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	if res.Msg.GetKey() == nil {
 		err := fmt.Errorf("no oauth credentials provided")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	client, err := scraper.NewClient(s.baseUrl)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create powerschoolv1.client")
 		return nil, err
 	}
 	_, err = client.LoginOAuth(ctx, res.Msg.GetKey().GetToken())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to login with oauth token")
 		return nil, err
 	}
 
 	allStudents, err := client.GetAllStudents(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch all student data")
 		return nil, err
 	}
 	if len(allStudents.GetStudents()) == 0 {
 		err := fmt.Errorf("could not find student profile, are your powerschoolv1.credentials expired?")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -261,8 +212,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		Guid: psStudent.GetGuid(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch student data")
 		return nil, err
 	}
 
@@ -329,8 +278,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 
 	serializedResponse, err := proto.Marshal(response)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to cache student data")
 		return nil, err
 	}
 	err = s.qry.CreateOrUpdateStudentData(ctx, db.CreateOrUpdateStudentDataParams{
@@ -339,8 +286,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		Cached:    serializedResponse,
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to exec sql query")
 		return nil, err
 	}
 
