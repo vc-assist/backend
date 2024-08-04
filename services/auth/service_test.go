@@ -79,7 +79,7 @@ var globalClient = resty.New()
 
 func getVerificationCodeFromEmail(t testing.TB) string {
 	res, err := globalClient.R().
-		Get("http://127.0.0.1:1080/messages/1.plain")
+		Get("http://127.0.0.1:1090/messages/1.plain")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,8 @@ package vcsnet
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -116,6 +118,7 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 	query.Add("_", strconv.FormatInt(currentDate.Unix(), 10))
 
 	var result []Event
+	var errList []error
 	resultLock := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
@@ -137,6 +140,7 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, "failed to parse a calendar page, check error events...")
+				errList = append(errList, err)
 				return
 			}
 
@@ -160,7 +164,12 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 		return 0
 	})
 
-	return result, nil
+	err = nil
+	if len(errList) > 0 {
+		err = errors.Join(errList...)
+	}
+
+	return result, err
 }
 
 func parseCalendar(ctx context.Context, link string, tz *time.Location) ([]Event, error) {
@@ -281,6 +290,15 @@ func parseCalendar(ctx context.Context, link string, tz *time.Location) ([]Event
 			})
 		})
 	})
+
+	if span.IsRecording() {
+		eventsStr, err := json.Marshal(events)
+		if err == nil {
+			span.SetAttributes(attribute.String("events", string(eventsStr)))
+		} else {
+			span.SetAttributes(attribute.String("events", "err: "+err.Error()))
+		}
+	}
 
 	return events, nil
 }
