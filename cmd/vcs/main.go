@@ -2,13 +2,17 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"vcassist-backend/lib/configuration"
 	configlibsql "vcassist-backend/lib/configuration/libsql"
+	"vcassist-backend/proto/vcassist/services/gradesnapshots/v1/gradesnapshotsv1connect"
+	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
+	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
+	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
+	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/gradesnapshots"
 	"vcassist-backend/services/keychain"
@@ -52,56 +56,68 @@ func main() {
 	if err != nil {
 		fatalerr("failed to open gradesnapshot database", err)
 	}
-	gradesnapshotService := gradesnapshots.NewService(db)
+	gradesnapshotService := gradesnapshotsv1connect.NewInstrumentedGradeSnapshotsServiceClient(
+		gradesnapshots.NewService(db),
+	)
 
 	db, err = config.Database.Linker.OpenDB()
 	if err != nil {
 		fatalerr("failed to open linker database", err)
 	}
-	linkerService := linker.NewService(db)
+	linkerService := linkerv1connect.NewInstrumentedLinkerServiceClient(
+		linker.NewService(db),
+	)
 
 	db, err = config.Database.Keychain.OpenDB()
 	if err != nil {
 		fatalerr("failed to open keychain database", err)
 	}
-	keychainService := keychain.NewService(db)
+	keychainService := keychainv1connect.NewInstrumentedKeychainServiceClient(
+		keychain.NewService(db),
+	)
 
 	db, err = config.Database.Powerservice.OpenDB()
 	if err != nil {
 		fatalerr("failed to open powerschoold database", err)
 	}
-	powerschooldService := powerservice.NewService(
-		db,
-		keychainService,
-		"https://vcsnet.powerschool.com",
-		powerservice.OAuthConfig{
-			BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-			RefreshUrl:   "https://oauth2.googleapis.com/token",
-			ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
-		},
+	powerserviceService := powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
+		powerservice.NewService(
+			db,
+			keychainService,
+			"https://vcsnet.powerschool.com",
+			powerservice.OAuthConfig{
+				BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+				RefreshUrl:   "https://oauth2.googleapis.com/token",
+				ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
+			},
+		),
 	)
 
 	moodleCache, err := badger.Open(badger.DefaultOptions("moodle-cache.db"))
 	if err != nil {
-		log.Fatal(err)
+		fatalerr("failed to open moodle KV cache", err)
 	}
-	vcsmoodleService := vcsmoodle.NewService(moodleCache, keychainService)
+	vcsmoodleService := vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(
+		vcsmoodle.NewService(moodleCache, keychainService),
+	)
 
 	db, err = config.Database.Self.OpenDB()
 	if err != nil {
-		log.Fatal(err)
+		fatalerr("failed to open self DB", err)
 	}
-	service := vcs.NewService(
-		db,
-		powerschooldService,
-		vcsmoodleService,
-		linkerService,
-		gradesnapshotService,
+	service := studentdatav1connect.NewInstrumentedStudentDataServiceClient(
+		vcs.NewService(
+			db,
+			powerserviceService,
+			vcsmoodleService,
+			linkerService,
+			gradesnapshotService,
+		),
 	)
 
 	db, err = config.Database.Auth.OpenDB()
 	if err != nil {
-		log.Fatal(err)
+		fatalerr("failed to open auth DB", err)
 	}
 	verify := verifier.NewVerifier(db)
 	authInterceptor := verifier.NewAuthInterceptor(verify)
