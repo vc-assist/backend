@@ -28,8 +28,6 @@ func (c InstrumentedAuthServiceClient) StartLogin(ctx context.Context, req *conn
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -64,8 +62,6 @@ func (c InstrumentedAuthServiceClient) ConsumeVerificationCode(ctx context.Conte
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -100,8 +96,6 @@ func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *con
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))

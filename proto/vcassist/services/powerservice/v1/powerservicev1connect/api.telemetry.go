@@ -28,8 +28,6 @@ func (c InstrumentedPowerschoolServiceClient) GetAuthStatus(ctx context.Context,
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -64,8 +62,6 @@ func (c InstrumentedPowerschoolServiceClient) GetOAuthFlow(ctx context.Context, 
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -100,8 +96,6 @@ func (c InstrumentedPowerschoolServiceClient) ProvideOAuth(ctx context.Context, 
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -136,8 +130,6 @@ func (c InstrumentedPowerschoolServiceClient) GetStudentData(ctx context.Context
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -172,8 +164,6 @@ func (c InstrumentedPowerschoolServiceClient) GetKnownCourses(ctx context.Contex
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))

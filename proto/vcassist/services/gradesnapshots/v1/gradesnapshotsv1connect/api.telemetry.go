@@ -28,8 +28,6 @@ func (c InstrumentedGradeSnapshotsServiceClient) Push(ctx context.Context, req *
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -64,8 +62,6 @@ func (c InstrumentedGradeSnapshotsServiceClient) Pull(ctx context.Context, req *
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))

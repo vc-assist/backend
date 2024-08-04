@@ -28,8 +28,6 @@ func (c InstrumentedMoodleServiceClient) GetAuthStatus(ctx context.Context, req 
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -64,8 +62,6 @@ func (c InstrumentedMoodleServiceClient) ProvideUsernamePassword(ctx context.Con
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -100,8 +96,6 @@ func (c InstrumentedMoodleServiceClient) GetStudentData(ctx context.Context, req
 	defer span.End()
 
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("procedure", req.Spec().Procedure))
-
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
