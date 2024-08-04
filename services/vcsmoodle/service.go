@@ -7,11 +7,11 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
+	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 
 	"connectrpc.com/connect"
 	"github.com/dgraph-io/badger/v4"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/codes"
 )
 
 var tracer = otel.Tracer("services/vcsmoodle")
@@ -23,17 +23,15 @@ type Service struct {
 	keychain keychainv1connect.KeychainServiceClient
 }
 
-func NewService(cache *badger.DB, keychain keychainv1connect.KeychainServiceClient) Service {
-	return Service{
+func NewService(cache *badger.DB, keychain keychainv1connect.KeychainServiceClient) vcsmoodlev1connect.MoodleServiceClient {
+	s := Service{
 		cache:    cache,
 		keychain: keychain,
 	}
+	return vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(s)
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcsmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcsmoodlev1.GetAuthStatusResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetAuthStatus")
-	defer span.End()
-
 	existing, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{
 			Namespace: keychainNamespace,
@@ -41,8 +39,6 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcsmood
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -54,9 +50,6 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcsmood
 }
 
 func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]) (*connect.Response[vcsmoodlev1.ProvideUsernamePasswordResponse], error) {
-	ctx, span := tracer.Start(ctx, "ProvideUsernamePassword")
-	defer span.End()
-
 	_, err := s.keychain.SetUsernamePassword(ctx, &connect.Request[keychainv1.SetUsernamePasswordRequest]{
 		Msg: &keychainv1.SetUsernamePasswordRequest{
 			Namespace: keychainNamespace,
@@ -68,8 +61,6 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -77,9 +68,6 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 }
 
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoodlev1.GetStudentDataRequest]) (*connect.Response[vcsmoodlev1.GetStudentDataResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetStudentData")
-	defer span.End()
-
 	res, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{
 			Namespace: keychainNamespace,
@@ -87,8 +75,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -96,14 +82,10 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 		BaseUrl: "https://learn.vcs.net",
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	err = coreClient.LoginUsernamePassword(ctx, res.Msg.GetKey().GetUsername(), res.Msg.GetKey().GetPassword())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
@@ -111,15 +93,11 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 		Cache:    s.cache,
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	courses, err := scrapeCourses(ctx, client)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 

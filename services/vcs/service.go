@@ -13,6 +13,7 @@ import (
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
+	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/auth/verifier"
@@ -21,6 +22,7 @@ import (
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -41,15 +43,17 @@ func NewService(
 	moodle vcsmoodlev1connect.MoodleServiceClient,
 	linker linkerv1connect.LinkerServiceClient,
 	gradesnapshots gradesnapshotsv1connect.GradeSnapshotsServiceClient,
-) Service {
-	return Service{
-		db:             database,
-		qry:            db.New(database),
-		powerschool:    powerschool,
-		moodle:         moodle,
-		linker:         linker,
-		gradesnapshots: gradesnapshots,
-	}
+) studentdatav1connect.StudentDataServiceClient {
+	return studentdatav1connect.NewInstrumentedStudentDataServiceClient(
+		Service{
+			db:             database,
+			qry:            db.New(database),
+			powerschool:    powerschool,
+			moodle:         moodle,
+			linker:         linker,
+			gradesnapshots: gradesnapshots,
+		},
+	)
 }
 
 func (s Service) removeExpiredWorker(ctx context.Context) {
@@ -119,15 +123,10 @@ func (s Service) StartWorker(ctx context.Context) {
 }
 
 func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[studentdatav1.GetCredentialStatusRequest]) (*connect.Response[studentdatav1.GetCredentialStatusResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetCredentialStatus")
-	defer span.End()
-
 	profile, _ := verifier.ProfileFromContext(ctx)
 
 	psOAuthFlow, err := s.powerschool.GetOAuthFlow(ctx, &connect.Request[powerservicev1.GetOAuthFlowRequest]{Msg: &powerservicev1.GetOAuthFlowRequest{}})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -137,8 +136,6 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -148,8 +145,6 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 		},
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -180,9 +175,6 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 }
 
 func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[studentdatav1.ProvideCredentialRequest]) (*connect.Response[studentdatav1.ProvideCredentialResponse], error) {
-	ctx, span := tracer.Start(ctx, "ProvideCredential")
-	defer span.End()
-
 	profile, _ := verifier.ProfileFromContext(ctx)
 
 	switch req.Msg.GetId() {
@@ -194,8 +186,6 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 			},
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	case "moodle":
@@ -207,8 +197,6 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 			},
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -333,8 +321,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 }
 
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[studentdatav1.GetStudentDataRequest]) (*connect.Response[studentdatav1.GetStudentDataResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetStudentData")
-	defer span.End()
+	span := trace.SpanFromContext(ctx)
 
 	profile, _ := verifier.ProfileFromContext(ctx)
 
@@ -362,9 +349,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[studen
 }
 
 func (s Service) RefreshData(ctx context.Context, _ *connect.Request[studentdatav1.RefreshDataRequest]) (*connect.Response[studentdatav1.RefreshDataResponse], error) {
-	ctx, span := tracer.Start(ctx, "RefreshData")
-	defer span.End()
-
 	profile, _ := verifier.ProfileFromContext(ctx)
 
 	data, err := s.recacheStudentData(ctx, profile.Email)

@@ -6,12 +6,11 @@ import (
 	"time"
 	"vcassist-backend/lib/timezone"
 	gradesnapshotsv1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
+	"vcassist-backend/proto/vcassist/services/gradesnapshots/v1/gradesnapshotsv1connect"
 	"vcassist-backend/services/gradesnapshots/db"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 )
 
 var tracer = otel.Tracer("services/gradesnapshots")
@@ -21,23 +20,18 @@ type Service struct {
 	qry *db.Queries
 }
 
-func NewService(database *sql.DB) Service {
-	return Service{
-		db:  database,
-		qry: db.New(database),
-	}
+func NewService(database *sql.DB) gradesnapshotsv1connect.GradeSnapshotsServiceClient {
+	return gradesnapshotsv1connect.NewInstrumentedGradeSnapshotsServiceClient(
+		Service{
+			db:  database,
+			qry: db.New(database),
+		},
+	)
 }
 
 func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1.PushRequest]) (*connect.Response[gradesnapshotsv1.PushResponse], error) {
-	ctx, span := tracer.Start(ctx, "Push")
-	defer span.End()
-
-	span.SetAttributes(attribute.String("user", req.Msg.GetUser()))
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	defer tx.Rollback()
@@ -53,8 +47,6 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 		User:   req.Msg.GetUser(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -64,8 +56,6 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 			Course: course.GetCourse(),
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 
@@ -74,8 +64,6 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 			Course: course.GetCourse(),
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 
@@ -85,15 +73,11 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 			Value:        float64(course.GetValue()),
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -101,15 +85,8 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 }
 
 func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1.PullRequest]) (*connect.Response[gradesnapshotsv1.PullResponse], error) {
-	ctx, span := tracer.Start(ctx, "Pull")
-	defer span.End()
-
-	span.SetAttributes(attribute.String("user", req.Msg.GetUser()))
-
 	rows, err := s.qry.GetGradeSnapshots(ctx, req.Msg.GetUser())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 

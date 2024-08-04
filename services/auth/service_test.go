@@ -8,6 +8,7 @@ import (
 	"testing"
 	"vcassist-backend/lib/testutil"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
+	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 
 	"connectrpc.com/connect"
 	"github.com/go-resty/resty/v2"
@@ -35,7 +36,7 @@ func TestGenerateCode(t *testing.T) {
 //go:embed db/schema.sql
 var schemaSql string
 
-func setup(t testing.TB) (Service, func()) {
+func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
 	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
 		Name:     "services/auth",
 		DbSchema: schemaSql,

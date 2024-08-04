@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"vcassist-backend/lib/timezone"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
+	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/codes"
 )
 
 var tracer = otel.Tracer("services/linker")
@@ -19,24 +19,21 @@ type Service struct {
 	db  *sql.DB
 }
 
-func NewService(database *sql.DB) Service {
-	return Service{
-		qry: db.New(database),
-		db:  database,
-	}
+func NewService(database *sql.DB) linkerv1connect.LinkerServiceClient {
+	return linkerv1connect.NewInstrumentedLinkerServiceClient(
+		Service{
+			qry: db.New(database),
+			db:  database,
+		},
+	)
 }
 
 func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[linkerv1.GetExplicitLinksRequest]) (*connect.Response[linkerv1.GetExplicitLinksResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetExplicitLinks")
-	defer span.End()
-
 	links, err := s.qry.GetExplicitLinks(ctx, db.GetExplicitLinksParams{
 		Leftset:  req.Msg.GetLeftSet(),
 		Rightset: req.Msg.GetRightSet(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -61,9 +58,6 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[link
 }
 
 func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linkerv1.AddExplicitLinkRequest]) (*connect.Response[linkerv1.AddExplicitLinkResponse], error) {
-	ctx, span := tracer.Start(ctx, "AddExplicitLink")
-	defer span.End()
-
 	err := s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
 		Leftset:  req.Msg.GetLeft().GetSet(),
 		Leftkey:  req.Msg.GetLeft().GetKey(),
@@ -71,8 +65,6 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 		Rightkey: req.Msg.GetRight().GetKey(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -80,9 +72,6 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 }
 
 func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[linkerv1.DeleteExplicitLinkRequest]) (*connect.Response[linkerv1.DeleteExplicitLinkResponse], error) {
-	ctx, span := tracer.Start(ctx, "DeleteExplicitLink")
-	defer span.End()
-
 	err := s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
 		Leftset:  req.Msg.GetLeft().GetSet(),
 		Leftkey:  req.Msg.GetLeft().GetKey(),
@@ -90,8 +79,6 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 		Rightkey: req.Msg.GetRight().GetKey(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -101,13 +88,8 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 }
 
 func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
-	ctx, span := tracer.Start(ctx, "Link")
-	defer span.End()
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	defer tx.Rollback()
@@ -115,14 +97,10 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	txqry := s.qry.WithTx(tx)
 	err = txqry.CreateKnownSet(ctx, req.Msg.GetSrc().GetName())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	err = txqry.CreateKnownSet(ctx, req.Msg.GetDst().GetName())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -134,8 +112,6 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 			Lastseen: now,
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -146,16 +122,12 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 			Lastseen: now,
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -211,8 +183,6 @@ func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[linkerv1
 
 	sets, err := s.qry.GetKnownSets(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -227,8 +197,6 @@ func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[linkerv1
 
 	rows, err := s.qry.GetKnownKeys(ctx, req.Msg.GetSet())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
