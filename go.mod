@@ -32,6 +32,7 @@ require (
 )
 
 require (
+	connectrpc.com/otelconnect v0.7.1 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/EDDYCJY/fake-useragent v0.2.0 // indirect

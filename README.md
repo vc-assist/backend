@@ -63,6 +63,7 @@ Here are some commands relating to linting and code generation that will probabl
 - `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
 - `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
+- `go install github.com/LQR471814/connectrpc-otel-gen@latest`
 
 ## Testing
 
