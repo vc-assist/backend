@@ -36,7 +36,7 @@ The code that initializes this environment is kept under `dev/`.
 
 Here are a few things it sets up:
 
-1. An empty sqlite database + migrations for `cmd/powerschoold/`.
+1. An empty sqlite database + migrations for `cmd/powerservice/`.
 2. A local setup of telemetry using Docker Compose under `dev/local_stack/`.
 3. Moodle credentials for use in testing in `lib/scrapers/moodle/...`
 
@@ -51,6 +51,7 @@ Here are some commands relating to linting and code generation that will probabl
 
 - `go vet ./...` - typecheck all go packages
 - `sqlc generate` - generate sql wrapper code with [sqlc](https://sqlc.dev/)
+- `connectrpc-otel-gen .` - generates opentelemetry wrapper code for all gRPC services
 - `buf lint` - lint protobuf files with [buf](https://buf.build/)
 - `buf format -w` - format protobuf files
 - `buf generate --template buf.gen-go.yaml` - generate golang protobuf code with [buf](https://buf.build/)
@@ -67,6 +68,7 @@ Here are some commands relating to linting and code generation that will probabl
 
 ## Testing
 
-- `go test -v ./lib/... ./service/auth ./service/vcsmoodle` - runs all tests that don't require manual interaction
-- `go test ./service/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test -v ./lib/... ./services/auth ./services/vcsmoodle` - runs all tests that don't require manual interaction
+- `go test ./services/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go clean -testcache` - cleans test cache, may be useful if telemetry isn't working
 
