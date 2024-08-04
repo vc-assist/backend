@@ -28,7 +28,7 @@ func TestFetchEvents(t *testing.T) {
 	cleanup := telemetry.SetupForTesting(t, "test:scrapers/vcsnet")
 	defer cleanup()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	events, err := FetchEvents(ctx, timezone.Location)
@@ -74,6 +74,7 @@ func TestGetSchoolYear(t *testing.T) {
 
 	for _, test := range testCases {
 		year := GetSchoolYear(test.now, tz)
+
 		require.Equal(t, test.expected.StartYear, year.StartYear)
 		require.Equal(t, test.expected.EndYear, year.EndYear)
 		require.Equal(t, test.expected.StartTime, year.StartTime)
