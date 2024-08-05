@@ -1,8 +1,11 @@
 package vcs
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"regexp"
 	"slices"
 	"strconv"
@@ -197,12 +200,21 @@ func patchStudentDataWithPowerschool(ctx context.Context, data *studentdatav1.St
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return err
 	}
 
 	data.Gpa = float32(gpa)
 	data.DayNames = dayNames
 	data.Courses = courseList
 	data.CurrentDay = currentDay
+
+	imageBuff := bytes.NewBufferString(psdata.GetPhoto().GetStudentPhoto().GetImage())
+	decoder := base64.NewDecoder(base64.StdEncoding, imageBuff)
+	decodedImage, err := io.ReadAll(decoder)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	data.Photo = decodedImage
+
 	return nil
 }

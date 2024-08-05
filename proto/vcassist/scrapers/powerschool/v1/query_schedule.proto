@@ -14,6 +14,8 @@ message CourseMeetingList {
 
 message GetCourseMeetingListInput {
   repeated string section_guids = 1 [json_name = "sectionGuids"];
+  // ISO timestamp
   string start = 2 [json_name = "start"];
+  // ISO timestamp
   string stop = 3 [json_name = "stop"];
 }
