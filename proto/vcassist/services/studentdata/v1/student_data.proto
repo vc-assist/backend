@@ -57,7 +57,8 @@ message Course {
 
 message StudentData {
   float gpa = 1;
-  repeated string day_names = 2;
-  repeated Course courses = 3;
-  string current_day = 4;
+  string current_day = 2;
+  bytes photo = 3;
+  repeated string day_names = 4;
+  repeated Course courses = 5;
 }

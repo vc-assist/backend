@@ -28,7 +28,7 @@ func NewClient(baseUrl string) (*Client, error) {
 		return nil, err
 	}
 	client.SetCookieJar(jar)
-	client.SetHeader("user-agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.110 Mobile Safari/537.36")
+	client.SetHeader("user-agent", "okhttp/4.9.1")
 
 	telemetry.InstrumentResty(client, "scrapers/powerschool/http")
 
@@ -36,7 +36,7 @@ func NewClient(baseUrl string) (*Client, error) {
 }
 
 func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.Time, err error) {
-	ctx, span := tracer.Start(ctx, "client:LoginOAuth")
+	ctx, span := tracer.Start(ctx, "LoginOAuth")
 	defer span.End()
 
 	var openidToken oauth.OpenIdToken

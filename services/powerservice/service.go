@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 	"vcassist-backend/lib/oauth"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
@@ -170,6 +171,13 @@ func (s Service) ProvideOAuth(ctx context.Context, req *connect.Request[powerser
 	return &connect.Response[powerservicev1.ProvideOAuthResponse]{Msg: &powerservicev1.ProvideOAuthResponse{}}, nil
 }
 
+func getCurrentWeek() (start time.Time, stop time.Time) {
+	now := timezone.Now()
+	start = now.Add(-time.Hour * 24 * time.Duration(now.Weekday()))
+	stop = now.Add(time.Hour * 24 * time.Duration(time.Saturday-now.Weekday()))
+	return start, stop
+}
+
 func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powerservicev1.GetStudentDataRequest]) (*connect.Response[powerservicev1.GetStudentDataResponse], error) {
 	span := trace.SpanFromContext(ctx)
 
@@ -213,6 +221,14 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	studentPhoto, err := client.GetStudentPhoto(ctx, &powerschoolv1.GetStudentDataInput{
+		Guid: psStudent.GetGuid(),
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get student photo")
 	}
 
 	if studentData.GetStudent() == nil {
@@ -259,8 +275,12 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 
 	var courseMeetingList *powerschoolv1.CourseMeetingList
 	if len(guids) > 0 {
+		start, stop := getCurrentWeek()
+
 		courseMeetingList, err = client.GetCourseMeetingList(ctx, &powerschoolv1.GetCourseMeetingListInput{
 			SectionGuids: guids,
+			Start:        start.Format(time.RFC3339),
+			Stop:         stop.Format(time.RFC3339),
 		})
 		if err != nil {
 			span.RecordError(err)
@@ -274,6 +294,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		Profile:    psStudent,
 		CourseData: courseList,
 		Meetings:   courseMeetingList,
+		Photo:      studentPhoto,
 	}
 
 	serializedResponse, err := proto.Marshal(response)

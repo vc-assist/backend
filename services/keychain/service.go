@@ -178,6 +178,7 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 				Token:      row.Token,
 				RefreshUrl: row.RefreshUrl,
 				ClientId:   row.ClientID,
+				ExpiresAt:  row.ExpiresAt,
 			},
 		},
 	}, nil

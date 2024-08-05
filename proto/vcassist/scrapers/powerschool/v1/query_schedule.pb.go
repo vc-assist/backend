@@ -136,8 +136,10 @@ type GetCourseMeetingListInput struct {
 	unknownFields protoimpl.UnknownFields
 
 	SectionGuids []string `protobuf:"bytes,1,rep,name=section_guids,json=sectionGuids,proto3" json:"section_guids,omitempty"`
-	Start        string   `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
-	Stop         string   `protobuf:"bytes,3,opt,name=stop,proto3" json:"stop,omitempty"`
+	// ISO timestamp
+	Start string `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+	// ISO timestamp
+	Stop string `protobuf:"bytes,3,opt,name=stop,proto3" json:"stop,omitempty"`
 }
 
 func (x *GetCourseMeetingListInput) Reset() {
