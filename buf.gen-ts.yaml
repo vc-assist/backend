@@ -1,9 +1,9 @@
 version: v2
 plugins:
-  - remote: buf.build/bufbuild/es
+  - remote: buf.build/bufbuild/es:v1.7.2
     out: proto
     opt: target=ts
-  - remote: buf.build/connectrpc/es
+  - remote: buf.build/connectrpc/es:v1.4.0
     out: proto
     opt: target=ts
 inputs:
