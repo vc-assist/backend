@@ -262,6 +262,8 @@ export class Course extends Message<Course> {
   name = "";
 
   /**
+   * this is a percentage
+   *
    * @generated from field: float overall_grade = 2;
    */
   overallGrade = 0;

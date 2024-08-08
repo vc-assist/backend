@@ -332,7 +332,8 @@ type PullResponse_Course_Snapshot struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Time  int64   `protobuf:"varint,1,opt,name=time,proto3" json:"time,omitempty"`
+	Time int64 `protobuf:"varint,1,opt,name=time,proto3" json:"time,omitempty"`
+	// this is a percentage
 	Value float32 `protobuf:"fixed32,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 

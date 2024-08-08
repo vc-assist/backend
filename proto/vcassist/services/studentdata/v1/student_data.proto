@@ -40,6 +40,7 @@ message GradeSnapshot {
 message Course {
   string name = 1;
 
+  // this is a percentage
   float overall_grade = 2;
   string teacher = 3;
   string teacher_email = 4;

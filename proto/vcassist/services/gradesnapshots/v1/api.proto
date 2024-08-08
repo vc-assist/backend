@@ -24,6 +24,7 @@ message PullResponse {
     string course = 1;
     message Snapshot {
       int64 time = 1;
+      // this is a percentage
       float value = 2;
     }
     repeated Snapshot snapshots = 2;
