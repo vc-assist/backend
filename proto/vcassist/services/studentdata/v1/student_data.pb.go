@@ -343,7 +343,8 @@ type Course struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name              string            `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// this is a percentage
 	OverallGrade      float32           `protobuf:"fixed32,2,opt,name=overall_grade,json=overallGrade,proto3" json:"overall_grade,omitempty"`
 	Teacher           string            `protobuf:"bytes,3,opt,name=teacher,proto3" json:"teacher,omitempty"`
 	TeacherEmail      string            `protobuf:"bytes,4,opt,name=teacher_email,json=teacherEmail,proto3" json:"teacher_email,omitempty"`
