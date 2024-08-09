@@ -7,3 +7,6 @@ dev/.state
 
 *.local.json5
 
+cmd/vcs/vcs
+cmd/auth/auth
+

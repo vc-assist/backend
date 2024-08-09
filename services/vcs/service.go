@@ -191,7 +191,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 	case "moodle":
 		_, err := s.moodle.ProvideUsernamePassword(ctx, &connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]{
 			Msg: &vcsmoodlev1.ProvideUsernamePasswordRequest{
-				StudentId: req.Msg.GetId(),
+				StudentId: profile.Email,
 				Username:  req.Msg.GetUsernamePassword().GetUsername(),
 				Password:  req.Msg.GetUsernamePassword().GetPassword(),
 			},
@@ -199,6 +199,8 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, fmt.Errorf("unknown credential id '%s'", req.Msg.GetId())
 	}
 
 	return &connect.Response[studentdatav1.ProvideCredentialResponse]{Msg: &studentdatav1.ProvideCredentialResponse{}}, nil

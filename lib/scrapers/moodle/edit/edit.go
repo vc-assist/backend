@@ -46,7 +46,7 @@ func (c Course) ensureEditing(ctx context.Context) error {
 		return nil
 	}
 
-	ctx, span := tracer.Start(ctx, "edit:ensureEditing")
+	ctx, span := tracer.Start(ctx, "ensureEditing")
 	defer span.End()
 
 	redirects := 0
@@ -86,7 +86,7 @@ type Section struct {
 }
 
 func (c Course) ListSections(ctx context.Context) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "edit:ListSections")
+	ctx, span := tracer.Start(ctx, "ListSections")
 	defer span.End()
 
 	err := c.ensureEditing(ctx)
@@ -201,7 +201,7 @@ type sectionResponse []struct {
 
 // note: this does not return the new sections created, but all the sections after creating the new sections
 func (c Course) CreateSections(ctx context.Context, lastSectionId string, count int) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "edit:CreateSection")
+	ctx, span := tracer.Start(ctx, "CreateSection")
 	defer span.End()
 
 	if count <= 0 {
@@ -285,7 +285,7 @@ type RenameEntry struct {
 }
 
 func (c Course) RenameSections(ctx context.Context, entries []RenameEntry) error {
-	ctx, span := tracer.Start(ctx, "edit:RenameSection")
+	ctx, span := tracer.Start(ctx, "RenameSection")
 	defer span.End()
 
 	err := c.ensureEditing(ctx)
@@ -314,7 +314,7 @@ func (c Course) RenameSections(ctx context.Context, entries []RenameEntry) error
 }
 
 func (c Course) DeleteSections(ctx context.Context, sectionIds []string) error {
-	ctx, span := tracer.Start(ctx, "edit:RemoveSection")
+	ctx, span := tracer.Start(ctx, "RemoveSection")
 	defer span.End()
 
 	err := c.ensureEditing(ctx)

@@ -36,8 +36,8 @@ The code that initializes this environment is kept under `dev/`.
 
 Here are a few things it sets up:
 
-1. An empty sqlite database + migrations for `cmd/powerservice/`.
-2. A local setup of telemetry using Docker Compose under `dev/local_stack/`.
+1. An empty sqlite database + migrations for all the services under `services/`.
+2. A local setup of telemetry using Docker Compose under `dev/local_stack/`, you can access the grafana dashboard at `http://localhost:3000`.
 3. Moodle credentials for use in testing in `lib/scrapers/moodle/...`
 
 As such, before running tests or doing local debugging you should run one of the following commands.
@@ -57,6 +57,7 @@ Here are some commands relating to linting and code generation that will probabl
 - `buf generate --template buf.gen-go.yaml` - generate golang protobuf code with [buf](https://buf.build/)
 - `buf generate --template buf.gen-ts.yaml` - generate typescript protobuf code with [buf](https://buf.build/)
 - `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent segmentation faults when chaining stuff together
+- `atlas schema apply -u "<db_url>" --to file://path/to/schema.sql --dev-url "sqlite://dev?mode=memory"` - migrates a database, see [declarative migrations](https://atlasgo.io/getting-started/#declarative-migrations)
 
 > [!NOTE]
 > To use these commands you'll need to install their respective dependencies.
@@ -65,6 +66,7 @@ Here are some commands relating to linting and code generation that will probabl
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
 - `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
 - `go install github.com/LQR471814/connectrpc-otel-gen@latest`
+- ``
 
 ## Testing
 

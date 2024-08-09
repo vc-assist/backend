@@ -98,7 +98,7 @@ func (c *Client) DefaultRedirectPolicy() resty.RedirectPolicy {
 }
 
 func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
-	ctx, span := tracer.Start(ctx, "client:LoginUsernamePassword")
+	ctx, span := tracer.Start(ctx, "LoginUsernamePassword")
 	defer span.End()
 
 	res, err := c.Http.R().

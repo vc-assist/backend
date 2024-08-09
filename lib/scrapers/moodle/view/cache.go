@@ -47,7 +47,7 @@ func (c webpageCache) key(clientId, endpoint string) (string, error) {
 }
 
 func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpage, error) {
-	ctx, span := tracer.Start(ctx, "cache:get")
+	ctx, span := tracer.Start(ctx, "get")
 	defer span.End()
 
 	key, err := c.key(clientId, endpoint)
@@ -127,7 +127,7 @@ func (c webpageCache) get(ctx context.Context, clientId, endpoint string) (webpa
 }
 
 func (c webpageCache) set(ctx context.Context, clientId, endpoint string, page webpage) error {
-	ctx, span := tracer.Start(ctx, "cache:set")
+	ctx, span := tracer.Start(ctx, "set")
 	defer span.End()
 
 	key, err := c.key(clientId, endpoint)

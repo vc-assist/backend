@@ -31,6 +31,10 @@ func create(recreate bool) error {
 	if err != nil {
 		return err
 	}
+	err = CreateEmptyServiceDBs()
+	if err != nil {
+		return err
+	}
 	PrintConfigLocations()
 
 	return nil

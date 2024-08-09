@@ -1,0 +1,10 @@
+{
+	// you should use your own gmail account to fill
+	// in the email config following this guide:
+	//
+	// https://mailtrap.io/blog/gmail-smtp/
+	email: {},
+	database: {
+		file: "<dev_state>/auth_service.db"
+	}
+}

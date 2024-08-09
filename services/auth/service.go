@@ -17,6 +17,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/jordan-wright/email"
+	"github.com/mazen160/go-random"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -48,24 +49,11 @@ func NewService(database *sql.DB, email EmailConfig) authv1connect.AuthServiceCl
 	)
 }
 
-func generateVerificationCode() (string, error) {
-	nonce := make([]byte, 4)
-	_, err := rand.Read(nonce)
-	if err != nil {
-		return "", err
-	}
-	return strings.ToUpper(fmt.Sprintf(
-		"%s-%s",
-		hex.EncodeToString(nonce[0:2]),
-		hex.EncodeToString(nonce[2:]),
-	)), nil
-}
-
 func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
 	ctx, span := tracer.Start(ctx, "createVerificationCode")
 	defer span.End()
 
-	code, err = generateVerificationCode()
+	code, err = random.String(8)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to generate verification code")

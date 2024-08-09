@@ -203,7 +203,7 @@ func provideNewToken(t testing.TB, ctx context.Context, service powerservicev1co
 }
 
 func TestOAuth(t *testing.T) {
-	service, cleanup := setup(t, "<dev_state>/powerservice_test.oauth.db")
+	service, cleanup := setup(t, "<dev_state>/powerservice_test.db")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestOAuth")
