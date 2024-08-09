@@ -21,12 +21,14 @@ import (
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
-var tracer = otel.Tracer("services/vcs")
+var tracer = otel.Tracer("vcassist.services.vcs")
 
 type Service struct {
 	db             *sql.DB
@@ -35,6 +37,8 @@ type Service struct {
 	powerschool    powerservicev1connect.PowerschoolServiceClient
 	moodle         vcsmoodlev1connect.MoodleServiceClient
 	linker         linkerv1connect.LinkerServiceClient
+
+	MaxDataCacheDuration time.Duration
 }
 
 func NewService(
@@ -43,6 +47,7 @@ func NewService(
 	moodle vcsmoodlev1connect.MoodleServiceClient,
 	linker linkerv1connect.LinkerServiceClient,
 	gradesnapshots gradesnapshotsv1connect.GradeSnapshotsServiceClient,
+	maxDataCacheDuration time.Duration,
 ) studentdatav1connect.StudentDataServiceClient {
 	return studentdatav1connect.NewInstrumentedStudentDataServiceClient(
 		Service{
@@ -52,6 +57,8 @@ func NewService(
 			moodle:         moodle,
 			linker:         linker,
 			gradesnapshots: gradesnapshots,
+
+			MaxDataCacheDuration: maxDataCacheDuration,
 		},
 	)
 }
@@ -211,7 +218,12 @@ func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) 
 	defer span.End()
 
 	cachedRow, err := s.qry.GetCachedStudentData(ctx, studentEmail)
-	if err == nil {
+	if err == sql.ErrNoRows {
+		err := fmt.Errorf("student data was not cached")
+		span.SetStatus(codes.Ok, err.Error())
+		return nil, err
+	}
+	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to read cache")
 		return nil, err
@@ -225,7 +237,7 @@ func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) 
 		return nil, err
 	}
 
-	var data *studentdatav1.StudentData
+	data := &studentdatav1.StudentData{}
 	err = proto.Unmarshal(cachedRow.Cached, data)
 	if err != nil {
 		span.RecordError(err)
@@ -233,6 +245,13 @@ func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) 
 		return nil, err
 	}
 	return data, nil
+}
+
+func instrumentDataSnapshot(span trace.Span, message string, data *studentdatav1.StudentData) {
+	span.AddEvent(
+		message,
+		trace.WithAttributes(attribute.String("data", protojson.Format(data))),
+	)
 }
 
 func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*studentdatav1.StudentData, error) {
@@ -248,10 +267,13 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 	})
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get powerschool data")
+		span.AddEvent("failed to get powerschool data")
+		span.SetStatus(codes.Error, "incomplete data")
 	} else {
 		patchStudentDataWithPowerschool(ctx, data, psres.Msg)
 	}
+
+	instrumentDataSnapshot(span, "patched powerschool student data", data)
 
 	moodleres, err := s.moodle.GetStudentData(ctx, &connect.Request[vcsmoodlev1.GetStudentDataRequest]{
 		Msg: &vcsmoodlev1.GetStudentDataRequest{
@@ -260,11 +282,14 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 	})
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get moodle data")
+		span.AddEvent("failed to get moodle data")
+		span.SetStatus(codes.Error, "incomplete data")
 	} else {
 		linkMoodleToPowerschool(ctx, s.linker, moodleres.Msg, psres.Msg)
 		patchStudentDataWithMoodle(ctx, data, moodleres.Msg)
 	}
+
+	instrumentDataSnapshot(span, "patched moodle student data", data)
 
 	courseSnapshots := make([]*gradesnapshotsv1.PushRequest_Course, len(data.GetCourses()))
 	for i, c := range data.GetCourses() {
@@ -282,7 +307,8 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 	})
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to push grade snapshots")
+		span.AddEvent("failed to push grade snapshot data")
+		span.SetStatus(codes.Error, "failed to push gradesnapshot data")
 	}
 
 	gradesnapshotres, err := s.gradesnapshots.Pull(ctx, &connect.Request[gradesnapshotsv1.PullRequest]{
@@ -292,31 +318,45 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 	})
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get grade snapshot data")
+		span.AddEvent("failed to get grade snapshot data")
+		span.SetStatus(codes.Error, "incomplete data")
 	} else {
 		patchStudentDataWithGradeSnapshots(ctx, data, gradesnapshotres.Msg)
 	}
 
-	weights, err := getWeightsForPowerschool(ctx, s.linker, psres.Msg)
+	instrumentDataSnapshot(span, "patched grade snapshots into student data", data)
+
+	weights, err := linkWeightsToPowerschool(ctx, s.linker, psres.Msg)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get weight data")
+		span.AddEvent("failed to get weight data")
+		span.SetStatus(codes.Error, "incomplete data")
 	} else {
+		linked, err := linkWeightsToPowerschool(ctx, s.linker, psres.Msg)
+		if err == nil {
+			weights = linked
+		}
 		patchStudentDataWithWeights(ctx, data, weights)
 	}
+
+	instrumentDataSnapshot(span, "patched grade weights into student data", data)
 
 	newCached, err := proto.Marshal(data)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-	}
-	err = s.qry.SetCachedStudentData(ctx, db.SetCachedStudentDataParams{
-		Studentid: userEmail,
-		Cached:    newCached,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+		span.AddEvent("failed to marshal completed data")
+		span.SetStatus(codes.Error, "failed to cache data")
+	} else {
+		err = s.qry.SetCachedStudentData(ctx, db.SetCachedStudentDataParams{
+			Studentid: userEmail,
+			Cached:    newCached,
+			Expiresat: timezone.Now().Add(s.MaxDataCacheDuration).Unix(),
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.AddEvent("failed to push marshaled data")
+			span.SetStatus(codes.Error, "failed to cache data")
+		}
 	}
 
 	return data, nil

@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("services/vcsmoodle")
+var tracer = otel.Tracer("vcassist.services.vcsmoodle")
 
 const baseUrl = "https://learn.vcs.net"
 const keychainNamespace = "vcsmoodle"

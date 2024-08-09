@@ -15,8 +15,10 @@
 		powerservice: {
 			file: "<dev_state>/powerservice_service.db"
 		},
-		vcs: {
+		self: {
 			file: "<dev_state>/vcs_service.db"
 		},
 	},
+	// 1 day = 60 * 60 * 24
+	max_data_cache_seconds: 86400,
 }

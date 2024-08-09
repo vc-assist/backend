@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("services/auth")
+var tracer = otel.Tracer("vcassist.services.auth")
 
 type EmailConfig struct {
 	Server       string `json:"server"`

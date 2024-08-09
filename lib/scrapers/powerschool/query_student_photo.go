@@ -7,7 +7,7 @@ import (
 
 const studentPhotoQuery = `query StudentPhoto($guid: ID!) {
   studentPhoto(guid: $guid) {
-    __typename image
+    image
   }
 }`
 

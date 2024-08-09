@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 	"vcassist-backend/lib/configuration"
 	configlibsql "vcassist-backend/lib/configuration/libsql"
 	"vcassist-backend/lib/osutil"
@@ -41,6 +42,8 @@ type DatabaseConfig struct {
 
 type Config struct {
 	Database DatabaseConfig `json:"database"`
+	// the maximum duration to cache the student data for
+	MaxDataCacheSeconds int `json:"max_data_cache_seconds"`
 }
 
 func main() {
@@ -99,6 +102,7 @@ func main() {
 		vcsmoodleService,
 		linkerService,
 		gradesnapshotService,
+		time.Duration(config.MaxDataCacheSeconds)*time.Second,
 	)
 
 	db, err = config.Database.Auth.OpenDB()

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-var tracer = otel.Tracer("htmlutil")
+var tracer = otel.Tracer("vcassist.lib.htmlutil")
 
 func GetText(node *html.Node) string {
 	var buffer bytes.Buffer

@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("oauth")
+var tracer = otel.Tracer("vcassist.lib.oauth")
 
 type AuthCodeRequest struct {
 	AccessType   string
@@ -173,9 +173,12 @@ func Refresh(ctx context.Context, token OpenIdToken, baseRefreshUrl, clientId st
 	req.FormData(ctx, body)
 
 	res, err := globalClient.R().
+		SetContext(ctx).
 		SetBody(body).
 		Post(baseRefreshUrl)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", OpenIdToken{}, err
 	}
 

@@ -106,5 +106,9 @@ func graphqlQuery(
 		return err
 	}
 
+	if span.IsRecording() {
+		span.SetAttributes(attribute.String("output", protojson.Format(output)))
+	}
+
 	return nil
 }

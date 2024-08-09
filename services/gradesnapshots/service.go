@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("services/gradesnapshots")
+var tracer = otel.Tracer("vcassist.services.gradesnapshots")
 
 type Service struct {
 	db  *sql.DB
@@ -91,7 +91,7 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	}
 
 	var courses []*gradesnapshotsv1.PullResponse_Course
-	var lastCourse *gradesnapshotsv1.PullResponse_Course
+	lastCourse := &gradesnapshotsv1.PullResponse_Course{}
 
 	for _, r := range rows {
 		// this works because the rows are sorted by course name

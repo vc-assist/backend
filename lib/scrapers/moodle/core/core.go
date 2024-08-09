@@ -20,7 +20,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("scrapers/moodle/core")
+var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.core")
 
 var LoginFailed = fmt.Errorf("Failed to login to your account.")
 

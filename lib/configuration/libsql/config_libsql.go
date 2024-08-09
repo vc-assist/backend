@@ -16,6 +16,9 @@ type Struct struct {
 
 func (config Struct) OpenDB() (*sql.DB, error) {
 	if config.Url == "" {
+		if config.File == "" {
+			return nil, fmt.Errorf("a subpath was not specified")
+		}
 		dbpath, err := devenv.ResolvePath(config.File)
 		if err != nil {
 			return nil, err

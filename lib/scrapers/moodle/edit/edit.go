@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("scrapers/moodle/edit")
+var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.edit")
 
 type Course struct {
 	Id   string

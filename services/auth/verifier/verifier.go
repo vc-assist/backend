@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("verifier")
+var tracer = otel.Tracer("vcassist.services.auth.verifier")
 
 type Verifier struct {
 	qry *db.Queries
