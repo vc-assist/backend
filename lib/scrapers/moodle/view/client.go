@@ -72,7 +72,7 @@ func coursesFromAnchors(anchors []htmlutil.Anchor) []Course {
 const COURSE_LIST_LIFETIME = int64((time.Hour / time.Second) * 24 * 30 * 6)
 
 func (c Client) Courses(ctx context.Context) ([]Course, error) {
-	ctx, span := tracer.Start(ctx, "client:Courses")
+	ctx, span := tracer.Start(ctx, "Courses")
 	defer span.End()
 
 	page, err := c.cache.get(ctx, c.ClientId, "/index.php")
@@ -139,7 +139,7 @@ func sectionsFromAnchors(anchors []htmlutil.Anchor) []Section {
 const SECTION_LIST_LIFETIME = int64(time.Hour / time.Second * 24)
 
 func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "client:Sections")
+	ctx, span := tracer.Start(ctx, "Sections")
 	defer span.End()
 
 	endpoint := course.Href
@@ -201,7 +201,7 @@ func resourcesFromAnchors(anchors []htmlutil.Anchor) []Resource {
 const RESOURCE_LIST_LIFETIME = int64(time.Minute * 15 / time.Second)
 
 func (c Client) Resources(ctx context.Context, section Section) ([]Resource, error) {
-	ctx, span := tracer.Start(ctx, "client:Resources")
+	ctx, span := tracer.Start(ctx, "Resources")
 	defer span.End()
 
 	endpoint := section.Href
@@ -266,7 +266,7 @@ func chaptersFromAnchors(anchors []htmlutil.Anchor) []Chapter {
 const CHAPTER_LIST_LIFETIME = int64(time.Minute * 15 / time.Second)
 
 func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, error) {
-	ctx, span := tracer.Start(ctx, "client:Chapters")
+	ctx, span := tracer.Start(ctx, "Chapters")
 	defer span.End()
 
 	endpoint := resource.Href
@@ -325,7 +325,7 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 }
 
 func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, error) {
-	ctx, span := tracer.Start(ctx, "client:ChapterContent")
+	ctx, span := tracer.Start(ctx, "ChapterContent")
 	defer span.End()
 
 	endpoint := chapter.Href

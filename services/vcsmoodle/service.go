@@ -16,6 +16,7 @@ import (
 
 var tracer = otel.Tracer("services/vcsmoodle")
 
+const baseUrl = "https://learn.vcs.net"
 const keychainNamespace = "vcsmoodle"
 
 type Service struct {
@@ -64,6 +65,17 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 
+	client, err := core.NewClient(ctx, core.ClientOptions{
+		BaseUrl: baseUrl,
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = client.LoginUsernamePassword(ctx, req.Msg.GetUsername(), req.Msg.GetPassword())
+	if err != nil {
+		return nil, err
+	}
+
 	return &connect.Response[vcsmoodlev1.ProvideUsernamePasswordResponse]{Msg: &vcsmoodlev1.ProvideUsernamePasswordResponse{}}, nil
 }
 
@@ -79,7 +91,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 	}
 
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
-		BaseUrl: "https://learn.vcs.net",
+		BaseUrl: baseUrl,
 	})
 	if err != nil {
 		return nil, err

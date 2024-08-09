@@ -84,8 +84,10 @@ func ResolvePath(path string) (string, error) {
 		return "", err
 	}
 
-	subpath := strings.Replace(path, "<dev_state>/", "", 1)
-	statepath := filepath.Join(root, "dev/.state", subpath)
+	subpath := filepath.Join(strings.Split(path, string(os.PathSeparator))[1:]...)
+	statepath := filepath.Join(
+		root, "dev", ".state", subpath,
+	)
 
 	return statepath, nil
 }

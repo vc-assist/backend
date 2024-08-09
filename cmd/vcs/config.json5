@@ -1,0 +1,22 @@
+{
+	database: {
+		auth: {
+			file: "<dev_state>/auth_service.db"
+		},
+		keychain: {
+			file: "<dev_state>/keychain_service.db"
+		},
+		grade_snapshot: {
+			file: "<dev_state>/gradesnapshots_service.db"
+		},
+		linker: {
+			file: "<dev_state>/linker_service.db"
+		},
+		powerservice: {
+			file: "<dev_state>/powerservice_service.db"
+		},
+		vcs: {
+			file: "<dev_state>/vcs_service.db"
+		},
+	},
+}

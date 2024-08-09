@@ -14,6 +14,7 @@ require (
 	github.com/jhvst/go-jaro-winkler-distance v0.0.0-20220308004700-32671379e37c
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lqr471814/protocolreg v0.0.0-20240623001501-4610d908ae22
+	github.com/mazen160/go-random v0.0.0-20210308102632-d2b501c85c03
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/titanous/json5 v1.0.0

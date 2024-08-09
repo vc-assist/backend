@@ -23,7 +23,7 @@ func NewVerifier(database *sql.DB) Verifier {
 var InvalidToken = fmt.Errorf("invalid token")
 
 func (v Verifier) VerifyToken(ctx context.Context, token string) (db.User, error) {
-	ctx, span := tracer.Start(ctx, "verifier:VerifyToken")
+	ctx, span := tracer.Start(ctx, "VerifyToken")
 	defer span.End()
 
 	email, err := v.qry.GetUserFromToken(ctx, token)

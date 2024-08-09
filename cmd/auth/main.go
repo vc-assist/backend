@@ -6,6 +6,8 @@ import (
 	"os"
 	"vcassist-backend/lib/configuration"
 	configlibsql "vcassist-backend/lib/configuration/libsql"
+	"vcassist-backend/lib/osutil"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
 
@@ -18,17 +20,16 @@ func fatalerr(message string, err error) {
 	os.Exit(1)
 }
 
-type AuthConfig struct {
+type Config struct {
 	Email  auth.EmailConfig    `json:"email"`
 	Libsql configlibsql.Struct `json:"database"`
 }
 
 func main() {
-	config, err := configuration.ReadConfig[AuthConfig]("config.json5")
+	config, err := configuration.ReadConfig[Config]("config.json5")
 	if err != nil {
 		fatalerr("failed to read config", err)
 	}
-
 	slog.Info("opening database...")
 	sqlite, err := config.Libsql.OpenDB()
 	if err != nil {
@@ -39,12 +40,20 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle(authv1connect.NewAuthServiceHandler(service))
 
-	slog.Info("listening to gRPC...", "port", 8111)
-	err = http.ListenAndServe(
-		"127.0.0.1:8111",
-		h2c.NewHandler(mux, &http2.Server{}),
-	)
-	if err != nil {
-		fatalerr("failed to listen to port 8111", err)
-	}
+	ctx := osutil.SignalContext()
+
+	go func() {
+		slog.Info("listening to gRPC...", "port", 8111)
+		err = http.ListenAndServe(
+			"127.0.0.1:8111",
+			h2c.NewHandler(mux, &http2.Server{}),
+		)
+		if err != nil {
+			fatalerr("failed to listen to port 8111", err)
+		}
+	}()
+
+	telemetry.SetupFromEnv(ctx, "cmd/auth")
+
+	<-ctx.Done()
 }

@@ -8,12 +8,9 @@ import (
 	"os"
 	"vcassist-backend/lib/configuration"
 	configlibsql "vcassist-backend/lib/configuration/libsql"
-	"vcassist-backend/proto/vcassist/services/gradesnapshots/v1/gradesnapshotsv1connect"
-	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
-	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
-	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
+	"vcassist-backend/lib/osutil"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
-	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/gradesnapshots"
 	"vcassist-backend/services/keychain"
@@ -47,7 +44,7 @@ type Config struct {
 }
 
 func main() {
-	config, err := configuration.ReadConfig[Config]("config.json")
+	config, err := configuration.ReadConfig[Config]("config.json5")
 	if err != nil {
 		fatalerr("failed to read config", err)
 	}
@@ -57,63 +54,51 @@ func main() {
 	if err != nil {
 		fatalerr("failed to open gradesnapshot database", err)
 	}
-	gradesnapshotService := gradesnapshotsv1connect.NewInstrumentedGradeSnapshotsServiceClient(
-		gradesnapshots.NewService(db),
-	)
+	gradesnapshotService := gradesnapshots.NewService(db)
 
 	db, err = config.Database.Linker.OpenDB()
 	if err != nil {
 		fatalerr("failed to open linker database", err)
 	}
-	linkerService := linkerv1connect.NewInstrumentedLinkerServiceClient(
-		linker.NewService(db),
-	)
+	linkerService := linker.NewService(db)
 
 	db, err = config.Database.Keychain.OpenDB()
 	if err != nil {
 		fatalerr("failed to open keychain database", err)
 	}
-	keychainService := keychainv1connect.NewInstrumentedKeychainServiceClient(
-		keychain.NewService(context.Background(), db),
-	)
+	keychainService := keychain.NewService(context.Background(), db)
 
 	db, err = config.Database.Powerservice.OpenDB()
 	if err != nil {
 		fatalerr("failed to open powerschoold database", err)
 	}
-	powerserviceService := powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
-		powerservice.NewService(
-			db,
-			keychainService,
-			"https://vcsnet.powerschool.com",
-			powerservice.OAuthConfig{
-				BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-				RefreshUrl:   "https://oauth2.googleapis.com/token",
-				ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
-			},
-		),
+	powerserviceService := powerservice.NewService(
+		db,
+		keychainService,
+		"https://vcsnet.powerschool.com",
+		powerservice.OAuthConfig{
+			BaseLoginUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+			RefreshUrl:   "https://oauth2.googleapis.com/token",
+			ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
+		},
 	)
 
 	moodleCache, err := badger.Open(badger.DefaultOptions("moodle-cache.db"))
 	if err != nil {
 		fatalerr("failed to open moodle KV cache", err)
 	}
-	vcsmoodleService := vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(
-		vcsmoodle.NewService(moodleCache, keychainService),
-	)
+	vcsmoodleService := vcsmoodle.NewService(moodleCache, keychainService)
 
 	db, err = config.Database.Self.OpenDB()
 	if err != nil {
 		fatalerr("failed to open self DB", err)
 	}
-	service := studentdatav1connect.NewInstrumentedStudentDataServiceClient(
-		vcs.NewService(
-			db,
-			powerserviceService,
-			vcsmoodleService,
-			linkerService,
-			gradesnapshotService,
-		),
+	service := vcs.NewService(
+		db,
+		powerserviceService,
+		vcsmoodleService,
+		linkerService,
+		gradesnapshotService,
 	)
 
 	db, err = config.Database.Auth.OpenDB()
@@ -129,12 +114,20 @@ func main() {
 		connect.WithInterceptors(authInterceptor),
 	))
 
-	slog.Info("listening to gRPC...", "port", 9111)
-	err = http.ListenAndServe(
-		"127.0.0.1:8111",
-		h2c.NewHandler(mux, &http2.Server{}),
-	)
-	if err != nil {
-		fatalerr("failed to listen on port 9111", err)
-	}
+	ctx := osutil.SignalContext()
+
+	go func() {
+		slog.Info("listening to gRPC...", "port", 9111)
+		err = http.ListenAndServe(
+			"127.0.0.1:9111",
+			h2c.NewHandler(mux, &http2.Server{}),
+		)
+		if err != nil {
+			fatalerr("failed to listen on port 9111", err)
+		}
+	}()
+
+	telemetry.SetupFromEnv(ctx, "cmd/vcs")
+
+	<-ctx.Done()
 }
