@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("scrapers/powerschool")
+var tracer = otel.Tracer("vcassist.lib.scrapers.powerschool")
 
 type Client struct {
 	http *resty.Client

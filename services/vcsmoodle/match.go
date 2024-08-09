@@ -44,6 +44,7 @@ var blacklistCourseKeywords = []string{
 	"chorale",
 	"productionarts",
 	"peextension",
+	"counselor",
 }
 var classInfoKeywords = []string{
 	"welcome",

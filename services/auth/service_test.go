@@ -92,7 +92,7 @@ func TestLoginFlow(t *testing.T) {
 	service, cleanup := setup(t)
 	defer cleanup()
 
-	tracer := otel.Tracer("service_test")
+	tracer := otel.Tracer("vcassist.services.auth.service_test")
 	ctx, span := tracer.Start(context.Background(), "TestLoginFlow")
 	defer span.End()
 

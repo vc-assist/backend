@@ -65,7 +65,7 @@ type Event struct {
 	Date time.Time
 }
 
-var tracer = otel.Tracer("scrapers/vcsnet")
+var tracer = otel.Tracer("vcassist.lib.scrapers.vcsnet")
 var client = resty.New()
 
 func init() {

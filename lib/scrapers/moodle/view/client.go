@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("scrapers/moodle/view")
+var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.view")
 
 type Client struct {
 	ClientId string

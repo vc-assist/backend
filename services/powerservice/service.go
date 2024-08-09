@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var tracer = otel.Tracer("services/powerschool")
+var tracer = otel.Tracer("vcassist.services.powerservice")
 
 const keychainNamespace = "powerservice"
 

@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("services/keychain")
+var tracer = otel.Tracer("vcassist.services.keychain")
 
 type Service struct {
 	db  *sql.DB
@@ -37,7 +37,7 @@ func NewService(ctx context.Context, database *sql.DB) keychainv1connect.Keychai
 }
 
 func (s Service) refreshOAuthKey(ctx context.Context, original db.OAuth) error {
-	ctx, span := tracer.Start(ctx, "refreshOAuthToken")
+	ctx, span := tracer.Start(ctx, "refreshOAuthKey")
 	defer span.End()
 
 	span.SetAttributes(
@@ -68,6 +68,8 @@ func (s Service) refreshOAuthKey(ctx context.Context, original db.OAuth) error {
 		return err
 	}
 
+	span.SetAttributes(attribute.String("new-token", newToken))
+
 	expiresAt := timezone.Now().Add(time.Duration(newTokenObject.ExpiresIn))
 
 	err = s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
@@ -87,7 +89,7 @@ func (s Service) refreshOAuthKey(ctx context.Context, original db.OAuth) error {
 	return nil
 }
 func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
-	ctx, span := tracer.Start(ctx, "refreshOAuthKeys")
+	ctx, span := tracer.Start(ctx, "refreshAllOAuthKeys")
 	defer span.End()
 
 	now := timezone.Now().Add(5 * time.Minute)

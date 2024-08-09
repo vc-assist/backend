@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("services/linker")
+var tracer = otel.Tracer("vcassist.services.linker")
 
 type Service struct {
 	qry *db.Queries

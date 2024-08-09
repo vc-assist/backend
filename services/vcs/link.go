@@ -53,12 +53,12 @@ func linkMoodleToPowerschool(
 	return nil
 }
 
-func getWeightsForPowerschool(
+func linkWeightsToPowerschool(
 	ctx context.Context,
 	linker linkerv1connect.LinkerServiceClient,
 	ps *powerservicev1.GetStudentDataResponse,
 ) (weightData, error) {
-	ctx, span := tracer.Start(ctx, "getWeightsForPowerschool")
+	ctx, span := tracer.Start(ctx, "linkWeightsToPowerschool")
 	defer span.End()
 
 	courseNames := make([]string, len(ps.GetCourseData()))
