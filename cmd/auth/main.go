@@ -45,7 +45,7 @@ func main() {
 	go func() {
 		slog.Info("listening to gRPC...", "port", 8111)
 		err = http.ListenAndServe(
-			"127.0.0.1:8111",
+			"0.0.0.0:8111",
 			h2c.NewHandler(mux, &http2.Server{}),
 		)
 		if err != nil {
