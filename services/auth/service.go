@@ -24,27 +24,32 @@ import (
 
 var tracer = otel.Tracer("vcassist.services.auth")
 
-type EmailConfig struct {
-	Server       string `json:"server"`
-	Port         int    `json:"port"`
-	EmailAddress string `json:"email_address"`
-	Password     string `json:"password"`
+type SmtpConfig struct {
+	Server       string
+	Port         int
+	EmailAddress string
+	Password     string
+}
+
+type Config struct {
+	Smtp           SmtpConfig
+	AllowedDomains []string
 }
 
 type Service struct {
 	db       *sql.DB
 	qry      *db.Queries
-	email    EmailConfig
 	verifier verifier.Verifier
+	config   Config
 }
 
-func NewService(database *sql.DB, email EmailConfig) authv1connect.AuthServiceClient {
+func NewService(database *sql.DB, config Config) authv1connect.AuthServiceClient {
 	return authv1connect.NewInstrumentedAuthServiceClient(
 		Service{
 			db:       database,
 			qry:      db.New(database),
-			email:    email,
 			verifier: verifier.NewVerifier(database),
+			config:   config,
 		},
 	)
 }
@@ -78,7 +83,7 @@ func (s Service) sendVerificationCode(ctx context.Context, userEmail, code strin
 	defer span.End()
 
 	mail := email.NewEmail()
-	mail.From = fmt.Sprintf("VC Assist <%s>", s.email.EmailAddress)
+	mail.From = fmt.Sprintf("VC Assist <%s>", s.config.Smtp.EmailAddress)
 	mail.To = []string{userEmail}
 	mail.Subject = "Verification Code"
 
@@ -90,11 +95,11 @@ If you don't recognize this account, please ignore this email.`, code)
 	mail.Text = []byte(body)
 
 	err := mail.Send(
-		fmt.Sprintf("%s:%d", s.email.Server, s.email.Port),
-		smtp.PlainAuth("", s.email.EmailAddress, s.email.Password, s.email.Server),
+		fmt.Sprintf("%s:%d", s.config.Smtp.Server, s.config.Smtp.Port),
+		smtp.PlainAuth("", s.config.Smtp.EmailAddress, s.config.Smtp.Password, s.config.Smtp.Server),
 	)
 	if err != nil && strings.Contains(err.Error(), "server doesn't support AUTH") {
-		err = mail.Send(fmt.Sprintf("%s:%d", s.email.Server, s.email.Port), nil)
+		err = mail.Send(fmt.Sprintf("%s:%d", s.config.Smtp.Server, s.config.Smtp.Port), nil)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "failed to send email")
@@ -110,6 +115,18 @@ If you don't recognize this account, please ignore this email.`, code)
 	return nil
 }
 
+func (s Service) hasAllowedDomain(email string) bool {
+	if len(s.config.AllowedDomains) == 0 {
+		return true
+	}
+	for _, d := range s.config.AllowedDomains {
+		if strings.HasSuffix(email, d) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.StartLoginRequest]) (*connect.Response[authv1.StartLoginResponse], error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -119,6 +136,9 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.Sta
 	txqry := s.qry.WithTx(tx)
 
 	email := req.Msg.GetEmail()
+	if !s.hasAllowedDomain(email) {
+		return nil, fmt.Errorf("Invalid email domain, please use a different email address.")
+	}
 
 	err = txqry.EnsureUserExists(ctx, email)
 	if err != nil {
