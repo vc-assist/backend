@@ -3,7 +3,7 @@
 	// in the email config following this guide:
 	//
 	// https://mailtrap.io/blog/gmail-smtp/
-	email: {},
+	smtp: {},
 	database: {
 		file: "<dev_state>/auth_service.db"
 	}

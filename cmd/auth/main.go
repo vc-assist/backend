@@ -20,13 +20,21 @@ func fatalerr(message string, err error) {
 	os.Exit(1)
 }
 
-type Config struct {
-	Email  auth.EmailConfig    `json:"email"`
-	Libsql configlibsql.Struct `json:"database"`
+type smtpConfig struct {
+	Server       string `json:"server"`
+	Port         int    `json:"port"`
+	EmailAddress string `json:"email_address"`
+	Password     string `json:"password"`
+}
+
+type config struct {
+	Smtp           smtpConfig          `json:"smtp"`
+	Libsql         configlibsql.Struct `json:"database"`
+	AllowedDomains []string            `json:"allowed_domains"`
 }
 
 func main() {
-	config, err := configuration.ReadConfig[Config]("config.json5")
+	config, err := configuration.ReadConfig[config]("config.json5")
 	if err != nil {
 		fatalerr("failed to read config", err)
 	}
@@ -36,7 +44,10 @@ func main() {
 		fatalerr("failed to open libsql connector", err)
 	}
 
-	service := auth.NewService(sqlite, config.Email)
+	service := auth.NewService(sqlite, auth.Config{
+		AllowedDomains: config.AllowedDomains,
+		Smtp:           auth.SmtpConfig(config.Smtp),
+	})
 	mux := http.NewServeMux()
 	mux.Handle(authv1connect.NewAuthServiceHandler(service))
 

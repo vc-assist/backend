@@ -23,16 +23,6 @@ import (
 	_ "embed"
 )
 
-var codeRegex = regexp.MustCompile(`[A-F0-9]{4}-[A-F0-9]{4}`)
-
-func TestGenerateCode(t *testing.T) {
-	code, err := generateVerificationCode()
-	if err != nil {
-		t.Fatal(err)
-	}
-	require.True(t, codeRegex.MatchString(code))
-}
-
 //go:embed db/schema.sql
 var schemaSql string
 
@@ -60,11 +50,13 @@ func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
 		t.Fatal(err)
 	}
 
-	service := NewService(res.DB, EmailConfig{
-		Server:       "localhost",
-		Port:         1025,
-		EmailAddress: "alice@email.com",
-		Password:     "default",
+	service := NewService(res.DB, Config{
+		Smtp: SmtpConfig{
+			Server:       "localhost",
+			Port:         1025,
+			EmailAddress: "alice@email.com",
+			Password:     "default",
+		},
 	})
 
 	return service, func() {
@@ -77,6 +69,8 @@ func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
 }
 
 var globalClient = resty.New()
+
+var codeRegex = regexp.MustCompile(`^\w{8}$`)
 
 func getVerificationCodeFromEmail(t testing.TB) string {
 	res, err := globalClient.R().
