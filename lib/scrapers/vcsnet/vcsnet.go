@@ -70,7 +70,7 @@ var client = resty.New()
 
 func init() {
 	client = resty.New()
-	telemetry.InstrumentResty(client, "scrapers/vcsnet/http")
+	telemetry.InstrumentResty(client, tracer)
 }
 
 func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {

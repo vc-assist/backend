@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var tracer = otel.Tracer("vcassist.lib.scrapers.powerschool")
@@ -30,7 +31,7 @@ func NewClient(baseUrl string) (*Client, error) {
 	client.SetCookieJar(jar)
 	client.SetHeader("user-agent", "okhttp/4.9.1")
 
-	telemetry.InstrumentResty(client, "scrapers/powerschool/http")
+	telemetry.InstrumentResty(client, tracer)
 
 	return &Client{http: client}, nil
 }
@@ -54,7 +55,14 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 		SetHeader("profileUri", openidToken.IdToken).
 		SetHeader("ServerURL", c.http.BaseURL)
 
-	expiresAt = timezone.Now().Add(time.Second * time.Duration(openidToken.ExpiresIn))
+	now := timezone.Now()
+	expiresAt = now.Add(time.Second * time.Duration(openidToken.ExpiresIn))
+
+	span.SetAttributes(
+		attribute.String("now", now.Format(time.ANSIC)),
+		attribute.String("expiresAt", expiresAt.Format(time.ANSIC)),
+	)
+
 	return expiresAt, nil
 }
 

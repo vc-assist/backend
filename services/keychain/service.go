@@ -4,14 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"net/url"
+	"sync"
 	"time"
 	"vcassist-backend/lib/oauth"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/services/keychain/db"
 
 	"connectrpc.com/connect"
+	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -20,14 +25,21 @@ import (
 var tracer = otel.Tracer("vcassist.services.keychain")
 
 type Service struct {
-	db  *sql.DB
-	qry *db.Queries
+	db     *sql.DB
+	qry    *db.Queries
+	client *resty.Client
 }
 
 func NewService(ctx context.Context, database *sql.DB) keychainv1connect.KeychainServiceClient {
+	client := resty.New()
+	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+	client.SetTimeout(time.Second * 30)
+	telemetry.InstrumentResty(client, tracer)
+
 	s := Service{
-		db:  database,
-		qry: db.New(database),
+		db:     database,
+		qry:    db.New(database),
+		client: client,
 	}
 
 	go s.refreshOAuthDaemon(ctx)
@@ -36,48 +48,79 @@ func NewService(ctx context.Context, database *sql.DB) keychainv1connect.Keychai
 	return keychainv1connect.NewInstrumentedKeychainServiceClient(s)
 }
 
-func (s Service) refreshOAuthKey(ctx context.Context, original db.OAuth) error {
+func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) error {
 	ctx, span := tracer.Start(ctx, "refreshOAuthKey")
 	defer span.End()
 
 	span.SetAttributes(
 		attribute.KeyValue{
 			Key:   "expires_at",
-			Value: attribute.Int64Value(original.ExpiresAt),
+			Value: attribute.Int64Value(originalRow.ExpiresAt),
 		},
 		attribute.KeyValue{
 			Key:   "token",
-			Value: attribute.StringValue(original.Token),
+			Value: attribute.StringValue(originalRow.Token),
 		},
 	)
 
 	var originalToken oauth.OpenIdToken
-	err := json.Unmarshal([]byte(original.Token), &originalToken)
+	err := json.Unmarshal([]byte(originalRow.Token), &originalToken)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to deserialize original token")
 		return err
 	}
 
-	newToken, newTokenObject, err := oauth.Refresh(
-		ctx, originalToken, original.RefreshUrl, original.ClientID,
-	)
+	if originalToken.RefreshToken == "" {
+		err := fmt.Errorf("token is not refreshable")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil
+	}
+
+	form := url.Values{}
+	form.Add("grant_type", "refresh_token")
+	form.Add("client_id", originalRow.ClientID)
+	form.Add("scope", originalToken.Scope)
+	form.Add("refresh_token", originalToken.RefreshToken)
+
+	res, err := s.client.R().
+		SetContext(ctx).
+		SetBody(form.Encode()).
+		SetHeader("content-type", "application/x-www-form-urlencoded").
+		Post(originalRow.RefreshUrl)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to refresh oauth token")
 		return err
 	}
 
-	span.SetAttributes(attribute.String("new-token", newToken))
+	var newToken oauth.OpenIdToken
+	err = json.Unmarshal(res.Body(), &newToken)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to parse response token")
+		return err
+	}
 
-	expiresAt := timezone.Now().Add(time.Duration(newTokenObject.ExpiresIn))
+	newToken.RefreshToken = originalToken.RefreshToken
+	expiresAt := timezone.Now().Add(time.Duration(newToken.ExpiresIn) * time.Second)
+
+	newTokenJson, err := json.Marshal(newToken)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to serialize new token")
+		return err
+	}
+
+	span.SetAttributes(attribute.String("new-token", string(newTokenJson)))
 
 	err = s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
-		ID:         original.ID,
-		Namespace:  original.Namespace,
-		RefreshUrl: original.RefreshUrl,
-		ClientID:   original.ClientID,
-		Token:      newToken,
+		ID:         originalRow.ID,
+		Namespace:  originalRow.Namespace,
+		RefreshUrl: originalRow.RefreshUrl,
+		ClientID:   originalRow.ClientID,
+		Token:      string(newTokenJson),
 		ExpiresAt:  expiresAt.Unix(),
 	})
 	if err != nil {
@@ -88,6 +131,7 @@ func (s Service) refreshOAuthKey(ctx context.Context, original db.OAuth) error {
 
 	return nil
 }
+
 func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
 	ctx, span := tracer.Start(ctx, "refreshAllOAuthKeys")
 	defer span.End()
@@ -100,14 +144,21 @@ func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
 		return err
 	}
 
+	wg := sync.WaitGroup{}
 	for _, row := range almostExpired {
-		s.refreshOAuthKey(ctx, row)
+		wg.Add(1)
+		go func(row db.OAuth) {
+			s.refreshOAuthKey(ctx, row)
+			wg.Done()
+		}(row)
 	}
+	wg.Wait()
+
 	return nil
 }
 
 func (s Service) refreshOAuthDaemon(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute * 5)
+	ticker := time.NewTicker(time.Minute * 3)
 	defer ticker.Stop()
 	for {
 		select {

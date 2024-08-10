@@ -16,9 +16,7 @@ import (
 
 var propagator = otel.GetTextMapPropagator()
 
-func InstrumentResty(client *resty.Client, tracerName string) {
-	tracer := otel.Tracer(tracerName)
-
+func InstrumentResty(client *resty.Client, tracer trace.Tracer) {
 	client.OnBeforeRequest(onBeforeRequest(tracer))
 	client.OnAfterResponse(onAfterResponse)
 	client.OnError(onError)
