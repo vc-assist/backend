@@ -271,9 +271,9 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		span.SetStatus(codes.Error, "incomplete data")
 	} else {
 		patchStudentDataWithPowerschool(ctx, data, psres.Msg)
-	}
 
-	instrumentDataSnapshot(span, "patched powerschool student data", data)
+		instrumentDataSnapshot(span, "patched powerschool student data", data)
+	}
 
 	moodleres, err := s.moodle.GetStudentData(ctx, &connect.Request[vcsmoodlev1.GetStudentDataRequest]{
 		Msg: &vcsmoodlev1.GetStudentDataRequest{
@@ -285,11 +285,13 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		span.AddEvent("failed to get moodle data")
 		span.SetStatus(codes.Error, "incomplete data")
 	} else {
-		linkMoodleToPowerschool(ctx, s.linker, moodleres.Msg, psres.Msg)
+		if psres != nil {
+			linkMoodleToPowerschool(ctx, s.linker, moodleres.Msg, psres.Msg)
+		}
 		patchStudentDataWithMoodle(ctx, data, moodleres.Msg)
-	}
 
-	instrumentDataSnapshot(span, "patched moodle student data", data)
+		instrumentDataSnapshot(span, "patched moodle student data", data)
+	}
 
 	courseSnapshots := make([]*gradesnapshotsv1.PushRequest_Course, len(data.GetCourses()))
 	for i, c := range data.GetCourses() {
@@ -322,24 +324,22 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		span.SetStatus(codes.Error, "incomplete data")
 	} else {
 		patchStudentDataWithGradeSnapshots(ctx, data, gradesnapshotres.Msg)
+
+		instrumentDataSnapshot(span, "patched grade snapshots into student data", data)
 	}
 
-	instrumentDataSnapshot(span, "patched grade snapshots into student data", data)
+	if psres != nil {
+		weights, err := linkWeightsToPowerschool(ctx, s.linker, psres.Msg)
+		if err != nil {
+			span.RecordError(err)
+			span.AddEvent("failed to get weight data")
+			span.SetStatus(codes.Error, "incomplete data")
+		} else {
+			patchStudentDataWithWeights(ctx, data, weights)
 
-	weights, err := linkWeightsToPowerschool(ctx, s.linker, psres.Msg)
-	if err != nil {
-		span.RecordError(err)
-		span.AddEvent("failed to get weight data")
-		span.SetStatus(codes.Error, "incomplete data")
-	} else {
-		linked, err := linkWeightsToPowerschool(ctx, s.linker, psres.Msg)
-		if err == nil {
-			weights = linked
+			instrumentDataSnapshot(span, "patched grade weights into student data", data)
 		}
-		patchStudentDataWithWeights(ctx, data, weights)
 	}
-
-	instrumentDataSnapshot(span, "patched grade weights into student data", data)
 
 	newCached, err := proto.Marshal(data)
 	if err != nil {
