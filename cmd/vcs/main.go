@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	configlibsql "vcassist-backend/lib/configuration/libsql"
 	"vcassist-backend/lib/osutil"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/gradesnapshots"
@@ -46,6 +48,19 @@ type Config struct {
 	MaxDataCacheSeconds int `json:"max_data_cache_seconds"`
 }
 
+func startHttpServer(port int, mux *http.ServeMux) {
+	go func() {
+		slog.Info("listening to gRPC...", "port", port)
+		err := http.ListenAndServe(
+			fmt.Sprintf("0.0.0.0:%d", port),
+			h2c.NewHandler(mux, &http2.Server{}),
+		)
+		if err != nil {
+			fatalerr(fmt.Sprintf("failed to listen on port %d", port), err)
+		}
+	}()
+}
+
 func main() {
 	config, err := configuration.ReadConfig[Config]("config.json5")
 	if err != nil {
@@ -58,12 +73,6 @@ func main() {
 		fatalerr("failed to open gradesnapshot database", err)
 	}
 	gradesnapshotService := gradesnapshots.NewService(db)
-
-	db, err = config.Database.Linker.OpenDB()
-	if err != nil {
-		fatalerr("failed to open linker database", err)
-	}
-	linkerService := linker.NewService(db)
 
 	db, err = config.Database.Keychain.OpenDB()
 	if err != nil {
@@ -92,6 +101,12 @@ func main() {
 	}
 	vcsmoodleService := vcsmoodle.NewService(moodleCache, keychainService)
 
+	db, err = config.Database.Linker.OpenDB()
+	if err != nil {
+		fatalerr("failed to open linker database", err)
+	}
+	linkerService := linker.NewService(db)
+
 	db, err = config.Database.Self.OpenDB()
 	if err != nil {
 		fatalerr("failed to open self DB", err)
@@ -112,26 +127,21 @@ func main() {
 	verify := verifier.NewVerifier(db)
 	authInterceptor := verifier.NewAuthInterceptor(verify)
 
-	mux := http.NewServeMux()
-	mux.Handle(studentdatav1connect.NewStudentDataServiceHandler(
+	linkerMux := http.NewServeMux()
+	linkerMux.Handle(linkerv1connect.NewLinkerServiceHandler(linkerService))
+
+	studentDataMux := http.NewServeMux()
+	studentDataMux.Handle(studentdatav1connect.NewStudentDataServiceHandler(
 		service,
 		connect.WithInterceptors(authInterceptor),
 	))
 
 	ctx := osutil.SignalContext()
 
-	go func() {
-		slog.Info("listening to gRPC...", "port", 9111)
-		err = http.ListenAndServe(
-			"127.0.0.1:9111",
-			h2c.NewHandler(mux, &http2.Server{}),
-		)
-		if err != nil {
-			fatalerr("failed to listen on port 9111", err)
-		}
-	}()
-
 	telemetry.SetupFromEnv(ctx, "cmd/vcs")
+
+	startHttpServer(8222, linkerMux)
+	startHttpServer(9111, studentDataMux)
 
 	<-ctx.Done()
 }

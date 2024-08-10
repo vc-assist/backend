@@ -9,4 +9,5 @@ dev/.state
 
 cmd/vcs/vcs
 cmd/auth/auth
+cmd/linker-cli/linker-cli
 
