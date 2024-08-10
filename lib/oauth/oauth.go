@@ -1,16 +1,11 @@
 package oauth
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
-	"io"
-	"mime/multipart"
 	"net/url"
 
-	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -101,44 +96,6 @@ func GetLoginUrl(ctx context.Context, req AuthCodeRequest, baseLoginUrl string) 
 	return endpoint.String(), nil
 }
 
-type RefreshRequest struct {
-	Scope        string
-	ClientId     string
-	RefreshToken string
-}
-
-func (req RefreshRequest) FormData(ctx context.Context, out io.Writer) {
-	ctx, span := tracer.Start(ctx, "RefreshRequest:FormData")
-	defer span.End()
-
-	writer := multipart.NewWriter(out)
-	writer.WriteField("grant_type", "refresh_token")
-	writer.WriteField("client_id", req.ClientId)
-	writer.WriteField("scope", req.Scope)
-	writer.WriteField("refresh_token", req.RefreshToken)
-
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "grant_type",
-			Value: attribute.StringValue("refresh_token"),
-		},
-		attribute.KeyValue{
-			Key:   "client_id",
-			Value: attribute.StringValue(req.ClientId),
-		},
-		attribute.KeyValue{
-			Key:   "scope",
-			Value: attribute.StringValue(req.Scope),
-		},
-		attribute.KeyValue{
-			Key:   "refresh_token",
-			Value: attribute.StringValue(req.RefreshToken),
-		},
-	)
-}
-
-var globalClient = resty.New()
-
 type OpenIdToken struct {
 	RefreshToken string `json:"refresh_token"`
 	AccessToken  string `json:"access_token"`
@@ -148,47 +105,6 @@ type OpenIdToken struct {
 	TokenType    string `json:"token_type"`
 }
 
-func Refresh(ctx context.Context, token OpenIdToken, baseRefreshUrl, clientId string) (string, OpenIdToken, error) {
-	ctx, span := tracer.Start(ctx, "OpenIdToken:Refresh")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "scope",
-			Value: attribute.StringValue(token.Scope),
-		},
-		attribute.KeyValue{
-			Key:   "clientId",
-			Value: attribute.StringValue(clientId),
-		},
-	)
-
-	req := RefreshRequest{
-		Scope:        token.Scope,
-		ClientId:     clientId,
-		RefreshToken: token.RefreshToken,
-	}
-
-	body := bytes.NewBuffer(nil)
-	req.FormData(ctx, body)
-
-	res, err := globalClient.R().
-		SetContext(ctx).
-		SetBody(body).
-		Post(baseRefreshUrl)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return "", OpenIdToken{}, err
-	}
-
-	resToken := res.Body()
-
-	var tokenResponse OpenIdToken
-	err = json.Unmarshal(resToken, &tokenResponse)
-	return string(resToken), tokenResponse, err
-}
-
 type TokenRequest struct {
 	ClientId     string `json:"client_id"`
 	Scope        string `json:"scope"`
@@ -196,39 +112,6 @@ type TokenRequest struct {
 	CodeVerifier string `json:"code_verifier,omitempty"`
 	RedirectUri  string `json:"redirect_uri"`
 	GrantType    string `json:"grant_type"`
-}
-
-// note: the GrantType field only exists as part of the json request, it should not be set
-func GetToken(ctx context.Context, req TokenRequest, tokenRequestUrl string) (string, OpenIdToken, error) {
-	ctx, span := tracer.Start(ctx, "GetToken")
-	defer span.End()
-
-	req.GrantType = "authorization_code"
-	body, err := json.Marshal(req)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to marshal token request")
-		return "", OpenIdToken{}, err
-	}
-
-	res, err := globalClient.R().
-		SetBody(body).
-		Post(tokenRequestUrl)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch token")
-		return "", OpenIdToken{}, err
-	}
-
-	var token OpenIdToken
-	err = json.Unmarshal(res.Body(), &token)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to unmarshal token json")
-		return "", OpenIdToken{}, err
-	}
-
-	return res.String(), token, nil
 }
 
 func GenerateCodeVerifier() (string, error) {

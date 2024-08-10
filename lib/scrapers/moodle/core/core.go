@@ -53,7 +53,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	client.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(baseUrl.Hostname()))
 	client.SetTimeout(time.Second * 30)
 
-	telemetry.InstrumentResty(client, "scrapers/moodle/http")
+	telemetry.InstrumentResty(client, tracer)
 
 	c := &Client{
 		BaseUrl: baseUrl,

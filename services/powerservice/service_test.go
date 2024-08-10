@@ -2,6 +2,7 @@ package powerservice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/scrapers/powerschool"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/testutil"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
@@ -23,6 +25,7 @@ import (
 	_ "embed"
 
 	"connectrpc.com/connect"
+	"github.com/go-resty/resty/v2"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
@@ -79,7 +82,7 @@ func getLoginUrl(t testing.TB, ctx context.Context, oauthFlow *powerservicev1.Ge
 	return loginUrl
 }
 
-func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *powerservicev1.GetOAuthFlowResponse, callbackUrl string) string {
+func tokenFromCallbackUrl(t testing.TB, oauthFlow *powerservicev1.GetOAuthFlowResponse, callbackUrl string) string {
 	parsed, err := url.Parse(strings.Trim(string(callbackUrl), " \n\t"))
 	if err != nil {
 		t.Fatal("failed to parse callback url", callbackUrl, err)
@@ -90,22 +93,30 @@ func tokenFromCallbackUrl(t testing.TB, ctx context.Context, oauthFlow *powerser
 		t.Fatal("could not get auth code", callbackUrl)
 	}
 
-	token, _, err := oauth.GetToken(
-		ctx,
-		oauth.TokenRequest{
-			ClientId:     oauthFlow.GetFlow().GetClientId(),
-			CodeVerifier: oauthFlow.GetFlow().GetCodeVerifier(),
-			Scope:        oauthFlow.GetFlow().GetScope(),
-			RedirectUri:  oauthFlow.GetFlow().GetRedirectUri(),
-			AuthCode:     authcode,
-		},
-		oauthFlow.GetFlow().GetTokenRequestUrl(),
-	)
+	req := oauth.TokenRequest{
+		GrantType:    "authorization_code",
+		ClientId:     oauthFlow.GetFlow().GetClientId(),
+		CodeVerifier: oauthFlow.GetFlow().GetCodeVerifier(),
+		Scope:        oauthFlow.GetFlow().GetScope(),
+		RedirectUri:  oauthFlow.GetFlow().GetRedirectUri(),
+		AuthCode:     authcode,
+	}
+	body, err := json.Marshal(req)
 	if err != nil {
-		t.Fatal("failed to fetch token", callbackUrl, err)
+		t.Fatal("failed to serialize token request", err)
 	}
 
-	return token
+	client := resty.New()
+	telemetry.InstrumentResty(client, tracer)
+
+	res, err := client.R().
+		SetBody(body).
+		Post(oauthFlow.GetFlow().GetTokenRequestUrl())
+	if err != nil {
+		t.Fatal("failed to request token", err)
+	}
+
+	return string(res.Body())
 }
 
 func promptForToken(t testing.TB, ctx context.Context, service powerservicev1connect.PowerschoolServiceClient) (string, func(t testing.TB)) {
@@ -133,7 +144,7 @@ func promptForToken(t testing.TB, ctx context.Context, service powerservicev1con
 			t.Fatal(err)
 		}
 
-		token := tokenFromCallbackUrl(t, ctx, oauthFlow, string(callbackUrl))
+		token := tokenFromCallbackUrl(t, oauthFlow, string(callbackUrl))
 		return token, cleanupProtocol
 	}
 }
