@@ -1,0 +1,15 @@
+builds:
+  - main: ./cmd/auth/main.go
+    id: auth
+    binary: auth
+    goos:
+      - linux
+    goarch:
+      - amd64
+  - main: ./cmd/vcs/main.go
+    id: vcs
+    binary: vcs
+    goos:
+      - linux
+    goarch:
+      - amd64
