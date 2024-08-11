@@ -32,11 +32,19 @@ func (t Telemetry) Shutdown(ctx context.Context) error {
 	return errors.Join(errlist...)
 }
 
+type OtlpConnConfig struct {
+	GrpcEndpoint string            `json:"grpc_endpoint"`
+	HttpEndpoint string            `json:"http_endpoint"`
+	Headers      map[string]string `json:"headers"`
+}
+
+type OtlpConfig struct {
+	Traces  OtlpConnConfig `json:"traces"`
+	Metrics OtlpConnConfig `json:"metrics"`
+}
+
 type Config struct {
-	TracesOtlpGrpcEndpoint  string `json:"traces_otlp_grpc_endpoint"`
-	TracesOtlpHttpEndpoint  string `json:"traces_otlp_http_endpoint"`
-	MetricsOtlpGrpcEndpoint string `json:"metrics_otlp_grpc_endpoint"`
-	MetricsOtlpHttpEndpoint string `json:"metrics_otlp_http_endpoint"`
+	Otlp OtlpConfig `json:"otlp"`
 }
 
 var setupTestEnvironments = map[string]bool{}
@@ -126,15 +134,17 @@ func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExport
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
-	if c.TracesOtlpGrpcEndpoint != "" {
+	if c.Otlp.Traces.GrpcEndpoint != "" {
 		return otlptracegrpc.New(
 			ctx,
-			otlptracegrpc.WithEndpointURL(c.TracesOtlpGrpcEndpoint),
+			otlptracegrpc.WithEndpointURL(c.Otlp.Traces.GrpcEndpoint),
+			otlptracegrpc.WithHeaders(c.Otlp.Traces.Headers),
 		)
 	}
 	return otlptracehttp.New(
 		ctx,
-		otlptracehttp.WithEndpointURL(c.TracesOtlpHttpEndpoint),
+		otlptracehttp.WithEndpointURL(c.Otlp.Traces.HttpEndpoint),
+		otlptracehttp.WithHeaders(c.Otlp.Traces.Headers),
 	)
 }
 
@@ -155,14 +165,16 @@ func otlpMetricExportFromConfig(ctx context.Context, c Config) (metric.Exporter,
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
-	if c.TracesOtlpGrpcEndpoint != "" {
+	if c.Otlp.Metrics.GrpcEndpoint != "" {
 		return otlpmetricgrpc.New(
 			ctx,
-			otlpmetricgrpc.WithEndpointURL(c.MetricsOtlpGrpcEndpoint),
+			otlpmetricgrpc.WithEndpointURL(c.Otlp.Metrics.GrpcEndpoint),
+			otlpmetricgrpc.WithHeaders(c.Otlp.Metrics.Headers),
 		)
 	}
 	return otlpmetrichttp.New(
 		ctx,
-		otlpmetrichttp.WithEndpointURL(c.MetricsOtlpHttpEndpoint),
+		otlpmetrichttp.WithEndpointURL(c.Otlp.Metrics.HttpEndpoint),
+		otlpmetrichttp.WithHeaders(c.Otlp.Metrics.Headers),
 	)
 }

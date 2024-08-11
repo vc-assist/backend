@@ -1,4 +1,10 @@
 {
-	traces_otlp_grpc_endpoint: "http://127.0.0.1:4317",
-	metrics_otlp_grpc_endpoint: "http://127.0.0.1:4319",
+	otlp: {
+		traces: {
+			grpc_endpoint: "http://127.0.0.1:4317"
+		},
+		metrics: {
+			grpc_endpoint: "http://127.0.0.1:4319"
+		},
+	},
 }
