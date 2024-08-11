@@ -57,7 +57,7 @@ Here are some commands relating to linting and code generation that will probabl
 - `buf generate --template buf.gen-go.yaml` - generate golang protobuf code with [buf](https://buf.build/)
 - `buf generate --template buf.gen-ts.yaml` - generate typescript protobuf code with [buf](https://buf.build/)
 - `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent segmentation faults when chaining stuff together
-- `atlas schema apply -u "<db_url>" --to file://path/to/schema.sql --dev-url "sqlite://dev?mode=memory"` - migrates a database, see [declarative migrations](https://atlasgo.io/getting-started/#declarative-migrations)
+- `atlas schema apply -u "libsql://<db_url>?authToken=<auth_token>" --to file://path/to/schema.sql --dev-url "sqlite://dev?mode=memory"` - migrates a database, see [declarative migrations](https://atlasgo.io/getting-started/#declarative-migrations)
 
 > [!NOTE]
 > To use these commands you'll need to install their respective dependencies.

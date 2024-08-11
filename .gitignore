@@ -2,6 +2,7 @@
 *.tmp
 *.db
 *.db-*
+atlas.hcl
 
 dev/.state
 
