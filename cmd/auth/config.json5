@@ -5,6 +5,10 @@
 	// https://mailtrap.io/blog/gmail-smtp/
 	smtp: {},
 	database: {
+		// NOTE: even when using the "url" field in production
+		// you should specify "file" because libsql will make a local
+		// copy of the remote database and push updates to it
+		// (this is known as a "embedded replica")
 		file: "<dev_state>/auth_service.db"
 	}
 }

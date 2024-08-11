@@ -31,6 +31,10 @@ type config struct {
 	Smtp           smtpConfig          `json:"smtp"`
 	Libsql         configlibsql.Struct `json:"database"`
 	AllowedDomains []string            `json:"allowed_domains"`
+	// this is an email address that will have a verification code bypass
+	// for app reviewers and testers
+	TestEmail            string `json:"test_email"`
+	TestVerificationCode string `json:"test_verification_code"`
 }
 
 func main() {
@@ -45,8 +49,10 @@ func main() {
 	}
 
 	service := auth.NewService(sqlite, auth.Config{
-		AllowedDomains: config.AllowedDomains,
-		Smtp:           auth.SmtpConfig(config.Smtp),
+		AllowedDomains:       config.AllowedDomains,
+		Smtp:                 auth.SmtpConfig(config.Smtp),
+		TestEmail:            config.TestEmail,
+		TestVerificationCode: config.TestVerificationCode,
 	})
 	mux := http.NewServeMux()
 	mux.Handle(authv1connect.NewAuthServiceHandler(service))

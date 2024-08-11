@@ -32,8 +32,10 @@ type SmtpConfig struct {
 }
 
 type Config struct {
-	Smtp           SmtpConfig
-	AllowedDomains []string
+	Smtp                 SmtpConfig
+	AllowedDomains       []string
+	TestEmail            string
+	TestVerificationCode string
 }
 
 type Service struct {
@@ -221,6 +223,23 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 
 	email := req.Msg.GetEmail()
 	providedCode := req.Msg.GetProvidedCode()
+
+	// hard coded bypass for app store reviewers
+	if s.config.TestEmail != "" && email == s.config.TestEmail && providedCode == s.config.TestVerificationCode {
+		token, err := s.createToken(ctx, txqry, email)
+		if err != nil {
+			return nil, err
+		}
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
+		}
+		return &connect.Response[authv1.ConsumeVerificationCodeResponse]{
+			Msg: &authv1.ConsumeVerificationCodeResponse{
+				Token: token,
+			},
+		}, nil
+	}
 
 	err = s.verifyAndDeleteCode(ctx, txqry, email, providedCode)
 	if err != nil {
