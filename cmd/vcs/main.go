@@ -14,12 +14,18 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
+	authdb "vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/gradesnapshots"
+	gradesnapshotsdb "vcassist-backend/services/gradesnapshots/db"
 	"vcassist-backend/services/keychain"
+	keychaindb "vcassist-backend/services/keychain/db"
 	"vcassist-backend/services/linker"
+	linkerdb "vcassist-backend/services/linker/db"
 	"vcassist-backend/services/powerservice"
+	powerservicedb "vcassist-backend/services/powerservice/db"
 	"vcassist-backend/services/vcs"
+	vcsdb "vcassist-backend/services/vcs/db"
 	"vcassist-backend/services/vcsmoodle"
 
 	"connectrpc.com/connect"
@@ -68,19 +74,19 @@ func main() {
 	}
 
 	var db *sql.DB
-	db, err = config.Database.GradeSnapshot.OpenDB()
+	db, err = config.Database.GradeSnapshot.OpenDB(gradesnapshotsdb.Schema)
 	if err != nil {
 		fatalerr("failed to open gradesnapshot database", err)
 	}
 	gradesnapshotService := gradesnapshots.NewService(db)
 
-	db, err = config.Database.Keychain.OpenDB()
+	db, err = config.Database.Keychain.OpenDB(keychaindb.Schema)
 	if err != nil {
 		fatalerr("failed to open keychain database", err)
 	}
 	keychainService := keychain.NewService(context.Background(), db)
 
-	db, err = config.Database.Powerservice.OpenDB()
+	db, err = config.Database.Powerservice.OpenDB(powerservicedb.Schema)
 	if err != nil {
 		fatalerr("failed to open powerschoold database", err)
 	}
@@ -101,13 +107,13 @@ func main() {
 	}
 	vcsmoodleService := vcsmoodle.NewService(moodleCache, keychainService)
 
-	db, err = config.Database.Linker.OpenDB()
+	db, err = config.Database.Linker.OpenDB(linkerdb.Schema)
 	if err != nil {
 		fatalerr("failed to open linker database", err)
 	}
 	linkerService := linker.NewService(db)
 
-	db, err = config.Database.Self.OpenDB()
+	db, err = config.Database.Self.OpenDB(vcsdb.Schema)
 	if err != nil {
 		fatalerr("failed to open self DB", err)
 	}
@@ -120,7 +126,7 @@ func main() {
 		time.Duration(config.MaxDataCacheSeconds)*time.Second,
 	)
 
-	db, err = config.Database.Auth.OpenDB()
+	db, err = config.Database.Auth.OpenDB(authdb.Schema)
 	if err != nil {
 		fatalerr("failed to open auth DB", err)
 	}
