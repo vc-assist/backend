@@ -167,7 +167,7 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	}
 	implicit := CreateImplicitLinks(leftList, rightList)
 	for _, link := range implicit {
-		if link.Correlation < 0.75 {
+		if link.Correlation < float64(req.Msg.GetThreshold()) {
 			continue
 		}
 		mapping[link.Left] = link.Right

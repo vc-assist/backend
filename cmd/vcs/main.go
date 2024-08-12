@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 	"vcassist-backend/lib/configutil"
 	configlibsql "vcassist-backend/lib/configutil/libsql"
@@ -55,6 +56,10 @@ type Config struct {
 	MaxDataCacheSeconds int `json:"max_data_cache_seconds"`
 	// the path to a JSON file that explicitly defines grade weights for various courses
 	WeightsFile string `json:"weights_file"`
+	// an access token that must be provided in the `Authorization` header in the format
+	// of `Authorization=Bearer <access token>`
+	// if this value not specified, authorization checks will not be performed
+	LinkerAccessToken string `json:"linker_access_token"`
 }
 
 func startHttpServer(port int, mux *http.ServeMux) {
@@ -153,7 +158,12 @@ func main() {
 	authInterceptor := verifier.NewAuthInterceptor(verify)
 
 	linkerMux := http.NewServeMux()
-	linkerMux.Handle(linkerv1connect.NewLinkerServiceHandler(linkerService))
+	linkerMux.Handle(linkerv1connect.NewLinkerServiceHandler(
+		linkerService,
+		connect.WithInterceptors(
+			linkerInterceptor(config.LinkerAccessToken),
+		),
+	))
 
 	studentDataMux := http.NewServeMux()
 	studentDataMux.Handle(studentdatav1connect.NewStudentDataServiceHandler(
@@ -170,4 +180,20 @@ func main() {
 	startHttpServer(9111, studentDataMux)
 
 	<-ctx.Done()
+}
+
+func linkerInterceptor(accessToken string) connect.Interceptor {
+	interceptor := func(next connect.UnaryFunc) connect.UnaryFunc {
+		return connect.UnaryFunc(func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			if accessToken == "" {
+				return next(ctx, req)
+			}
+			token := strings.Split(req.Header().Get("Authorization"), " ")
+			if len(token) != 2 || token[1] != accessToken {
+				return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("Unauthorized"))
+			}
+			return next(ctx, req)
+		})
+	}
+	return connect.UnaryInterceptorFunc(interceptor)
 }

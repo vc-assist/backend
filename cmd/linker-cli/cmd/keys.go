@@ -27,11 +27,14 @@ var keysCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		setKeys := []setKey{}
 		for _, setName := range args {
-			res, err := client.GetKnownKeys(cmd.Context(), &connect.Request[linkerv1.GetKnownKeysRequest]{
-				Msg: &linkerv1.GetKnownKeysRequest{
-					Set: setName,
-				},
-			})
+			res, err := client.GetKnownKeys(
+				cmd.Context(),
+				authRequest(&connect.Request[linkerv1.GetKnownKeysRequest]{
+					Msg: &linkerv1.GetKnownKeysRequest{
+						Set: setName,
+					},
+				}),
+			)
 			if err != nil {
 				log.Fatal(err)
 			}
