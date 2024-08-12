@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) {

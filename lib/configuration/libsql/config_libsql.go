@@ -7,6 +7,7 @@ import (
 	devenv "vcassist-backend/dev/env"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 type Struct struct {

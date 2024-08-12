@@ -10,6 +10,9 @@ import (
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 var tracer = otel.Tracer("vcassist.services.linker")

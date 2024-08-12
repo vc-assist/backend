@@ -15,6 +15,7 @@ import (
 	_ "embed"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 func TestService(t *testing.T) {
