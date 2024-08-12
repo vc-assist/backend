@@ -5,7 +5,7 @@ import (
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
 )
 
-func patchStudentDataWithWeights(ctx context.Context, data *studentdatav1.StudentData, weights weightData) {
+func patchStudentDataWithWeights(ctx context.Context, data *studentdatav1.StudentData, weights WeightData) {
 	ctx, span := tracer.Start(ctx, "patchStudentDataWithWeights")
 	defer span.End()
 

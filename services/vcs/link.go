@@ -57,7 +57,9 @@ func linkWeightsToPowerschool(
 	ctx context.Context,
 	linker linkerv1connect.LinkerServiceClient,
 	ps *powerservicev1.GetStudentDataResponse,
-) (weightData, error) {
+	weightData WeightData,
+	weightCourseNames []string,
+) (WeightData, error) {
 	ctx, span := tracer.Start(ctx, "linkWeightsToPowerschool")
 	defer span.End()
 
@@ -84,9 +86,9 @@ func linkWeightsToPowerschool(
 		return nil, err
 	}
 
-	data := make(weightData)
+	data := make(WeightData)
 	for weightCourseName, powerschoolName := range res.Msg.GetSrcToDst() {
-		data[powerschoolName] = weights[weightCourseName]
+		data[powerschoolName] = weightData[weightCourseName]
 	}
 	return data, nil
 }

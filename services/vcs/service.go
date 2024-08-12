@@ -33,35 +33,39 @@ import (
 
 var tracer = otel.Tracer("vcassist.services.vcs")
 
-type Service struct {
-	db             *sql.DB
-	qry            *db.Queries
-	gradesnapshots gradesnapshotsv1connect.GradeSnapshotsServiceClient
-	powerschool    powerservicev1connect.PowerschoolServiceClient
-	moodle         vcsmoodlev1connect.MoodleServiceClient
-	linker         linkerv1connect.LinkerServiceClient
+type WeightData = map[string]map[string]float32
 
+type Config struct {
+	Gradesnapshots       gradesnapshotsv1connect.GradeSnapshotsServiceClient
+	Powerschool          powerservicev1connect.PowerschoolServiceClient
+	Moodle               vcsmoodlev1connect.MoodleServiceClient
+	Linker               linkerv1connect.LinkerServiceClient
+	Weights              WeightData
 	MaxDataCacheDuration time.Duration
 }
 
-func NewService(
-	database *sql.DB,
-	powerschool powerservicev1connect.PowerschoolServiceClient,
-	moodle vcsmoodlev1connect.MoodleServiceClient,
-	linker linkerv1connect.LinkerServiceClient,
-	gradesnapshots gradesnapshotsv1connect.GradeSnapshotsServiceClient,
-	maxDataCacheDuration time.Duration,
-) studentdatav1connect.StudentDataServiceClient {
+type Service struct {
+	db                *sql.DB
+	qry               *db.Queries
+	weightCourseNames []string
+
+	Config
+}
+
+func NewService(database *sql.DB, params Config) studentdatav1connect.StudentDataServiceClient {
+	weightCourseNames := make([]string, len(params.Weights))
+	i := 0
+	for courseName := range params.Weights {
+		weightCourseNames[i] = courseName
+		i++
+	}
+
 	return studentdatav1connect.NewInstrumentedStudentDataServiceClient(
 		Service{
-			db:             database,
-			qry:            db.New(database),
-			powerschool:    powerschool,
-			moodle:         moodle,
-			linker:         linker,
-			gradesnapshots: gradesnapshots,
-
-			MaxDataCacheDuration: maxDataCacheDuration,
+			db:                database,
+			qry:               db.New(database),
+			weightCourseNames: weightCourseNames,
+			Config:            params,
 		},
 	)
 }
@@ -135,12 +139,12 @@ func (s Service) StartWorker(ctx context.Context) {
 func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[studentdatav1.GetCredentialStatusRequest]) (*connect.Response[studentdatav1.GetCredentialStatusResponse], error) {
 	profile, _ := verifier.ProfileFromContext(ctx)
 
-	psOAuthFlow, err := s.powerschool.GetOAuthFlow(ctx, &connect.Request[powerservicev1.GetOAuthFlowRequest]{Msg: &powerservicev1.GetOAuthFlowRequest{}})
+	psOAuthFlow, err := s.Powerschool.GetOAuthFlow(ctx, &connect.Request[powerservicev1.GetOAuthFlowRequest]{Msg: &powerservicev1.GetOAuthFlowRequest{}})
 	if err != nil {
 		return nil, err
 	}
 
-	psAuthStatus, err := s.powerschool.GetAuthStatus(ctx, &connect.Request[powerservicev1.GetAuthStatusRequest]{
+	psAuthStatus, err := s.Powerschool.GetAuthStatus(ctx, &connect.Request[powerservicev1.GetAuthStatusRequest]{
 		Msg: &powerservicev1.GetAuthStatusRequest{
 			StudentId: profile.Email,
 		},
@@ -149,7 +153,7 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 		return nil, err
 	}
 
-	moodleAuthStatus, err := s.moodle.GetAuthStatus(ctx, &connect.Request[vcsmoodlev1.GetAuthStatusRequest]{
+	moodleAuthStatus, err := s.Moodle.GetAuthStatus(ctx, &connect.Request[vcsmoodlev1.GetAuthStatusRequest]{
 		Msg: &vcsmoodlev1.GetAuthStatusRequest{
 			StudentId: profile.Email,
 		},
@@ -189,7 +193,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 
 	switch req.Msg.GetId() {
 	case "powerschool":
-		_, err := s.powerschool.ProvideOAuth(ctx, &connect.Request[powerservicev1.ProvideOAuthRequest]{
+		_, err := s.Powerschool.ProvideOAuth(ctx, &connect.Request[powerservicev1.ProvideOAuthRequest]{
 			Msg: &powerservicev1.ProvideOAuthRequest{
 				StudentId: profile.Email,
 				Token:     req.Msg.GetOauthToken().GetToken(),
@@ -199,7 +203,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 			return nil, err
 		}
 	case "moodle":
-		_, err := s.moodle.ProvideUsernamePassword(ctx, &connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]{
+		_, err := s.Moodle.ProvideUsernamePassword(ctx, &connect.Request[vcsmoodlev1.ProvideUsernamePasswordRequest]{
 			Msg: &vcsmoodlev1.ProvideUsernamePasswordRequest{
 				StudentId: profile.Email,
 				Username:  req.Msg.GetUsernamePassword().GetUsername(),
@@ -263,7 +267,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 
 	data := &studentdatav1.StudentData{}
 
-	psres, err := s.powerschool.GetStudentData(ctx, &connect.Request[powerservicev1.GetStudentDataRequest]{
+	psres, err := s.Powerschool.GetStudentData(ctx, &connect.Request[powerservicev1.GetStudentDataRequest]{
 		Msg: &powerservicev1.GetStudentDataRequest{
 			StudentId: userEmail,
 		},
@@ -278,7 +282,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		instrumentDataSnapshot(span, "patched powerschool student data", data)
 	}
 
-	moodleres, err := s.moodle.GetStudentData(ctx, &connect.Request[vcsmoodlev1.GetStudentDataRequest]{
+	moodleres, err := s.Moodle.GetStudentData(ctx, &connect.Request[vcsmoodlev1.GetStudentDataRequest]{
 		Msg: &vcsmoodlev1.GetStudentDataRequest{
 			StudentId: userEmail,
 		},
@@ -289,7 +293,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		span.SetStatus(codes.Error, "incomplete data")
 	} else {
 		if psres != nil {
-			linkMoodleToPowerschool(ctx, s.linker, moodleres.Msg, psres.Msg)
+			linkMoodleToPowerschool(ctx, s.Linker, moodleres.Msg, psres.Msg)
 		}
 		patchStudentDataWithMoodle(ctx, data, moodleres.Msg)
 
@@ -303,7 +307,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 			Value:  c.GetOverallGrade(),
 		}
 	}
-	_, err = s.gradesnapshots.Push(ctx, &connect.Request[gradesnapshotsv1.PushRequest]{
+	_, err = s.Gradesnapshots.Push(ctx, &connect.Request[gradesnapshotsv1.PushRequest]{
 		Msg: &gradesnapshotsv1.PushRequest{
 			User:    userEmail,
 			Time:    timezone.Now().Unix(),
@@ -316,7 +320,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 		span.SetStatus(codes.Error, "failed to push gradesnapshot data")
 	}
 
-	gradesnapshotres, err := s.gradesnapshots.Pull(ctx, &connect.Request[gradesnapshotsv1.PullRequest]{
+	gradesnapshotres, err := s.Gradesnapshots.Pull(ctx, &connect.Request[gradesnapshotsv1.PullRequest]{
 		Msg: &gradesnapshotsv1.PullRequest{
 			User: userEmail,
 		},
@@ -332,7 +336,7 @@ func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*stu
 	}
 
 	if psres != nil {
-		weights, err := linkWeightsToPowerschool(ctx, s.linker, psres.Msg)
+		weights, err := linkWeightsToPowerschool(ctx, s.Linker, psres.Msg, s.Weights, s.weightCourseNames)
 		if err != nil {
 			span.RecordError(err)
 			span.AddEvent("failed to get weight data")
