@@ -17,6 +17,7 @@ import (
 	vcsdb "vcassist-backend/services/vcs/db"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 func cmd(name string, args ...string) {

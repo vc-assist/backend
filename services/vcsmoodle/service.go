@@ -12,6 +12,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/dgraph-io/badger/v4"
 	"go.opentelemetry.io/otel"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 var tracer = otel.Tracer("vcassist.services.vcsmoodle")

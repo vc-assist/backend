@@ -9,6 +9,7 @@ import (
 	"vcassist-backend/lib/telemetry"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 type ServiceParams struct {
