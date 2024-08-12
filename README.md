@@ -7,6 +7,7 @@
 - `docs/` - additional documentation
 - `services/` - gRPC services
    - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
+      - `verifier/` - a package that exposes utilities to verify authentication tokens.
    - `keychain/` - the service that handles storing, retrieving, and keeping fresh user credentials
    - `powerservice/` - the service that fetches a student's powerschool data given a valid key in keychain.
    - `gradesnapshots/` - a service that can store and retrieve grade snapshots.
@@ -17,8 +18,18 @@
 - `cmd/` - all official entrypoints/build targets
    - `auth/` - the entrypoint to the `auth` service
    - `vcs/` - the entrypoint to the `vcs` service
+   - `linker-cli/` - the CLI tool for viewing and editing data linker behavior
 - `lib/` - shared libraries
-   - `scrapers/` - scrapers for various platforms
+   - `scrapers/` - scrapers for various platforms.
+      - `moodle/` - [moodle](https://moodle.org/)
+      - `powerschool/` - [powerschool](https://atlasgo.io/)
+      - `vcsnet/` - [vcs.net](https://vcs.net)
+   - `configutil/` - additional utilities for reading and resolving configuration.
+   - `htmlutil/` - additional utilities for working with HTML.
+   - `osutil/` - additional utilities on top of the `os` package from std library.
+   - `testutil/` - utilities for testing
+   - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
+   - `telemetry/` - telemetry setup/teardown as well as instrumentation for libraries like `resty`.
 - `dev/` - code for setting up the development environment
    - `local_stack/` - docker compose stuff for setting up grafana and other things locally
    - `.state/ (gitignore'd)` - internal state (like secrets, usernames, passwords, etc...) that are used by tests and other dev/local-only processes
@@ -36,14 +47,13 @@ The code that initializes this environment is kept under `dev/`.
 
 Here are a few things it sets up:
 
-1. An empty sqlite database + migrations for all the services under `services/`.
-2. A local setup of telemetry using Docker Compose under `dev/local_stack/`, you can access the grafana dashboard at `http://localhost:3000`.
-3. Moodle credentials for use in testing in `lib/scrapers/moodle/...`
+1. A local setup of telemetry using Docker Compose under `dev/local_stack/`, you can access the grafana dashboard at `http://localhost:3000`.
+2. Moodle credentials for use in testing in `lib/scrapers/moodle/...`
 
 As such, before running tests or doing local debugging you should run one of the following commands.
 
 - `go run ./dev` - setup development environment
-- `go run ./dev -recreate` - recreate development environment (bypass cache effectively)
+- `go run ./dev -recreate` - recreate development environment (bypass cache)
 
 ## Commands
 
@@ -51,12 +61,12 @@ Here are some commands relating to linting and code generation that will probabl
 
 - `go vet ./...` - typecheck all go packages
 - `sqlc generate` - generate sql wrapper code with [sqlc](https://sqlc.dev/)
-- `connectrpc-otel-gen .` - generates opentelemetry wrapper code for all gRPC services
+- `connectrpc-otel-gen .` - generates opentelemetry wrapper code for all gRPC services (you should run this every time you change `.proto` files)
 - `buf lint` - lint protobuf files with [buf](https://buf.build/)
 - `buf format -w` - format protobuf files
 - `buf generate --template buf.gen-go.yaml` - generate golang protobuf code with [buf](https://buf.build/)
 - `buf generate --template buf.gen-ts.yaml` - generate typescript protobuf code with [buf](https://buf.build/)
-- `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent segmentation faults when chaining stuff together
+- `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent nil pointer dereference when chaining stuff together
 - `atlas schema apply -u "libsql://<db_url>?authToken=<auth_token>" --to file://path/to/schema.sql --dev-url "sqlite://dev?mode=memory"` - migrates a database, see [declarative migrations](https://atlasgo.io/getting-started/#declarative-migrations)
 
 > [!NOTE]
