@@ -28,13 +28,21 @@ func (config Struct) OpenDB(schema string) (*sql.DB, error) {
 		}
 
 		_, statErr = os.Stat(dbpath)
+		isNewDb := os.IsNotExist(statErr)
+		if isNewDb {
+			f, err := os.Create(dbpath)
+			if err != nil {
+				return nil, err
+			}
+			f.Close()
+		}
 
 		db, err := sql.Open("libsql", fmt.Sprintf("file:%s", dbpath))
 		if err != nil {
-			return nil, statErr
+			return nil, err
 		}
 
-		if os.IsNotExist(statErr) && schema != "" {
+		if isNewDb && schema != "" {
 			_, err := db.Exec(schema)
 			if err != nil {
 				return nil, err
@@ -44,11 +52,13 @@ func (config Struct) OpenDB(schema string) (*sql.DB, error) {
 		return db, nil
 	}
 
-	values := url.Values{}
+	urlQuery := ""
 	if config.AuthToken != "" {
-		values.Add("authToken", config.AuthToken)
+		values := url.Values{"authToken": []string{config.AuthToken}}
+		urlQuery = "?" + values.Encode()
 	}
-	db, err := sql.Open("libsql", config.Url+"?"+values.Encode())
+
+	db, err := sql.Open("libsql", config.Url+urlQuery)
 	if err != nil {
 		return nil, err
 	}
