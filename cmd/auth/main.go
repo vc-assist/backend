@@ -60,6 +60,9 @@ func main() {
 
 	ctx := osutil.SignalContext()
 
+	telemetry.SetupFromEnv(ctx, "cmd/auth")
+	telemetry.InstrumentPerfStats(ctx)
+
 	go func() {
 		slog.Info("listening to gRPC...", "port", 8111)
 		err = http.ListenAndServe(
@@ -70,8 +73,6 @@ func main() {
 			fatalerr("failed to listen to port 8111", err)
 		}
 	}()
-
-	telemetry.SetupFromEnv(ctx, "cmd/auth")
 
 	<-ctx.Done()
 }
