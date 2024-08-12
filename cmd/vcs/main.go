@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -52,6 +53,8 @@ type Config struct {
 	Database DatabaseConfig `json:"database"`
 	// the maximum duration to cache the student data for
 	MaxDataCacheSeconds int `json:"max_data_cache_seconds"`
+	// the path to a JSON file that explicitly defines grade weights for various courses
+	WeightsFile string `json:"weights_file"`
 }
 
 func startHttpServer(port int, mux *http.ServeMux) {
@@ -117,13 +120,29 @@ func main() {
 	if err != nil {
 		fatalerr("failed to open self DB", err)
 	}
+
+	var weights vcs.WeightData
+	if config.WeightsFile != "" {
+		weightsFile, err := os.ReadFile(config.WeightsFile)
+		if err != nil {
+			fatalerr("failed to read weights file", err)
+		}
+		err = json.Unmarshal(weightsFile, &weights)
+		if err != nil {
+			fatalerr("failed to parse weights file", err)
+		}
+	}
+
 	service := vcs.NewService(
 		db,
-		powerserviceService,
-		vcsmoodleService,
-		linkerService,
-		gradesnapshotService,
-		time.Duration(config.MaxDataCacheSeconds)*time.Second,
+		vcs.Config{
+			Gradesnapshots:       gradesnapshotService,
+			Powerschool:          powerserviceService,
+			Moodle:               vcsmoodleService,
+			Linker:               linkerService,
+			MaxDataCacheDuration: time.Duration(config.MaxDataCacheSeconds) * time.Second,
+			Weights:              weights,
+		},
 	)
 
 	db, err = config.Database.Auth.OpenDB(authdb.Schema)
