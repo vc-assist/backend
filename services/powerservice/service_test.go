@@ -28,7 +28,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
-	_ "modernc.org/sqlite"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) {

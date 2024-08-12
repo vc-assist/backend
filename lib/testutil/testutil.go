@@ -8,7 +8,7 @@ import (
 	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/telemetry"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 type ServiceParams struct {
