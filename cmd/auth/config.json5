@@ -3,7 +3,12 @@
 	// in the email config following this guide:
 	//
 	// https://mailtrap.io/blog/gmail-smtp/
-	smtp: {},
+	smtp: {
+		email_address: "",
+		password: "",
+		server: "smtp.gmail.com",
+		port: 587,
+	},
 	database: {
 		// NOTE: even when using the "url" field in production
 		// you should specify "file" because libsql will make a local

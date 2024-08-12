@@ -84,7 +84,7 @@ func ResolvePath(path string) (string, error) {
 		return "", err
 	}
 
-	err = os.Mkdir(filepath.Join(root, "dev", ".state"), 0666)
+	err = os.Mkdir(filepath.Join(root, "dev", ".state"), 0777)
 	if !os.IsExist(err) && err != nil {
 		return "", err
 	}
