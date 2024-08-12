@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"vcassist-backend/lib/configuration"
+	"vcassist-backend/lib/configutil"
 )
 
 var modName = regexp.MustCompile(`(?m)^module *([\w\-_]+)$`)
@@ -70,7 +70,7 @@ func GetStateConfig[T any](path string) (T, error) {
 		var out T
 		return out, err
 	}
-	out, err := configuration.ReadConfig[T](configPath)
+	out, err := configutil.ReadConfig[T](configPath)
 	return out, err
 }
 
