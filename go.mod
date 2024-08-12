@@ -7,12 +7,12 @@ require (
 	github.com/DaRealFreak/cloudflare-bp-go v1.0.4
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/PuerkitoBio/purell v1.2.1
+	github.com/antzucaro/matchr v0.0.0-20221106193745-7bed6ef61ef9
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/geraldo-labs/merge-struct v1.0.0
 	github.com/go-resty/resty/v2 v2.13.1
 	github.com/google/go-cmp v0.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
-	github.com/jhvst/go-jaro-winkler-distance v0.0.0-20220308004700-32671379e37c
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lqr471814/protocolreg v0.0.0-20240623001501-4610d908ae22
 	github.com/mazen160/go-random v0.0.0-20210308102632-d2b501c85c03
