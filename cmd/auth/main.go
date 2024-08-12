@@ -10,6 +10,7 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
+	"vcassist-backend/services/auth/db"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -43,7 +44,7 @@ func main() {
 		fatalerr("failed to read config", err)
 	}
 	slog.Info("opening database...")
-	sqlite, err := config.Libsql.OpenDB()
+	sqlite, err := config.Libsql.OpenDB(db.Schema)
 	if err != nil {
 		fatalerr("failed to open libsql connector", err)
 	}

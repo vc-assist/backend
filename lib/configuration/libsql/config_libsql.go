@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"os"
 	devenv "vcassist-backend/dev/env"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -16,16 +17,31 @@ type Struct struct {
 	AuthToken string `json:"auth_token"`
 }
 
-func (config Struct) OpenDB() (*sql.DB, error) {
+func (config Struct) OpenDB(schema string) (*sql.DB, error) {
 	if config.Url == "" {
 		if config.File == "" {
 			return nil, fmt.Errorf("a subpath was not specified")
 		}
-		dbpath, err := devenv.ResolvePath(config.File)
-		if err != nil {
-			return nil, err
+		dbpath, statErr := devenv.ResolvePath(config.File)
+		if statErr != nil {
+			return nil, statErr
 		}
-		return sql.Open("libsql", fmt.Sprintf("file:%s", dbpath))
+
+		_, statErr = os.Stat(dbpath)
+
+		db, err := sql.Open("libsql", fmt.Sprintf("file:%s", dbpath))
+		if err != nil {
+			return nil, statErr
+		}
+
+		if os.IsNotExist(statErr) && schema != "" {
+			_, err := db.Exec(schema)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return db, nil
 	}
 
 	values := url.Values{}
