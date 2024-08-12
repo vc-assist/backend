@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"vcassist-backend/lib/configuration"
-	configlibsql "vcassist-backend/lib/configuration/libsql"
+	"vcassist-backend/lib/configutil"
+	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/osutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
@@ -39,7 +39,7 @@ type config struct {
 }
 
 func main() {
-	config, err := configuration.ReadConfig[config]("config.json5")
+	config, err := configutil.ReadConfig[config]("config.json5")
 	if err != nil {
 		fatalerr("failed to read config", err)
 	}

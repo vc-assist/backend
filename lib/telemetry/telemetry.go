@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 	"time"
-	"vcassist-backend/lib/configuration"
+	"vcassist-backend/lib/configutil"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -73,7 +73,7 @@ func SetupForTesting(t testing.TB, serviceName string) func() {
 // called telemetry.json5, once found it will then use it
 // as a config to setup telemetry
 func SetupFromEnv(ctx context.Context, serviceName string) (Telemetry, error) {
-	config, err := configuration.ReadRecursively[Config]("telemetry.json5")
+	config, err := configutil.ReadRecursively[Config]("telemetry.json5")
 	if err != nil {
 		return Telemetry{}, err
 	}

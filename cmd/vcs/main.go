@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"vcassist-backend/lib/configuration"
-	configlibsql "vcassist-backend/lib/configuration/libsql"
+	"vcassist-backend/lib/configutil"
+	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/osutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
@@ -71,7 +71,7 @@ func startHttpServer(port int, mux *http.ServeMux) {
 }
 
 func main() {
-	config, err := configuration.ReadConfig[Config]("config.json5")
+	config, err := configutil.ReadConfig[Config]("config.json5")
 	if err != nil {
 		fatalerr("failed to read config", err)
 	}
