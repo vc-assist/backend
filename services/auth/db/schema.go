@@ -1,6 +1,10 @@
 package db
 
-import _ "embed"
+import (
+	_ "embed"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
+)
 
 //go:embed schema.sql
 var Schema string
