@@ -164,6 +164,7 @@ func main() {
 	ctx := osutil.SignalContext()
 
 	telemetry.SetupFromEnv(ctx, "cmd/vcs")
+	telemetry.InstrumentPerfStats(ctx)
 
 	startHttpServer(8222, linkerMux)
 	startHttpServer(9111, studentDataMux)
