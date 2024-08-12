@@ -60,13 +60,13 @@ Here are some commands relating to linting and code generation that will probabl
 - `atlas schema apply -u "libsql://<db_url>?authToken=<auth_token>" --to file://path/to/schema.sql --dev-url "sqlite://dev?mode=memory"` - migrates a database, see [declarative migrations](https://atlasgo.io/getting-started/#declarative-migrations)
 
 > [!NOTE]
-> To use these commands you'll need to install their respective dependencies.
+> To use these commands you'll need to install their respective CLI binaries.
 
 - `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
 - `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
 - `go install github.com/LQR471814/connectrpc-otel-gen@latest`
-- ``
+- [atlas](https://atlasgo.io/)
 
 ## Testing
 
