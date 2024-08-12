@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package vcassist.services.powerservice.v1;
 
-import "vcassist/scrapers/powerschool/v1/query_student_photo.proto";
 import "vcassist/scrapers/powerschool/v1/query_all_students.proto";
 import "vcassist/scrapers/powerschool/v1/query_schedule.proto";
 import "vcassist/scrapers/powerschool/v1/query_student_data.proto";
+import "vcassist/scrapers/powerschool/v1/query_student_photo.proto";
 import "vcassist/services/studentdata/v1/api.proto";
 
 // GetAuthStatus

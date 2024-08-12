@@ -13,4 +13,3 @@ message StudentPhoto {
 message GetStudentPhotoInput {
   string guid = 1 [json_name = "guid"];
 }
-

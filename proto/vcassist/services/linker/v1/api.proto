@@ -39,6 +39,7 @@ message Set {
 message LinkRequest {
   Set src = 1;
   Set dst = 2;
+  float threshold = 3;
 }
 message LinkResponse {
   map<string, string> src_to_dst = 1;

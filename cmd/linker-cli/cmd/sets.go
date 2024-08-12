@@ -18,9 +18,12 @@ var setsCmd = &cobra.Command{
 	Use:   "sets",
 	Short: "Prints the sets known to the linker.",
 	Run: func(cmd *cobra.Command, args []string) {
-		res, err := client.GetKnownSets(cmd.Context(), &connect.Request[linkerv1.GetKnownSetsRequest]{
-			Msg: &linkerv1.GetKnownSetsRequest{},
-		})
+		res, err := client.GetKnownSets(
+			cmd.Context(),
+			authRequest(&connect.Request[linkerv1.GetKnownSetsRequest]{
+				Msg: &linkerv1.GetKnownSetsRequest{},
+			}),
+		)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
