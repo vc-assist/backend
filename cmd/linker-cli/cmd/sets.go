@@ -30,7 +30,7 @@ var setsCmd = &cobra.Command{
 		t.SetOutputMirror(os.Stdout)
 		t.AppendHeader(table.Row{"Set"})
 
-		for _, s := range res.Msg.Sets {
+		for _, s := range res.Msg.GetSets() {
 			t.AppendRow(table.Row{s})
 		}
 

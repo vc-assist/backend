@@ -37,7 +37,7 @@ var keysCmd = &cobra.Command{
 			}
 			setKeys = append(setKeys, setKey{
 				setName: setName,
-				keys:    res.Msg.Keys,
+				keys:    res.Msg.GetKeys(),
 			})
 		}
 
@@ -67,9 +67,9 @@ var keysCmd = &cobra.Command{
 		for setIdx, set := range setKeys {
 			rowOffset := setIdx * 2
 			for keyIdx, key := range set.keys {
-				lastSeen := time.Unix(key.LastSeen, 0).Format(time.ANSIC)
+				lastSeen := time.Unix(key.GetLastSeen(), 0).Format(time.ANSIC)
 
-				rows[keyIdx][rowOffset] = key.Key
+				rows[keyIdx][rowOffset] = key.GetKey()
 				rows[keyIdx][rowOffset+1] = lastSeen
 			}
 		}
