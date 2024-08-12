@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 func create(recreate bool) error {

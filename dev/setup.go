@@ -16,7 +16,7 @@ import (
 	powerservicedb "vcassist-backend/services/powerservice/db"
 	vcsdb "vcassist-backend/services/vcs/db"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 func cmd(name string, args ...string) {
