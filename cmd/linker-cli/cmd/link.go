@@ -57,10 +57,10 @@ var linkCmd = &cobra.Command{
 			rightKeys[i] = val.GetKey()
 		}
 
-		result, err := client.Link(
+		result, err := client.LinkDetail(
 			context.Background(),
-			authRequest(&connect.Request[linkerv1.LinkRequest]{
-				Msg: &linkerv1.LinkRequest{
+			authRequest(&connect.Request[linkerv1.LinkDetailRequest]{
+				Msg: &linkerv1.LinkDetailRequest{
 					Src: &linkerv1.Set{
 						Name: args[0],
 						Keys: leftKeys,
@@ -79,10 +79,10 @@ var linkCmd = &cobra.Command{
 
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{args[0], args[1]})
+		t.AppendHeader(table.Row{args[0], args[1], "Correlation"})
 
-		for src, dst := range result.Msg.GetSrcToDst() {
-			t.AppendRow(table.Row{src, dst})
+		for _, link := range result.Msg.GetLinks() {
+			t.AppendRow(table.Row{link.Src, link.Dst, link.Correlation})
 		}
 
 		t.Render()

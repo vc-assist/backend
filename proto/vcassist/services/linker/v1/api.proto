@@ -39,10 +39,25 @@ message Set {
 message LinkRequest {
   Set src = 1;
   Set dst = 2;
-  float threshold = 3;
+  // note: the default threshold is 0.75
 }
 message LinkResponse {
   map<string, string> src_to_dst = 1;
+}
+
+// LinkDetail (note: this is just Link, but with extra parameters and response fields)
+message Linked {
+  string src = 1;
+  string dst = 2;
+  float correlation = 3;
+}
+message LinkDetailRequest {
+  Set src = 1;
+  Set dst = 2;
+  float threshold = 3;
+}
+message LinkDetailResponse {
+  repeated Linked links = 1;
 }
 
 // GetKnownSets
@@ -70,6 +85,7 @@ service LinkerService {
   rpc DeleteExplicitLink(DeleteExplicitLinkRequest) returns (DeleteExplicitLinkResponse);
 
   rpc Link(LinkRequest) returns (LinkResponse);
+  rpc LinkDetail(LinkDetailRequest) returns (LinkDetailResponse);
   rpc GetKnownSets(GetKnownSetsRequest) returns (GetKnownSetsResponse);
   rpc GetKnownKeys(GetKnownKeysRequest) returns (GetKnownKeysResponse);
 }

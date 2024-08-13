@@ -159,6 +159,40 @@ func (c InstrumentedLinkerServiceClient) Link(ctx context.Context, req *connect.
 	return res, nil
 }
 
+func (c InstrumentedLinkerServiceClient) LinkDetail(ctx context.Context, req *connect.Request[v1.LinkDetailRequest]) (*connect.Response[v1.LinkDetailResponse], error) {
+	ctx, span := linkerServiceTracer.Start(ctx, "LinkDetail")
+	defer span.End()
+
+	if span.IsRecording() {
+		input, err := protojson.Marshal(req.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("input", string(input)))
+		} else {
+			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	res, err := c.inner.LinkDetail(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if span.IsRecording() {
+		output, err := protojson.Marshal(res.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("output", string(output)))
+		} else {
+			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	return res, nil
+}
+
 func (c InstrumentedLinkerServiceClient) GetKnownSets(ctx context.Context, req *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error) {
 	ctx, span := linkerServiceTracer.Start(ctx, "GetKnownSets")
 	defer span.End()

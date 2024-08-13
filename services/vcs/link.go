@@ -39,7 +39,6 @@ func linkMoodleToPowerschool(
 				Name: "powerschool",
 				Keys: psKeys,
 			},
-			Threshold: 0.75,
 		},
 	})
 	if err != nil {
@@ -79,7 +78,6 @@ func linkWeightsToPowerschool(
 				Name: "powerschool",
 				Keys: courseNames,
 			},
-			Threshold: 0.75,
 		},
 	})
 	if err != nil {
