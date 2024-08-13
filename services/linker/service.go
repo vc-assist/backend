@@ -3,6 +3,7 @@ package linker
 import (
 	"context"
 	"database/sql"
+	"sort"
 	"vcassist-backend/lib/timezone"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
@@ -166,6 +167,10 @@ func (s Service) LinkDetail(ctx context.Context, req *connect.Request[linkerv1.L
 		rightList = append(rightList, right)
 	}
 	implicit := CreateImplicitLinks(leftList, rightList)
+
+	sort.Slice(implicit, func(i, j int) bool {
+		return implicit[i].Correlation < implicit[j].Correlation
+	})
 
 	explicitLength := len(explicit.Msg.LeftKeys)
 
