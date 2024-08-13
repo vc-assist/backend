@@ -13,8 +13,8 @@ import (
 var meter = otel.Meter("go.perf_stats")
 var cpuGauge, _ = meter.Float64Gauge("cpu_usage")
 var memoryGauge, _ = meter.Int64Gauge("allocated_mb")
-var gcGauge, _ = meter.Int64Gauge("gc_cycles_per_second")
-var pauseTotalGauge, _ = meter.Int64Gauge("stop_the_world_nanosecs")
+var liveObjectsGauge, _ = meter.Int64Gauge("live_objects")
+var goroutineGauge, _ = meter.Int64Gauge("goroutine_count")
 
 func InstrumentPerfStats(ctx context.Context) {
 	go func() {
@@ -34,8 +34,8 @@ func InstrumentPerfStats(ctx context.Context) {
 				}
 
 				memoryGauge.Record(ctx, int64(memStats.Alloc/1_000_000))
-				gcGauge.Record(ctx, int64(memStats.NumGC))
-				pauseTotalGauge.Record(ctx, int64(memStats.PauseTotalNs))
+				liveObjectsGauge.Record(ctx, int64(memStats.Mallocs)-int64(memStats.Frees))
+				goroutineGauge.Record(ctx, int64(runtime.NumGoroutine()))
 			case <-ctx.Done():
 				return
 			}
