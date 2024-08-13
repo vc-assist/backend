@@ -90,7 +90,7 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 	}, nil
 }
 
-func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
+func (s Service) LinkDetail(ctx context.Context, req *connect.Request[linkerv1.LinkDetailRequest]) (*connect.Response[linkerv1.LinkDetailResponse], error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -166,11 +166,47 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 		rightList = append(rightList, right)
 	}
 	implicit := CreateImplicitLinks(leftList, rightList)
-	for _, link := range implicit {
-		if link.Correlation < float64(req.Msg.GetThreshold()) {
-			continue
+
+	explicitLength := len(explicit.Msg.LeftKeys)
+
+	links := make([]*linkerv1.Linked, explicitLength+len(implicit))
+	for i := 0; i < explicitLength; i++ {
+		links[i] = &linkerv1.Linked{
+			Src:         explicit.Msg.LeftKeys[i],
+			Dst:         explicit.Msg.RightKeys[i],
+			Correlation: 1,
 		}
-		mapping[link.Left] = link.Right
+	}
+	for i, impl := range implicit {
+		links[i+explicitLength] = &linkerv1.Linked{
+			Src:         impl.Left,
+			Dst:         impl.Right,
+			Correlation: float32(impl.Correlation),
+		}
+	}
+
+	return &connect.Response[linkerv1.LinkDetailResponse]{
+		Msg: &linkerv1.LinkDetailResponse{
+			Links: links,
+		},
+	}, nil
+}
+
+func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
+	res, err := s.LinkDetail(ctx, &connect.Request[linkerv1.LinkDetailRequest]{
+		Msg: &linkerv1.LinkDetailRequest{
+			Src:       req.Msg.Src,
+			Dst:       req.Msg.Dst,
+			Threshold: 0.75,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mapping := make(map[string]string)
+	for _, link := range res.Msg.Links {
+		mapping[link.Src] = link.Dst
 	}
 
 	return &connect.Response[linkerv1.LinkResponse]{
