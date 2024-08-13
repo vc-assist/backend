@@ -168,8 +168,9 @@ func (s Service) LinkDetail(ctx context.Context, req *connect.Request[linkerv1.L
 	}
 	implicit := CreateImplicitLinks(leftList, rightList)
 
+	// sort descending
 	sort.Slice(implicit, func(i, j int) bool {
-		return implicit[i].Correlation < implicit[j].Correlation
+		return implicit[i].Correlation > implicit[j].Correlation
 	})
 
 	explicitLength := len(explicit.Msg.LeftKeys)
