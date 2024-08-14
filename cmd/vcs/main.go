@@ -31,7 +31,6 @@ import (
 	"vcassist-backend/services/vcsmoodle"
 
 	"connectrpc.com/connect"
-	"github.com/dgraph-io/badger/v4"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -109,11 +108,7 @@ func main() {
 		},
 	)
 
-	moodleCache, err := badger.Open(badger.DefaultOptions("moodle-cache.db"))
-	if err != nil {
-		fatalerr("failed to open moodle KV cache", err)
-	}
-	vcsmoodleService := vcsmoodle.NewService(moodleCache, keychainService)
+	vcsmoodleService := vcsmoodle.NewService(keychainService)
 
 	db, err = config.Database.Linker.OpenDB(linkerdb.Schema)
 	if err != nil {

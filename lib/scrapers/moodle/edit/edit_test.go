@@ -10,7 +10,6 @@ import (
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/telemetry"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,12 +25,7 @@ func setupClients(t testing.TB, ctx context.Context, config core.TestConfig) (*c
 		t.Fatal(err)
 	}
 
-	cache, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
-	if err != nil {
-		t.Fatal(err)
-	}
 	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
-		Cache:    cache,
 		ClientId: config.Username,
 	})
 	if err != nil {
