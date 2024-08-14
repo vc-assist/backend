@@ -7,14 +7,11 @@ import (
 	"time"
 	"vcassist-backend/lib/htmlutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
-	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/dgraph-io/badger/v4"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.view")
@@ -22,24 +19,17 @@ var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.view")
 type Client struct {
 	ClientId string
 	Core     *core.Client
-	cache    webpageCache
 }
 
 type ClientOptions struct {
 	// a unique id for this client, used for cache
 	ClientId string
-	Cache    *badger.DB
 }
 
 func NewClient(ctx context.Context, coreClient *core.Client, opts ClientOptions) (Client, error) {
-	cache := webpageCache{
-		db:      opts.Cache,
-		baseUrl: coreClient.BaseUrl,
-	}
 	c := Client{
 		ClientId: opts.ClientId,
 		Core:     coreClient,
-		cache:    cache,
 	}
 	return c, nil
 }
@@ -75,20 +65,6 @@ func (c Client) Courses(ctx context.Context) ([]Course, error) {
 	ctx, span := tracer.Start(ctx, "Courses")
 	defer span.End()
 
-	page, err := c.cache.get(ctx, c.ClientId, "/index.php")
-	if err == nil {
-		span.SetStatus(codes.Ok, "CACHE HIT")
-		return coursesFromAnchors(page.Anchors), nil
-	}
-
-	if err != errWebpageNotFound {
-		span.RecordError(err)
-		span.AddEvent("CACHE ERROR", trace.WithAttributes(attribute.KeyValue{
-			Key:   "log.severity",
-			Value: attribute.StringValue("WARN"),
-		}))
-	}
-
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get("/index.php")
@@ -105,16 +81,6 @@ func (c Client) Courses(ctx context.Context) ([]Course, error) {
 	}
 
 	anchors := htmlutil.GetAnchors(ctx, doc.Find("ul.unlist a"))
-
-	err = c.cache.set(ctx, c.ClientId, "/index.php", webpage{
-		Contents:  res.Body(),
-		Anchors:   anchors,
-		ExpiresAt: timezone.Now().Unix() + COURSE_LIST_LIFETIME,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to cache request")
-	}
 
 	return coursesFromAnchors(anchors), nil
 }
@@ -148,12 +114,6 @@ func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) 
 		Value: attribute.StringValue(endpoint),
 	})
 
-	page, err := c.cache.get(ctx, c.ClientId, endpoint)
-	if err == nil {
-		span.SetStatus(codes.Ok, "CACHE HIT")
-		return sectionsFromAnchors(page.Anchors), nil
-	}
-
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
@@ -170,16 +130,6 @@ func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) 
 	}
 
 	anchors := htmlutil.GetAnchors(ctx, doc.Find(".course-content a.nav-link"))
-
-	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
-		Contents:  res.Body(),
-		Anchors:   anchors,
-		ExpiresAt: timezone.Now().Unix() + SECTION_LIST_LIFETIME,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to cache request")
-	}
 
 	return sectionsFromAnchors(anchors), nil
 }
@@ -210,12 +160,6 @@ func (c Client) Resources(ctx context.Context, section Section) ([]Resource, err
 		Value: attribute.StringValue(endpoint),
 	})
 
-	page, err := c.cache.get(ctx, c.ClientId, endpoint)
-	if err == nil {
-		span.SetStatus(codes.Ok, "CACHE HIT")
-		return resourcesFromAnchors(page.Anchors), nil
-	}
-
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
@@ -232,16 +176,6 @@ func (c Client) Resources(ctx context.Context, section Section) ([]Resource, err
 	}
 
 	anchors := htmlutil.GetAnchors(ctx, doc.Find("li.activity a"))
-
-	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
-		Contents:  res.Body(),
-		Anchors:   anchors,
-		ExpiresAt: timezone.Now().Unix() + RESOURCE_LIST_LIFETIME,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to cache request")
-	}
 
 	return resourcesFromAnchors(anchors), nil
 }
@@ -275,12 +209,6 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 		Value: attribute.StringValue(endpoint),
 	})
 
-	page, err := c.cache.get(ctx, c.ClientId, endpoint)
-	if err == nil {
-		span.SetStatus(codes.Ok, "CACHE HIT")
-		return chaptersFromAnchors(page.Anchors), nil
-	}
-
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
@@ -298,28 +226,12 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 
 	tableOfContents := htmlutil.GetAnchors(ctx, doc.Find("div.columnleft li a"))
 
-	currentContents, err := doc.Find("div[role=main] div.box").Html()
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to serialized html content")
-		return nil, err
-	}
 	currentChapter := doc.Find("div.columnleft li").Text()
 
 	anchors := append(tableOfContents, htmlutil.Anchor{
 		Href: resource.Href,
 		Name: currentChapter,
 	})
-
-	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
-		Contents:  []byte(currentContents),
-		Anchors:   anchors,
-		ExpiresAt: timezone.Now().Unix() + CHAPTER_LIST_LIFETIME,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to cache request")
-	}
 
 	return chaptersFromAnchors(anchors), nil
 }
@@ -333,12 +245,6 @@ func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, er
 		Key:   "url",
 		Value: attribute.StringValue(endpoint),
 	})
-
-	page, err := c.cache.get(ctx, c.ClientId, endpoint)
-	if err == nil {
-		span.SetStatus(codes.Ok, "CACHE HIT")
-		return string(page.Contents), nil
-	}
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
@@ -360,16 +266,6 @@ func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, er
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return "", err
-	}
-
-	err = c.cache.set(ctx, c.ClientId, endpoint, webpage{
-		Contents:  []byte(contents),
-		Anchors:   nil,
-		ExpiresAt: timezone.Now().Unix() + CHAPTER_LIST_LIFETIME,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to cache request")
 	}
 
 	return contents, nil

@@ -9,7 +9,6 @@ import (
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/telemetry"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,11 +32,6 @@ func TestClient(t *testing.T) {
 		t.Skip("skipping because there is no test config at .dev/state/moodle/view.json5")
 	}
 
-	cache, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
 		BaseUrl: coreConfig.BaseUrl,
 	})
@@ -50,7 +44,6 @@ func TestClient(t *testing.T) {
 	}
 
 	client, err := NewClient(ctx, coreClient, ClientOptions{
-		Cache:    cache,
 		ClientId: coreConfig.Username,
 	})
 	if err != nil {

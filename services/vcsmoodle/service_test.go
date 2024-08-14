@@ -13,7 +13,6 @@ import (
 	keychaindb "vcassist-backend/services/keychain/db"
 
 	"connectrpc.com/connect"
-	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,14 +25,9 @@ func setup(t testing.TB) (vcsmoodlev1connect.MoodleServiceClient, func()) {
 		Name: "services/vcsmoodle",
 	})
 
-	cache, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	ctx, cancelKeychain := context.WithCancel(context.Background())
 	keychainService := keychain.NewService(ctx, keyRes.DB)
-	s := NewService(cache, keychainService)
+	s := NewService(keychainService)
 
 	return s, func() {
 		cleanupKeychain()
@@ -51,7 +45,7 @@ func TestService(t *testing.T) {
 
 	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("vcsmoodle.json5")
 	if err != nil {
-		t.Skip("skipping test because no valid test config was found at .dev/state/vcsmoodle.json5")
+		t.Skip("skipping test because no valid test config was found at dev/.state/vcsmoodle.json5")
 	}
 
 	{

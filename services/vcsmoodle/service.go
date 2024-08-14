@@ -10,7 +10,6 @@ import (
 	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 
 	"connectrpc.com/connect"
-	"github.com/dgraph-io/badger/v4"
 	"go.opentelemetry.io/otel"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -23,13 +22,11 @@ const baseUrl = "https://learn.vcs.net"
 const keychainNamespace = "vcsmoodle"
 
 type Service struct {
-	cache    *badger.DB
 	keychain keychainv1connect.KeychainServiceClient
 }
 
-func NewService(cache *badger.DB, keychain keychainv1connect.KeychainServiceClient) vcsmoodlev1connect.MoodleServiceClient {
+func NewService(keychain keychainv1connect.KeychainServiceClient) vcsmoodlev1connect.MoodleServiceClient {
 	s := Service{
-		cache:    cache,
 		keychain: keychain,
 	}
 	return vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(s)
@@ -105,7 +102,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 	}
 	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
 		ClientId: req.Msg.GetStudentId(),
-		Cache:    s.cache,
 	})
 	if err != nil {
 		return nil, err
