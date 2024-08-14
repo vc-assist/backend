@@ -10,7 +10,9 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/html"
 )
 
@@ -80,10 +82,15 @@ func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 		name = strings.Trim(name, " \t\n")
 		name = innerWhitespace.ReplaceAllString(name, " ")
 
+		linkStr := link.String()
 		anchors = append(anchors, Anchor{
 			Name: name,
-			Href: link.String(),
+			Href: linkStr,
 		})
+		span.AddEvent("anchor", trace.WithAttributes(
+			attribute.String("name", name),
+			attribute.String("url", linkStr),
+		))
 	}
 
 	return anchors

@@ -20,6 +20,8 @@ func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, href s
 	ctx, span := tracer.Start(ctx, "scrapeThroughWorkaroundLink")
 	defer span.End()
 
+	span.SetAttributes(attribute.String("href", href))
+
 	if !strings.Contains(href, client.Core.Http.BaseURL) {
 		return href, nil
 	}
@@ -79,6 +81,7 @@ func scrapeZoomLink(ctx context.Context, client view.Client, section view.Sectio
 				span.SetStatus(codes.Error, err.Error())
 				continue
 			}
+			span.SetAttributes(attribute.String("zoom_link", link))
 			return link, nil
 		}
 	}
@@ -92,6 +95,9 @@ func scrapeZoomLink(ctx context.Context, client view.Client, section view.Sectio
 func scrapeChapters(ctx context.Context, client view.Client, resource view.Resource) (lessonPlan string, err error) {
 	ctx, span := tracer.Start(ctx, "scrapeChapters")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("name", resource.Name))
+	span.SetAttributes(attribute.String("href", resource.Href))
 
 	chapters, err := client.Chapters(ctx, resource)
 	if err != nil {
@@ -120,8 +126,11 @@ func scrapeChapters(ctx context.Context, client view.Client, resource view.Resou
 }
 
 func scrapeLessonPlanSection(ctx context.Context, client view.Client, section view.Section) (lessonPlan string, err error) {
-	ctx, span := tracer.Start(ctx, "scrapeQuarter")
+	ctx, span := tracer.Start(ctx, "scrapeLessonPlanSection")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("name", section.Name))
+	span.SetAttributes(attribute.String("href", section.Href))
 
 	resources, err := client.Resources(ctx, section)
 	if err != nil {
@@ -164,6 +173,8 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 		Name: course.Name,
 	}
 
+	span.SetAttributes(attribute.String("name", course.Name))
+
 	sections, err := client.Sections(ctx, course)
 	if err != nil {
 		span.RecordError(err)
@@ -172,20 +183,22 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 	}
 
 	wg := sync.WaitGroup{}
-	for _, s := range sections {
-		if MatchName(s.Name, zoomKeywords) {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
 
-				zoomlink, err := scrapeZoomLink(ctx, client, s)
-				if err != nil {
-					return
-				}
-				result.ZoomLink = zoomlink
-			}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for _, s := range sections {
+			zoomlink, err := scrapeZoomLink(ctx, client, s)
+			if err != nil {
+				return
+			}
+			result.ZoomLink = zoomlink
+			break
 		}
+	}()
 
+	for _, s := range sections {
 		if MatchName(s.Name, lessonPlanKeywords) {
 			wg.Add(1)
 			go func() {
@@ -200,6 +213,9 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 		}
 	}
 	wg.Wait()
+
+	span.SetAttributes(attribute.Int("lesson_plan_length", len(result.LessonPlan)))
+	span.SetAttributes(attribute.String("zoom_link", result.ZoomLink))
 
 	return result, nil
 }
