@@ -14,9 +14,15 @@ import (
 	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
+	"vcassist-backend/services/vcsmoodle"
 
 	"go.opentelemetry.io/otel/codes"
 )
+
+var homeworkPassesKeywords = []string{
+	"hwpass",
+	"homeworkpass",
+}
 
 func patchAssignmentWithPowerschool(ctx context.Context, out *studentdatav1.Assignment, assignment *powerschoolv1.AssignmentData) {
 	ctx, span := tracer.Start(ctx, "patchAssignment:WithPowerschool")
@@ -101,6 +107,11 @@ func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, 
 
 	var assignmentTypeNameList []string
 	for _, psassign := range course.GetAssignments() {
+		if vcsmoodle.MatchName(psassign.GetTitle(), homeworkPassesKeywords) {
+			out.HomeworkPasses = psassign.GetPointsEarned()
+			continue
+		}
+
 		assignment := &studentdatav1.Assignment{}
 		patchAssignmentWithPowerschool(ctx, assignment, psassign)
 		assignmentTypeName := assignment.GetAssignmentTypeName()
