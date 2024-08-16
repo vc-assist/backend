@@ -3,7 +3,6 @@ package linker
 import (
 	"context"
 	"database/sql"
-	"sort"
 	"vcassist-backend/lib/timezone"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
@@ -91,7 +90,45 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 	}, nil
 }
 
-func (s Service) LinkDetail(ctx context.Context, req *connect.Request[linkerv1.LinkDetailRequest]) (*connect.Response[linkerv1.LinkDetailResponse], error) {
+func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[linkerv1.GetKnownSetsRequest]) (*connect.Response[linkerv1.GetKnownSetsResponse], error) {
+	ctx, span := tracer.Start(ctx, "GetKnownSets")
+	defer span.End()
+
+	sets, err := s.qry.GetKnownSets(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connect.Response[linkerv1.GetKnownSetsResponse]{
+		Msg: &linkerv1.GetKnownSetsResponse{Sets: sets},
+	}, nil
+}
+
+func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[linkerv1.GetKnownKeysRequest]) (*connect.Response[linkerv1.GetKnownKeysResponse], error) {
+	ctx, span := tracer.Start(ctx, "GetKnownKeys")
+	defer span.End()
+
+	rows, err := s.qry.GetKnownKeys(ctx, req.Msg.GetSet())
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]*linkerv1.KnownKey, len(rows))
+	for i, r := range rows {
+		keys[i] = &linkerv1.KnownKey{
+			Key:      r.Value,
+			LastSeen: r.Lastseen,
+		}
+	}
+
+	return &connect.Response[linkerv1.GetKnownKeysResponse]{
+		Msg: &linkerv1.GetKnownKeysResponse{
+			Keys: keys,
+		},
+	}, nil
+}
+
+func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -144,75 +181,39 @@ func (s Service) LinkDetail(ctx context.Context, req *connect.Request[linkerv1.L
 	if err != nil {
 		return nil, err
 	}
+
 	mapping := make(map[string]string)
 	for i, left := range explicit.Msg.GetLeftKeys() {
 		right := explicit.Msg.GetRightKeys()[i]
 		mapping[left] = right
 	}
 
-	var leftList []string
-	for _, left := range req.Msg.GetSrc().GetKeys() {
-		_, ok := mapping[left]
-		if ok {
-			continue
+	var exactMatches []string
+	if len(req.Msg.GetSrc().GetKeys()) <= len(req.Msg.GetDst().GetKeys()) {
+		dstKeys := make(map[string]struct{})
+		for _, dst := range req.Msg.GetDst().GetKeys() {
+			dstKeys[dst] = struct{}{}
 		}
-		leftList = append(leftList, left)
-	}
-	var rightList []string
-	for _, right := range req.Msg.GetDst().GetKeys() {
-		_, ok := mapping[right]
-		if ok {
-			continue
+		for _, src := range req.Msg.GetSrc().GetKeys() {
+			_, hasKey := dstKeys[src]
+			if hasKey {
+				exactMatches = append(exactMatches, src)
+			}
 		}
-		rightList = append(rightList, right)
-	}
-	implicit := CreateImplicitLinks(leftList, rightList)
-
-	// sort descending
-	sort.Slice(implicit, func(i, j int) bool {
-		return implicit[i].Correlation > implicit[j].Correlation
-	})
-
-	explicitLength := len(explicit.Msg.LeftKeys)
-
-	links := make([]*linkerv1.Linked, explicitLength+len(implicit))
-	for i := 0; i < explicitLength; i++ {
-		links[i] = &linkerv1.Linked{
-			Src:         explicit.Msg.LeftKeys[i],
-			Dst:         explicit.Msg.RightKeys[i],
-			Correlation: 1,
+	} else {
+		srcKeys := make(map[string]struct{})
+		for _, src := range req.Msg.GetSrc().GetKeys() {
+			srcKeys[src] = struct{}{}
+		}
+		for _, dst := range req.Msg.GetDst().GetKeys() {
+			_, hasKey := srcKeys[dst]
+			if hasKey {
+				exactMatches = append(exactMatches, dst)
+			}
 		}
 	}
-	for i, impl := range implicit {
-		links[i+explicitLength] = &linkerv1.Linked{
-			Src:         impl.Left,
-			Dst:         impl.Right,
-			Correlation: float32(impl.Correlation),
-		}
-	}
-
-	return &connect.Response[linkerv1.LinkDetailResponse]{
-		Msg: &linkerv1.LinkDetailResponse{
-			Links: links,
-		},
-	}, nil
-}
-
-func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
-	res, err := s.LinkDetail(ctx, &connect.Request[linkerv1.LinkDetailRequest]{
-		Msg: &linkerv1.LinkDetailRequest{
-			Src:       req.Msg.Src,
-			Dst:       req.Msg.Dst,
-			Threshold: 0.75,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	mapping := make(map[string]string)
-	for _, link := range res.Msg.Links {
-		mapping[link.Src] = link.Dst
+	for _, k := range exactMatches {
+		mapping[k] = k
 	}
 
 	return &connect.Response[linkerv1.LinkResponse]{
@@ -222,40 +223,49 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	}, nil
 }
 
-func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[linkerv1.GetKnownSetsRequest]) (*connect.Response[linkerv1.GetKnownSetsResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetKnownSets")
-	defer span.End()
-
-	sets, err := s.qry.GetKnownSets(ctx)
+func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1.SuggestLinksRequest]) (*connect.Response[linkerv1.SuggestLinksResponse], error) {
+	leftRes, err := s.GetKnownKeys(ctx, &connect.Request[linkerv1.GetKnownKeysRequest]{
+		Msg: &linkerv1.GetKnownKeysRequest{
+			Set: req.Msg.GetSetLeft(),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	rightRes, err := s.GetKnownKeys(ctx, &connect.Request[linkerv1.GetKnownKeysRequest]{
+		Msg: &linkerv1.GetKnownKeysRequest{
+			Set: req.Msg.GetSetRight(),
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &connect.Response[linkerv1.GetKnownSetsResponse]{
-		Msg: &linkerv1.GetKnownSetsResponse{Sets: sets},
-	}, nil
-}
-
-func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[linkerv1.GetKnownKeysRequest]) (*connect.Response[linkerv1.GetKnownKeysResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetKnownKeys")
-	defer span.End()
-
-	rows, err := s.qry.GetKnownKeys(ctx, req.Msg.GetSet())
-	if err != nil {
-		return nil, err
+	leftKeys := make([]string, len(leftRes.Msg.GetKeys()))
+	for i := 0; i < len(leftRes.Msg.GetKeys()); i++ {
+		leftKeys[i] = leftRes.Msg.Keys[i].Key
+	}
+	rightKeys := make([]string, len(rightRes.Msg.GetKeys()))
+	for i := 0; i < len(rightRes.Msg.GetKeys()); i++ {
+		rightKeys[i] = rightRes.Msg.Keys[i].Key
 	}
 
-	keys := make([]*linkerv1.KnownKey, len(rows))
-	for i, r := range rows {
-		keys[i] = &linkerv1.KnownKey{
-			Key:      r.Value,
-			LastSeen: r.Lastseen,
+	implicit := CreateImplicitLinks(leftKeys, rightKeys)
+
+	suggestions := []*linkerv1.LinkSuggestion{}
+	for _, impl := range implicit {
+		if impl.Correlation < 0.75 || impl.Correlation == 1 {
+			continue
 		}
+		suggestions = append(suggestions, &linkerv1.LinkSuggestion{
+			LeftKey:  impl.Left,
+			RightKey: impl.Right,
+		})
 	}
 
-	return &connect.Response[linkerv1.GetKnownKeysResponse]{
-		Msg: &linkerv1.GetKnownKeysResponse{
-			Keys: keys,
+	return &connect.Response[linkerv1.SuggestLinksResponse]{
+		Msg: &linkerv1.SuggestLinksResponse{
+			Suggestions: suggestions,
 		},
 	}, nil
 }
