@@ -42,17 +42,17 @@ const (
 	// LinkerServiceDeleteExplicitLinkProcedure is the fully-qualified name of the LinkerService's
 	// DeleteExplicitLink RPC.
 	LinkerServiceDeleteExplicitLinkProcedure = "/vcassist.services.linker.v1.LinkerService/DeleteExplicitLink"
-	// LinkerServiceLinkProcedure is the fully-qualified name of the LinkerService's Link RPC.
-	LinkerServiceLinkProcedure = "/vcassist.services.linker.v1.LinkerService/Link"
-	// LinkerServiceLinkDetailProcedure is the fully-qualified name of the LinkerService's LinkDetail
-	// RPC.
-	LinkerServiceLinkDetailProcedure = "/vcassist.services.linker.v1.LinkerService/LinkDetail"
 	// LinkerServiceGetKnownSetsProcedure is the fully-qualified name of the LinkerService's
 	// GetKnownSets RPC.
 	LinkerServiceGetKnownSetsProcedure = "/vcassist.services.linker.v1.LinkerService/GetKnownSets"
 	// LinkerServiceGetKnownKeysProcedure is the fully-qualified name of the LinkerService's
 	// GetKnownKeys RPC.
 	LinkerServiceGetKnownKeysProcedure = "/vcassist.services.linker.v1.LinkerService/GetKnownKeys"
+	// LinkerServiceLinkProcedure is the fully-qualified name of the LinkerService's Link RPC.
+	LinkerServiceLinkProcedure = "/vcassist.services.linker.v1.LinkerService/Link"
+	// LinkerServiceSuggestLinksProcedure is the fully-qualified name of the LinkerService's
+	// SuggestLinks RPC.
+	LinkerServiceSuggestLinksProcedure = "/vcassist.services.linker.v1.LinkerService/SuggestLinks"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -61,10 +61,10 @@ var (
 	linkerServiceGetExplicitLinksMethodDescriptor   = linkerServiceServiceDescriptor.Methods().ByName("GetExplicitLinks")
 	linkerServiceAddExplicitLinkMethodDescriptor    = linkerServiceServiceDescriptor.Methods().ByName("AddExplicitLink")
 	linkerServiceDeleteExplicitLinkMethodDescriptor = linkerServiceServiceDescriptor.Methods().ByName("DeleteExplicitLink")
-	linkerServiceLinkMethodDescriptor               = linkerServiceServiceDescriptor.Methods().ByName("Link")
-	linkerServiceLinkDetailMethodDescriptor         = linkerServiceServiceDescriptor.Methods().ByName("LinkDetail")
 	linkerServiceGetKnownSetsMethodDescriptor       = linkerServiceServiceDescriptor.Methods().ByName("GetKnownSets")
 	linkerServiceGetKnownKeysMethodDescriptor       = linkerServiceServiceDescriptor.Methods().ByName("GetKnownKeys")
+	linkerServiceLinkMethodDescriptor               = linkerServiceServiceDescriptor.Methods().ByName("Link")
+	linkerServiceSuggestLinksMethodDescriptor       = linkerServiceServiceDescriptor.Methods().ByName("SuggestLinks")
 )
 
 // LinkerServiceClient is a client for the vcassist.services.linker.v1.LinkerService service.
@@ -72,10 +72,10 @@ type LinkerServiceClient interface {
 	GetExplicitLinks(context.Context, *connect.Request[v1.GetExplicitLinksRequest]) (*connect.Response[v1.GetExplicitLinksResponse], error)
 	AddExplicitLink(context.Context, *connect.Request[v1.AddExplicitLinkRequest]) (*connect.Response[v1.AddExplicitLinkResponse], error)
 	DeleteExplicitLink(context.Context, *connect.Request[v1.DeleteExplicitLinkRequest]) (*connect.Response[v1.DeleteExplicitLinkResponse], error)
-	Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error)
-	LinkDetail(context.Context, *connect.Request[v1.LinkDetailRequest]) (*connect.Response[v1.LinkDetailResponse], error)
 	GetKnownSets(context.Context, *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error)
 	GetKnownKeys(context.Context, *connect.Request[v1.GetKnownKeysRequest]) (*connect.Response[v1.GetKnownKeysResponse], error)
+	Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error)
+	SuggestLinks(context.Context, *connect.Request[v1.SuggestLinksRequest]) (*connect.Response[v1.SuggestLinksResponse], error)
 }
 
 // NewLinkerServiceClient constructs a client for the vcassist.services.linker.v1.LinkerService
@@ -106,18 +106,6 @@ func NewLinkerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(linkerServiceDeleteExplicitLinkMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		link: connect.NewClient[v1.LinkRequest, v1.LinkResponse](
-			httpClient,
-			baseURL+LinkerServiceLinkProcedure,
-			connect.WithSchema(linkerServiceLinkMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
-		linkDetail: connect.NewClient[v1.LinkDetailRequest, v1.LinkDetailResponse](
-			httpClient,
-			baseURL+LinkerServiceLinkDetailProcedure,
-			connect.WithSchema(linkerServiceLinkDetailMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
 		getKnownSets: connect.NewClient[v1.GetKnownSetsRequest, v1.GetKnownSetsResponse](
 			httpClient,
 			baseURL+LinkerServiceGetKnownSetsProcedure,
@@ -130,6 +118,18 @@ func NewLinkerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(linkerServiceGetKnownKeysMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		link: connect.NewClient[v1.LinkRequest, v1.LinkResponse](
+			httpClient,
+			baseURL+LinkerServiceLinkProcedure,
+			connect.WithSchema(linkerServiceLinkMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		suggestLinks: connect.NewClient[v1.SuggestLinksRequest, v1.SuggestLinksResponse](
+			httpClient,
+			baseURL+LinkerServiceSuggestLinksProcedure,
+			connect.WithSchema(linkerServiceSuggestLinksMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -138,10 +138,10 @@ type linkerServiceClient struct {
 	getExplicitLinks   *connect.Client[v1.GetExplicitLinksRequest, v1.GetExplicitLinksResponse]
 	addExplicitLink    *connect.Client[v1.AddExplicitLinkRequest, v1.AddExplicitLinkResponse]
 	deleteExplicitLink *connect.Client[v1.DeleteExplicitLinkRequest, v1.DeleteExplicitLinkResponse]
-	link               *connect.Client[v1.LinkRequest, v1.LinkResponse]
-	linkDetail         *connect.Client[v1.LinkDetailRequest, v1.LinkDetailResponse]
 	getKnownSets       *connect.Client[v1.GetKnownSetsRequest, v1.GetKnownSetsResponse]
 	getKnownKeys       *connect.Client[v1.GetKnownKeysRequest, v1.GetKnownKeysResponse]
+	link               *connect.Client[v1.LinkRequest, v1.LinkResponse]
+	suggestLinks       *connect.Client[v1.SuggestLinksRequest, v1.SuggestLinksResponse]
 }
 
 // GetExplicitLinks calls vcassist.services.linker.v1.LinkerService.GetExplicitLinks.
@@ -159,16 +159,6 @@ func (c *linkerServiceClient) DeleteExplicitLink(ctx context.Context, req *conne
 	return c.deleteExplicitLink.CallUnary(ctx, req)
 }
 
-// Link calls vcassist.services.linker.v1.LinkerService.Link.
-func (c *linkerServiceClient) Link(ctx context.Context, req *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {
-	return c.link.CallUnary(ctx, req)
-}
-
-// LinkDetail calls vcassist.services.linker.v1.LinkerService.LinkDetail.
-func (c *linkerServiceClient) LinkDetail(ctx context.Context, req *connect.Request[v1.LinkDetailRequest]) (*connect.Response[v1.LinkDetailResponse], error) {
-	return c.linkDetail.CallUnary(ctx, req)
-}
-
 // GetKnownSets calls vcassist.services.linker.v1.LinkerService.GetKnownSets.
 func (c *linkerServiceClient) GetKnownSets(ctx context.Context, req *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error) {
 	return c.getKnownSets.CallUnary(ctx, req)
@@ -179,16 +169,26 @@ func (c *linkerServiceClient) GetKnownKeys(ctx context.Context, req *connect.Req
 	return c.getKnownKeys.CallUnary(ctx, req)
 }
 
+// Link calls vcassist.services.linker.v1.LinkerService.Link.
+func (c *linkerServiceClient) Link(ctx context.Context, req *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {
+	return c.link.CallUnary(ctx, req)
+}
+
+// SuggestLinks calls vcassist.services.linker.v1.LinkerService.SuggestLinks.
+func (c *linkerServiceClient) SuggestLinks(ctx context.Context, req *connect.Request[v1.SuggestLinksRequest]) (*connect.Response[v1.SuggestLinksResponse], error) {
+	return c.suggestLinks.CallUnary(ctx, req)
+}
+
 // LinkerServiceHandler is an implementation of the vcassist.services.linker.v1.LinkerService
 // service.
 type LinkerServiceHandler interface {
 	GetExplicitLinks(context.Context, *connect.Request[v1.GetExplicitLinksRequest]) (*connect.Response[v1.GetExplicitLinksResponse], error)
 	AddExplicitLink(context.Context, *connect.Request[v1.AddExplicitLinkRequest]) (*connect.Response[v1.AddExplicitLinkResponse], error)
 	DeleteExplicitLink(context.Context, *connect.Request[v1.DeleteExplicitLinkRequest]) (*connect.Response[v1.DeleteExplicitLinkResponse], error)
-	Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error)
-	LinkDetail(context.Context, *connect.Request[v1.LinkDetailRequest]) (*connect.Response[v1.LinkDetailResponse], error)
 	GetKnownSets(context.Context, *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error)
 	GetKnownKeys(context.Context, *connect.Request[v1.GetKnownKeysRequest]) (*connect.Response[v1.GetKnownKeysResponse], error)
+	Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error)
+	SuggestLinks(context.Context, *connect.Request[v1.SuggestLinksRequest]) (*connect.Response[v1.SuggestLinksResponse], error)
 }
 
 // NewLinkerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -215,18 +215,6 @@ func NewLinkerServiceHandler(svc LinkerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(linkerServiceDeleteExplicitLinkMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	linkerServiceLinkHandler := connect.NewUnaryHandler(
-		LinkerServiceLinkProcedure,
-		svc.Link,
-		connect.WithSchema(linkerServiceLinkMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
-	linkerServiceLinkDetailHandler := connect.NewUnaryHandler(
-		LinkerServiceLinkDetailProcedure,
-		svc.LinkDetail,
-		connect.WithSchema(linkerServiceLinkDetailMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
 	linkerServiceGetKnownSetsHandler := connect.NewUnaryHandler(
 		LinkerServiceGetKnownSetsProcedure,
 		svc.GetKnownSets,
@@ -239,6 +227,18 @@ func NewLinkerServiceHandler(svc LinkerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(linkerServiceGetKnownKeysMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	linkerServiceLinkHandler := connect.NewUnaryHandler(
+		LinkerServiceLinkProcedure,
+		svc.Link,
+		connect.WithSchema(linkerServiceLinkMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	linkerServiceSuggestLinksHandler := connect.NewUnaryHandler(
+		LinkerServiceSuggestLinksProcedure,
+		svc.SuggestLinks,
+		connect.WithSchema(linkerServiceSuggestLinksMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/vcassist.services.linker.v1.LinkerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LinkerServiceGetExplicitLinksProcedure:
@@ -247,14 +247,14 @@ func NewLinkerServiceHandler(svc LinkerServiceHandler, opts ...connect.HandlerOp
 			linkerServiceAddExplicitLinkHandler.ServeHTTP(w, r)
 		case LinkerServiceDeleteExplicitLinkProcedure:
 			linkerServiceDeleteExplicitLinkHandler.ServeHTTP(w, r)
-		case LinkerServiceLinkProcedure:
-			linkerServiceLinkHandler.ServeHTTP(w, r)
-		case LinkerServiceLinkDetailProcedure:
-			linkerServiceLinkDetailHandler.ServeHTTP(w, r)
 		case LinkerServiceGetKnownSetsProcedure:
 			linkerServiceGetKnownSetsHandler.ServeHTTP(w, r)
 		case LinkerServiceGetKnownKeysProcedure:
 			linkerServiceGetKnownKeysHandler.ServeHTTP(w, r)
+		case LinkerServiceLinkProcedure:
+			linkerServiceLinkHandler.ServeHTTP(w, r)
+		case LinkerServiceSuggestLinksProcedure:
+			linkerServiceSuggestLinksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -276,18 +276,18 @@ func (UnimplementedLinkerServiceHandler) DeleteExplicitLink(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.DeleteExplicitLink is not implemented"))
 }
 
-func (UnimplementedLinkerServiceHandler) Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.Link is not implemented"))
-}
-
-func (UnimplementedLinkerServiceHandler) LinkDetail(context.Context, *connect.Request[v1.LinkDetailRequest]) (*connect.Response[v1.LinkDetailResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.LinkDetail is not implemented"))
-}
-
 func (UnimplementedLinkerServiceHandler) GetKnownSets(context.Context, *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.GetKnownSets is not implemented"))
 }
 
 func (UnimplementedLinkerServiceHandler) GetKnownKeys(context.Context, *connect.Request[v1.GetKnownKeysRequest]) (*connect.Response[v1.GetKnownKeysResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.GetKnownKeys is not implemented"))
+}
+
+func (UnimplementedLinkerServiceHandler) Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.Link is not implemented"))
+}
+
+func (UnimplementedLinkerServiceHandler) SuggestLinks(context.Context, *connect.Request[v1.SuggestLinksRequest]) (*connect.Response[v1.SuggestLinksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.SuggestLinks is not implemented"))
 }

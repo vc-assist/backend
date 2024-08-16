@@ -31,35 +31,6 @@ message DeleteExplicitLinkRequest {
 }
 message DeleteExplicitLinkResponse {}
 
-// Link
-message Set {
-  string name = 1;
-  repeated string keys = 2;
-}
-message LinkRequest {
-  Set src = 1;
-  Set dst = 2;
-  // note: the default threshold is 0.75
-}
-message LinkResponse {
-  map<string, string> src_to_dst = 1;
-}
-
-// LinkDetail (note: this is just Link, but with extra parameters and response fields)
-message Linked {
-  string src = 1;
-  string dst = 2;
-  float correlation = 3;
-}
-message LinkDetailRequest {
-  Set src = 1;
-  Set dst = 2;
-  float threshold = 3;
-}
-message LinkDetailResponse {
-  repeated Linked links = 1;
-}
-
 // GetKnownSets
 message GetKnownSetsRequest {}
 message GetKnownSetsResponse {
@@ -79,13 +50,41 @@ message GetKnownKeysResponse {
   repeated KnownKey keys = 1;
 }
 
+// Link
+message Set {
+  string name = 1;
+  repeated string keys = 2;
+}
+message LinkRequest {
+  Set src = 1;
+  Set dst = 2;
+}
+message LinkResponse {
+  map<string, string> src_to_dst = 1;
+}
+
+// SuggestLinks
+message SuggestLinksRequest {
+  string set_left = 1;
+  string set_right = 2;
+}
+message LinkSuggestion {
+  string left_key = 1;
+  string right_key = 2;
+  float correlation = 3;
+}
+message SuggestLinksResponse {
+  repeated LinkSuggestion suggestions = 1;
+}
+
 service LinkerService {
   rpc GetExplicitLinks(GetExplicitLinksRequest) returns (GetExplicitLinksResponse);
   rpc AddExplicitLink(AddExplicitLinkRequest) returns (AddExplicitLinkResponse);
   rpc DeleteExplicitLink(DeleteExplicitLinkRequest) returns (DeleteExplicitLinkResponse);
 
-  rpc Link(LinkRequest) returns (LinkResponse);
-  rpc LinkDetail(LinkDetailRequest) returns (LinkDetailResponse);
   rpc GetKnownSets(GetKnownSetsRequest) returns (GetKnownSetsResponse);
   rpc GetKnownKeys(GetKnownKeysRequest) returns (GetKnownKeysResponse);
+
+  rpc Link(LinkRequest) returns (LinkResponse);
+  rpc SuggestLinks(SuggestLinksRequest) returns (SuggestLinksResponse);
 }
