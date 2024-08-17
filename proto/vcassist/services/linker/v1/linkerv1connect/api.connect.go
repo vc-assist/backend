@@ -48,6 +48,12 @@ const (
 	// LinkerServiceGetKnownKeysProcedure is the fully-qualified name of the LinkerService's
 	// GetKnownKeys RPC.
 	LinkerServiceGetKnownKeysProcedure = "/vcassist.services.linker.v1.LinkerService/GetKnownKeys"
+	// LinkerServiceDeleteKnownSetsProcedure is the fully-qualified name of the LinkerService's
+	// DeleteKnownSets RPC.
+	LinkerServiceDeleteKnownSetsProcedure = "/vcassist.services.linker.v1.LinkerService/DeleteKnownSets"
+	// LinkerServiceDeleteKnownKeysProcedure is the fully-qualified name of the LinkerService's
+	// DeleteKnownKeys RPC.
+	LinkerServiceDeleteKnownKeysProcedure = "/vcassist.services.linker.v1.LinkerService/DeleteKnownKeys"
 	// LinkerServiceLinkProcedure is the fully-qualified name of the LinkerService's Link RPC.
 	LinkerServiceLinkProcedure = "/vcassist.services.linker.v1.LinkerService/Link"
 	// LinkerServiceSuggestLinksProcedure is the fully-qualified name of the LinkerService's
@@ -63,6 +69,8 @@ var (
 	linkerServiceDeleteExplicitLinkMethodDescriptor = linkerServiceServiceDescriptor.Methods().ByName("DeleteExplicitLink")
 	linkerServiceGetKnownSetsMethodDescriptor       = linkerServiceServiceDescriptor.Methods().ByName("GetKnownSets")
 	linkerServiceGetKnownKeysMethodDescriptor       = linkerServiceServiceDescriptor.Methods().ByName("GetKnownKeys")
+	linkerServiceDeleteKnownSetsMethodDescriptor    = linkerServiceServiceDescriptor.Methods().ByName("DeleteKnownSets")
+	linkerServiceDeleteKnownKeysMethodDescriptor    = linkerServiceServiceDescriptor.Methods().ByName("DeleteKnownKeys")
 	linkerServiceLinkMethodDescriptor               = linkerServiceServiceDescriptor.Methods().ByName("Link")
 	linkerServiceSuggestLinksMethodDescriptor       = linkerServiceServiceDescriptor.Methods().ByName("SuggestLinks")
 )
@@ -74,6 +82,8 @@ type LinkerServiceClient interface {
 	DeleteExplicitLink(context.Context, *connect.Request[v1.DeleteExplicitLinkRequest]) (*connect.Response[v1.DeleteExplicitLinkResponse], error)
 	GetKnownSets(context.Context, *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error)
 	GetKnownKeys(context.Context, *connect.Request[v1.GetKnownKeysRequest]) (*connect.Response[v1.GetKnownKeysResponse], error)
+	DeleteKnownSets(context.Context, *connect.Request[v1.DeleteKnownSetsRequest]) (*connect.Response[v1.DeleteKnownSetsResponse], error)
+	DeleteKnownKeys(context.Context, *connect.Request[v1.DeleteKnownKeysRequest]) (*connect.Response[v1.DeleteKnownKeysResponse], error)
 	Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error)
 	SuggestLinks(context.Context, *connect.Request[v1.SuggestLinksRequest]) (*connect.Response[v1.SuggestLinksResponse], error)
 }
@@ -118,6 +128,18 @@ func NewLinkerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(linkerServiceGetKnownKeysMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		deleteKnownSets: connect.NewClient[v1.DeleteKnownSetsRequest, v1.DeleteKnownSetsResponse](
+			httpClient,
+			baseURL+LinkerServiceDeleteKnownSetsProcedure,
+			connect.WithSchema(linkerServiceDeleteKnownSetsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		deleteKnownKeys: connect.NewClient[v1.DeleteKnownKeysRequest, v1.DeleteKnownKeysResponse](
+			httpClient,
+			baseURL+LinkerServiceDeleteKnownKeysProcedure,
+			connect.WithSchema(linkerServiceDeleteKnownKeysMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		link: connect.NewClient[v1.LinkRequest, v1.LinkResponse](
 			httpClient,
 			baseURL+LinkerServiceLinkProcedure,
@@ -140,6 +162,8 @@ type linkerServiceClient struct {
 	deleteExplicitLink *connect.Client[v1.DeleteExplicitLinkRequest, v1.DeleteExplicitLinkResponse]
 	getKnownSets       *connect.Client[v1.GetKnownSetsRequest, v1.GetKnownSetsResponse]
 	getKnownKeys       *connect.Client[v1.GetKnownKeysRequest, v1.GetKnownKeysResponse]
+	deleteKnownSets    *connect.Client[v1.DeleteKnownSetsRequest, v1.DeleteKnownSetsResponse]
+	deleteKnownKeys    *connect.Client[v1.DeleteKnownKeysRequest, v1.DeleteKnownKeysResponse]
 	link               *connect.Client[v1.LinkRequest, v1.LinkResponse]
 	suggestLinks       *connect.Client[v1.SuggestLinksRequest, v1.SuggestLinksResponse]
 }
@@ -169,6 +193,16 @@ func (c *linkerServiceClient) GetKnownKeys(ctx context.Context, req *connect.Req
 	return c.getKnownKeys.CallUnary(ctx, req)
 }
 
+// DeleteKnownSets calls vcassist.services.linker.v1.LinkerService.DeleteKnownSets.
+func (c *linkerServiceClient) DeleteKnownSets(ctx context.Context, req *connect.Request[v1.DeleteKnownSetsRequest]) (*connect.Response[v1.DeleteKnownSetsResponse], error) {
+	return c.deleteKnownSets.CallUnary(ctx, req)
+}
+
+// DeleteKnownKeys calls vcassist.services.linker.v1.LinkerService.DeleteKnownKeys.
+func (c *linkerServiceClient) DeleteKnownKeys(ctx context.Context, req *connect.Request[v1.DeleteKnownKeysRequest]) (*connect.Response[v1.DeleteKnownKeysResponse], error) {
+	return c.deleteKnownKeys.CallUnary(ctx, req)
+}
+
 // Link calls vcassist.services.linker.v1.LinkerService.Link.
 func (c *linkerServiceClient) Link(ctx context.Context, req *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {
 	return c.link.CallUnary(ctx, req)
@@ -187,6 +221,8 @@ type LinkerServiceHandler interface {
 	DeleteExplicitLink(context.Context, *connect.Request[v1.DeleteExplicitLinkRequest]) (*connect.Response[v1.DeleteExplicitLinkResponse], error)
 	GetKnownSets(context.Context, *connect.Request[v1.GetKnownSetsRequest]) (*connect.Response[v1.GetKnownSetsResponse], error)
 	GetKnownKeys(context.Context, *connect.Request[v1.GetKnownKeysRequest]) (*connect.Response[v1.GetKnownKeysResponse], error)
+	DeleteKnownSets(context.Context, *connect.Request[v1.DeleteKnownSetsRequest]) (*connect.Response[v1.DeleteKnownSetsResponse], error)
+	DeleteKnownKeys(context.Context, *connect.Request[v1.DeleteKnownKeysRequest]) (*connect.Response[v1.DeleteKnownKeysResponse], error)
 	Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error)
 	SuggestLinks(context.Context, *connect.Request[v1.SuggestLinksRequest]) (*connect.Response[v1.SuggestLinksResponse], error)
 }
@@ -227,6 +263,18 @@ func NewLinkerServiceHandler(svc LinkerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(linkerServiceGetKnownKeysMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	linkerServiceDeleteKnownSetsHandler := connect.NewUnaryHandler(
+		LinkerServiceDeleteKnownSetsProcedure,
+		svc.DeleteKnownSets,
+		connect.WithSchema(linkerServiceDeleteKnownSetsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	linkerServiceDeleteKnownKeysHandler := connect.NewUnaryHandler(
+		LinkerServiceDeleteKnownKeysProcedure,
+		svc.DeleteKnownKeys,
+		connect.WithSchema(linkerServiceDeleteKnownKeysMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	linkerServiceLinkHandler := connect.NewUnaryHandler(
 		LinkerServiceLinkProcedure,
 		svc.Link,
@@ -251,6 +299,10 @@ func NewLinkerServiceHandler(svc LinkerServiceHandler, opts ...connect.HandlerOp
 			linkerServiceGetKnownSetsHandler.ServeHTTP(w, r)
 		case LinkerServiceGetKnownKeysProcedure:
 			linkerServiceGetKnownKeysHandler.ServeHTTP(w, r)
+		case LinkerServiceDeleteKnownSetsProcedure:
+			linkerServiceDeleteKnownSetsHandler.ServeHTTP(w, r)
+		case LinkerServiceDeleteKnownKeysProcedure:
+			linkerServiceDeleteKnownKeysHandler.ServeHTTP(w, r)
 		case LinkerServiceLinkProcedure:
 			linkerServiceLinkHandler.ServeHTTP(w, r)
 		case LinkerServiceSuggestLinksProcedure:
@@ -282,6 +334,14 @@ func (UnimplementedLinkerServiceHandler) GetKnownSets(context.Context, *connect.
 
 func (UnimplementedLinkerServiceHandler) GetKnownKeys(context.Context, *connect.Request[v1.GetKnownKeysRequest]) (*connect.Response[v1.GetKnownKeysResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.GetKnownKeys is not implemented"))
+}
+
+func (UnimplementedLinkerServiceHandler) DeleteKnownSets(context.Context, *connect.Request[v1.DeleteKnownSetsRequest]) (*connect.Response[v1.DeleteKnownSetsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.DeleteKnownSets is not implemented"))
+}
+
+func (UnimplementedLinkerServiceHandler) DeleteKnownKeys(context.Context, *connect.Request[v1.DeleteKnownKeysRequest]) (*connect.Response[v1.DeleteKnownKeysResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.linker.v1.LinkerService.DeleteKnownKeys is not implemented"))
 }
 
 func (UnimplementedLinkerServiceHandler) Link(context.Context, *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {

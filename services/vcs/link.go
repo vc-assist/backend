@@ -2,6 +2,7 @@ package vcs
 
 import (
 	"context"
+	"strings"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
@@ -22,7 +23,7 @@ func linkMoodleToPowerschool(
 
 	moodleKeys := make([]string, len(moodle.GetCourses()))
 	for i, c := range moodle.GetCourses() {
-		moodleKeys[i] = c.GetName()
+		moodleKeys[i] = strings.Split(c.GetName(), " - ")[0]
 	}
 	psKeys := make([]string, len(ps.GetCourseData()))
 	for i, c := range ps.GetCourseData() {

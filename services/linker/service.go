@@ -91,9 +91,6 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 }
 
 func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[linkerv1.GetKnownSetsRequest]) (*connect.Response[linkerv1.GetKnownSetsResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetKnownSets")
-	defer span.End()
-
 	sets, err := s.qry.GetKnownSets(ctx)
 	if err != nil {
 		return nil, err
@@ -105,9 +102,6 @@ func (s Service) GetKnownSets(ctx context.Context, req *connect.Request[linkerv1
 }
 
 func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[linkerv1.GetKnownKeysRequest]) (*connect.Response[linkerv1.GetKnownKeysResponse], error) {
-	ctx, span := tracer.Start(ctx, "GetKnownKeys")
-	defer span.End()
-
 	rows, err := s.qry.GetKnownKeys(ctx, req.Msg.GetSet())
 	if err != nil {
 		return nil, err
@@ -125,6 +119,29 @@ func (s Service) GetKnownKeys(ctx context.Context, req *connect.Request[linkerv1
 		Msg: &linkerv1.GetKnownKeysResponse{
 			Keys: keys,
 		},
+	}, nil
+}
+
+func (s Service) DeleteKnownSets(ctx context.Context, req *connect.Request[linkerv1.DeleteKnownSetsRequest]) (*connect.Response[linkerv1.DeleteKnownSetsResponse], error) {
+	err := s.qry.DeleteKnownSets(ctx, req.Msg.GetSets())
+	if err != nil {
+		return nil, err
+	}
+	return &connect.Response[linkerv1.DeleteKnownSetsResponse]{
+		Msg: &linkerv1.DeleteKnownSetsResponse{},
+	}, nil
+}
+
+func (s Service) DeleteKnownKeys(ctx context.Context, req *connect.Request[linkerv1.DeleteKnownKeysRequest]) (*connect.Response[linkerv1.DeleteKnownKeysResponse], error) {
+	err := s.qry.DeleteKeysBefore(ctx, db.DeleteKeysBeforeParams{
+		Setname:  req.Msg.GetSet(),
+		Lastseen: req.Msg.GetBefore(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &connect.Response[linkerv1.DeleteKnownKeysResponse]{
+		Msg: &linkerv1.DeleteKnownKeysResponse{},
 	}, nil
 }
 
