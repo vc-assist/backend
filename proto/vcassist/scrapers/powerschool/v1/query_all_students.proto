@@ -26,9 +26,8 @@ message StudentProfile {
   string current_gpa = 2 [json_name = "currentGPA"];
   string first_name = 3 [json_name = "firstName"];
   string last_name = 4 [json_name = "lastName"];
-  int32 grade_level = 5 [json_name = "gradeLevel"];
-  repeated SchoolData schools = 6 [json_name = "schools"];
-  repeated Bulletin bulletins = 7 [json_name = "bulletins"];
+  repeated SchoolData schools = 5 [json_name = "schools"];
+  repeated Bulletin bulletins = 6 [json_name = "bulletins"];
 }
 
 message AllStudents {

@@ -14,7 +14,6 @@ fragment studentData on StudentType {
   guid
   firstName
   lastName
-  gradeLevel
   schools {
     ...schoolData
   }
