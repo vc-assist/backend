@@ -314,7 +314,7 @@ func TestService(t *testing.T) {
 				RightKey: "Philosophy In Literature (H)",
 			},
 		},
-		suggestRes.Msg.Suggestions,
+		suggestRes.Msg.GetSuggestions(),
 		cmpopts.IgnoreUnexported(linkerv1.LinkSuggestion{}),
 	)
 	if diff != "" {
