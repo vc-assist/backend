@@ -214,8 +214,8 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 	}
 	wg.Wait()
 
-	span.SetAttributes(attribute.Int("lesson_plan_length", len(result.LessonPlan)))
-	span.SetAttributes(attribute.String("zoom_link", result.ZoomLink))
+	span.SetAttributes(attribute.Int("lesson_plan_length", len(result.GetLessonPlan())))
+	span.SetAttributes(attribute.String("zoom_link", result.GetZoomLink()))
 
 	return result, nil
 }

@@ -243,11 +243,11 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 
 	leftKeys := make([]string, len(leftRes.Msg.GetKeys()))
 	for i := 0; i < len(leftRes.Msg.GetKeys()); i++ {
-		leftKeys[i] = leftRes.Msg.Keys[i].Key
+		leftKeys[i] = leftRes.Msg.GetKeys()[i].GetKey()
 	}
 	rightKeys := make([]string, len(rightRes.Msg.GetKeys()))
 	for i := 0; i < len(rightRes.Msg.GetKeys()); i++ {
-		rightKeys[i] = rightRes.Msg.Keys[i].Key
+		rightKeys[i] = rightRes.Msg.GetKeys()[i].GetKey()
 	}
 
 	implicit := CreateImplicitLinks(leftKeys, rightKeys)
