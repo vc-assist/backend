@@ -30,3 +30,9 @@ select * from KnownKey where setname = ?;
 -- name: GetKnownKeyBefore :many
 select * from KnownKey where lastSeen < ?;
 
+-- name: DeleteKnownSets :exec
+delete from KnownSet where setname in (sqlc.slice(sets));
+
+-- name: DeleteKeysBefore :exec
+delete from KnownKey where setname = ? and lastSeen < ?;
+

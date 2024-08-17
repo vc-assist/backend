@@ -193,6 +193,74 @@ func (c InstrumentedLinkerServiceClient) GetKnownKeys(ctx context.Context, req *
 	return res, nil
 }
 
+func (c InstrumentedLinkerServiceClient) DeleteKnownSets(ctx context.Context, req *connect.Request[v1.DeleteKnownSetsRequest]) (*connect.Response[v1.DeleteKnownSetsResponse], error) {
+	ctx, span := linkerServiceTracer.Start(ctx, "DeleteKnownSets")
+	defer span.End()
+
+	if span.IsRecording() {
+		input, err := protojson.Marshal(req.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("input", string(input)))
+		} else {
+			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	res, err := c.inner.DeleteKnownSets(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if span.IsRecording() {
+		output, err := protojson.Marshal(res.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("output", string(output)))
+		} else {
+			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	return res, nil
+}
+
+func (c InstrumentedLinkerServiceClient) DeleteKnownKeys(ctx context.Context, req *connect.Request[v1.DeleteKnownKeysRequest]) (*connect.Response[v1.DeleteKnownKeysResponse], error) {
+	ctx, span := linkerServiceTracer.Start(ctx, "DeleteKnownKeys")
+	defer span.End()
+
+	if span.IsRecording() {
+		input, err := protojson.Marshal(req.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("input", string(input)))
+		} else {
+			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	res, err := c.inner.DeleteKnownKeys(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if span.IsRecording() {
+		output, err := protojson.Marshal(res.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("output", string(output)))
+		} else {
+			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	return res, nil
+}
+
 func (c InstrumentedLinkerServiceClient) Link(ctx context.Context, req *connect.Request[v1.LinkRequest]) (*connect.Response[v1.LinkResponse], error) {
 	ctx, span := linkerServiceTracer.Start(ctx, "Link")
 	defer span.End()

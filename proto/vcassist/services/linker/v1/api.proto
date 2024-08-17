@@ -37,6 +37,12 @@ message GetKnownSetsResponse {
   repeated string sets = 1;
 }
 
+// DeleteKnownSets
+message DeleteKnownSetsRequest {
+  repeated string sets = 1;
+}
+message DeleteKnownSetsResponse {}
+
 // GetKnownKeys
 message KnownKey {
   string key = 1;
@@ -49,6 +55,13 @@ message GetKnownKeysRequest {
 message GetKnownKeysResponse {
   repeated KnownKey keys = 1;
 }
+
+// DeleteKnownKeys
+message DeleteKnownKeysRequest {
+  int64 before = 1;
+  string set = 2;
+}
+message DeleteKnownKeysResponse {}
 
 // Link
 message Set {
@@ -84,6 +97,8 @@ service LinkerService {
 
   rpc GetKnownSets(GetKnownSetsRequest) returns (GetKnownSetsResponse);
   rpc GetKnownKeys(GetKnownKeysRequest) returns (GetKnownKeysResponse);
+  rpc DeleteKnownSets(DeleteKnownSetsRequest) returns (DeleteKnownSetsResponse);
+  rpc DeleteKnownKeys(DeleteKnownKeysRequest) returns (DeleteKnownKeysResponse);
 
   rpc Link(LinkRequest) returns (LinkResponse);
   rpc SuggestLinks(SuggestLinksRequest) returns (SuggestLinksResponse);

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const createExplicitLink = `-- name: CreateExplicitLink :exec
@@ -78,6 +79,39 @@ func (q *Queries) DeleteExplicitLink(ctx context.Context, arg DeleteExplicitLink
 		arg.Rightset,
 		arg.Rightkey,
 	)
+	return err
+}
+
+const deleteKeysBefore = `-- name: DeleteKeysBefore :exec
+delete from KnownKey where setname = ? and lastSeen < ?
+`
+
+type DeleteKeysBeforeParams struct {
+	Setname  string
+	Lastseen int64
+}
+
+func (q *Queries) DeleteKeysBefore(ctx context.Context, arg DeleteKeysBeforeParams) error {
+	_, err := q.db.ExecContext(ctx, deleteKeysBefore, arg.Setname, arg.Lastseen)
+	return err
+}
+
+const deleteKnownSets = `-- name: DeleteKnownSets :exec
+delete from KnownSet where setname in (/*SLICE:sets*/?)
+`
+
+func (q *Queries) DeleteKnownSets(ctx context.Context, sets []string) error {
+	query := deleteKnownSets
+	var queryParams []interface{}
+	if len(sets) > 0 {
+		for _, v := range sets {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:sets*/?", strings.Repeat(",?", len(sets))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:sets*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err
 }
 
