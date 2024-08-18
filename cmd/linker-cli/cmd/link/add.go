@@ -1,8 +1,9 @@
-package cmd
+package link
 
 import (
 	"fmt"
 	"os"
+	"vcassist-backend/cmd/linker-cli/globals"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 
 	"connectrpc.com/connect"
@@ -10,17 +11,16 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(addLinkCmd)
+	RootCmd.AddCommand(addCmd)
 }
 
-var addLinkCmd = &cobra.Command{
-	Use:   "add-link <set 1> <key 1> <set 2> <key 2>",
+var addCmd = &cobra.Command{
+	Use:   "add <set 1> <key 1> <set 2> <key 2>",
 	Short: "Add an explicit link from left to right.",
+	Args:  cobra.ExactArgs(4),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 4 {
-			fmt.Fprintln(os.Stderr, "incorrect number of arguments")
-			os.Exit(1)
-		}
+		ctx := globals.Get(cmd.Context())
+		client := ctx.Client
 
 		set1 := args[0]
 		key1 := args[1]
@@ -29,7 +29,7 @@ var addLinkCmd = &cobra.Command{
 
 		_, err := client.AddExplicitLink(
 			cmd.Context(),
-			authRequest(&connect.Request[linkerv1.AddExplicitLinkRequest]{
+			&connect.Request[linkerv1.AddExplicitLinkRequest]{
 				Msg: &linkerv1.AddExplicitLinkRequest{
 					Left: &linkerv1.ExplicitKey{
 						Set: set1,
@@ -40,7 +40,7 @@ var addLinkCmd = &cobra.Command{
 						Key: key2,
 					},
 				},
-			}),
+			},
 		)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
