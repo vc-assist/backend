@@ -12,6 +12,7 @@ import (
 
 const createExplicitLink = `-- name: CreateExplicitLink :exec
 insert into ExplicitLink(leftSet, leftKey, rightSet, rightKey) values (?, ?, ?, ?)
+on conflict do nothing
 `
 
 type CreateExplicitLinkParams struct {
