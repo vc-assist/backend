@@ -75,6 +75,15 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 	if err != nil {
 		return nil, err
 	}
+	err = s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
+		Rightset: req.Msg.GetLeft().GetSet(),
+		Rightkey: req.Msg.GetLeft().GetKey(),
+		Leftset:  req.Msg.GetRight().GetSet(),
+		Leftkey:  req.Msg.GetRight().GetKey(),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &connect.Response[linkerv1.AddExplicitLinkResponse]{Msg: &linkerv1.AddExplicitLinkResponse{}}, nil
 }
@@ -85,6 +94,15 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 		Leftkey:  req.Msg.GetLeft().GetKey(),
 		Rightset: req.Msg.GetRight().GetSet(),
 		Rightkey: req.Msg.GetRight().GetKey(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
+		Leftset:  req.Msg.GetRight().GetSet(),
+		Leftkey:  req.Msg.GetRight().GetKey(),
+		Rightset: req.Msg.GetLeft().GetSet(),
+		Rightkey: req.Msg.GetLeft().GetKey(),
 	})
 	if err != nil {
 		return nil, err
