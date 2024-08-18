@@ -1,10 +1,9 @@
-package cmd
+package link
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"os"
+	"vcassist-backend/cmd/linker-cli/globals"
+	"vcassist-backend/cmd/linker-cli/utils"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 
 	"connectrpc.com/connect"
@@ -13,36 +12,38 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(linkCmd)
+	RootCmd.AddCommand(linkCmd)
 }
 
 var linkCmd = &cobra.Command{
-	Use:   "link <set 1> <set 2>",
+	Use:   "try <set 1> <set 2>",
 	Short: "Run linking between the known keys of two known sets.",
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "incorrect number of arguments")
-			os.Exit(1)
-		}
+		ctx := globals.Get(cmd.Context())
+		client := ctx.Client
+
+		left := args[0]
+		right := args[1]
 
 		leftRes, err := client.GetKnownKeys(
 			cmd.Context(),
-			authRequest(&connect.Request[linkerv1.GetKnownKeysRequest]{
+			&connect.Request[linkerv1.GetKnownKeysRequest]{
 				Msg: &linkerv1.GetKnownKeysRequest{
-					Set: args[0],
+					Set: left,
 				},
-			}),
+			},
 		)
 		if err != nil {
 			log.Fatal(err)
 		}
 		rightRes, err := client.GetKnownKeys(
 			cmd.Context(),
-			authRequest(&connect.Request[linkerv1.GetKnownKeysRequest]{
+			&connect.Request[linkerv1.GetKnownKeysRequest]{
 				Msg: &linkerv1.GetKnownKeysRequest{
-					Set: args[1],
+					Set: right,
 				},
-			}),
+			},
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -57,32 +58,30 @@ var linkCmd = &cobra.Command{
 			rightKeys[i] = val.GetKey()
 		}
 
-		result, err := client.LinkDetail(
-			context.Background(),
-			authRequest(&connect.Request[linkerv1.LinkDetailRequest]{
-				Msg: &linkerv1.LinkDetailRequest{
+		result, err := client.Link(
+			cmd.Context(),
+			&connect.Request[linkerv1.LinkRequest]{
+				Msg: &linkerv1.LinkRequest{
 					Src: &linkerv1.Set{
-						Name: args[0],
+						Name: left,
 						Keys: leftKeys,
 					},
 					Dst: &linkerv1.Set{
-						Name: args[1],
+						Name: right,
 						Keys: rightKeys,
 					},
-					Threshold: 0,
 				},
-			}),
+			},
 		)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{args[0], args[1], "Correlation"})
+		t := utils.NewTable()
+		t.AppendHeader(table.Row{left, right})
 
-		for _, link := range result.Msg.GetLinks() {
-			t.AppendRow(table.Row{link.Src, link.Dst, link.Correlation})
+		for src, dst := range result.Msg.GetSrcToDst() {
+			t.AppendRow(table.Row{src, dst})
 		}
 
 		t.Render()

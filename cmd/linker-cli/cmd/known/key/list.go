@@ -1,10 +1,11 @@
-package cmd
+package key
 
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
+	"vcassist-backend/cmd/linker-cli/globals"
+	"vcassist-backend/cmd/linker-cli/utils"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 
 	"connectrpc.com/connect"
@@ -13,7 +14,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(keysCmd)
+	RootCmd.AddCommand(keysCmd)
 }
 
 type setKey struct {
@@ -22,18 +23,22 @@ type setKey struct {
 }
 
 var keysCmd = &cobra.Command{
-	Use:   "keys",
-	Short: "Prints the keys known to the sets given as positional arguments.",
+	Use:   "list",
+	Short: "Lists the keys known to the sets given as positional arguments.",
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		ctx := globals.Get(cmd.Context())
+		client := ctx.Client
+
 		setKeys := []setKey{}
 		for _, setName := range args {
 			res, err := client.GetKnownKeys(
 				cmd.Context(),
-				authRequest(&connect.Request[linkerv1.GetKnownKeysRequest]{
+				&connect.Request[linkerv1.GetKnownKeysRequest]{
 					Msg: &linkerv1.GetKnownKeysRequest{
 						Set: setName,
 					},
-				}),
+				},
 			)
 			if err != nil {
 				log.Fatal(err)
@@ -44,8 +49,7 @@ var keysCmd = &cobra.Command{
 			})
 		}
 
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		t := utils.NewTable()
 
 		header := table.Row{}
 		for _, set := range setKeys {
@@ -78,7 +82,6 @@ var keysCmd = &cobra.Command{
 		}
 
 		t.AppendRows(rows)
-		t.SetStyle(table.StyleRounded)
 		t.Render()
 	},
 }
