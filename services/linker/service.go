@@ -258,17 +258,44 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 		return nil, err
 	}
 
+	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
+		Msg: &linkerv1.GetExplicitLinksRequest{
+			LeftSet:  req.Msg.GetSetLeft(),
+			RightSet: req.Msg.GetSetRight(),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	resolvedLeftKeys := make(map[string]struct{})
+	for _, k := range explicit.Msg.LeftKeys {
+		resolvedLeftKeys[k] = struct{}{}
+	}
+	resolvedRightKeys := make(map[string]struct{})
+	for _, k := range explicit.Msg.RightKeys {
+		resolvedRightKeys[k] = struct{}{}
+	}
+
 	leftKeys := make([]string, len(leftRes.Msg.GetKeys()))
 	for i := 0; i < len(leftRes.Msg.GetKeys()); i++ {
-		leftKeys[i] = leftRes.Msg.GetKeys()[i].GetKey()
+		key := leftRes.Msg.GetKeys()[i].GetKey()
+		_, resolved := resolvedLeftKeys[key]
+		if resolved {
+			continue
+		}
+		leftKeys[i] = key
 	}
 	rightKeys := make([]string, len(rightRes.Msg.GetKeys()))
 	for i := 0; i < len(rightRes.Msg.GetKeys()); i++ {
-		rightKeys[i] = rightRes.Msg.GetKeys()[i].GetKey()
+		key := rightRes.Msg.GetKeys()[i].GetKey()
+		_, resolved := resolvedRightKeys[key]
+		if resolved {
+			continue
+		}
+		rightKeys[i] = key
 	}
 
 	implicit := CreateImplicitLinks(leftKeys, rightKeys)
-
 	threshold := float64(req.Msg.GetThreshold())
 
 	suggestions := []*linkerv1.LinkSuggestion{}
