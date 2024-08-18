@@ -10,6 +10,8 @@ import (
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
@@ -32,9 +34,12 @@ func NewService(database *sql.DB) linkerv1connect.LinkerServiceClient {
 }
 
 func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[linkerv1.GetExplicitLinksRequest]) (*connect.Response[linkerv1.GetExplicitLinksResponse], error) {
+	left := req.Msg.GetLeftSet()
+	right := req.Msg.GetRightSet()
+
 	links, err := s.qry.GetExplicitLinks(ctx, db.GetExplicitLinksParams{
-		Leftset:  req.Msg.GetLeftSet(),
-		Rightset: req.Msg.GetRightSet(),
+		Leftset:  left,
+		Rightset: right,
 	})
 	if err != nil {
 		return nil, err
@@ -152,31 +157,36 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	}
 	defer tx.Rollback()
 
+	left := req.Msg.GetSrc().GetName()
+	leftKeys := req.Msg.GetSrc().GetKeys()
+	right := req.Msg.GetDst().GetName()
+	rightKeys := req.Msg.GetDst().GetKeys()
+
 	txqry := s.qry.WithTx(tx)
-	err = txqry.CreateKnownSet(ctx, req.Msg.GetSrc().GetName())
+	err = txqry.CreateKnownSet(ctx, left)
 	if err != nil {
 		return nil, err
 	}
-	err = txqry.CreateKnownSet(ctx, req.Msg.GetDst().GetName())
+	err = txqry.CreateKnownSet(ctx, right)
 	if err != nil {
 		return nil, err
 	}
 
 	now := timezone.Now().Unix()
-	for _, src := range req.Msg.GetSrc().GetKeys() {
+	for _, key := range leftKeys {
 		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
-			Setname:  req.Msg.GetSrc().GetName(),
-			Value:    src,
+			Setname:  left,
+			Value:    key,
 			Lastseen: now,
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
-	for _, dst := range req.Msg.GetDst().GetKeys() {
+	for _, key := range rightKeys {
 		err = txqry.CreateKnownKey(ctx, db.CreateKnownKeyParams{
-			Setname:  req.Msg.GetDst().GetName(),
-			Value:    dst,
+			Setname:  right,
+			Value:    key,
 			Lastseen: now,
 		})
 		if err != nil {
@@ -191,8 +201,8 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 
 	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
 		Msg: &linkerv1.GetExplicitLinksRequest{
-			LeftSet:  req.Msg.GetSrc().GetName(),
-			RightSet: req.Msg.GetDst().GetName(),
+			LeftSet:  left,
+			RightSet: right,
 		},
 	})
 	if err != nil {
@@ -206,12 +216,12 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	}
 
 	var exactMatches []string
-	if len(req.Msg.GetSrc().GetKeys()) <= len(req.Msg.GetDst().GetKeys()) {
+	if len(leftKeys) <= len(rightKeys) {
 		dstKeys := make(map[string]struct{})
-		for _, dst := range req.Msg.GetDst().GetKeys() {
+		for _, dst := range rightKeys {
 			dstKeys[dst] = struct{}{}
 		}
-		for _, src := range req.Msg.GetSrc().GetKeys() {
+		for _, src := range leftKeys {
 			_, hasKey := dstKeys[src]
 			if hasKey {
 				exactMatches = append(exactMatches, src)
@@ -219,10 +229,10 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 		}
 	} else {
 		srcKeys := make(map[string]struct{})
-		for _, src := range req.Msg.GetSrc().GetKeys() {
+		for _, src := range leftKeys {
 			srcKeys[src] = struct{}{}
 		}
-		for _, dst := range req.Msg.GetDst().GetKeys() {
+		for _, dst := range rightKeys {
 			_, hasKey := srcKeys[dst]
 			if hasKey {
 				exactMatches = append(exactMatches, dst)
@@ -241,9 +251,14 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 }
 
 func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1.SuggestLinksRequest]) (*connect.Response[linkerv1.SuggestLinksResponse], error) {
+	span := trace.SpanFromContext(ctx)
+
+	left := req.Msg.GetSetLeft()
+	right := req.Msg.GetSetRight()
+
 	leftRes, err := s.GetKnownKeys(ctx, &connect.Request[linkerv1.GetKnownKeysRequest]{
 		Msg: &linkerv1.GetKnownKeysRequest{
-			Set: req.Msg.GetSetLeft(),
+			Set: left,
 		},
 	})
 	if err != nil {
@@ -251,7 +266,7 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 	}
 	rightRes, err := s.GetKnownKeys(ctx, &connect.Request[linkerv1.GetKnownKeysRequest]{
 		Msg: &linkerv1.GetKnownKeysRequest{
-			Set: req.Msg.GetSetRight(),
+			Set: right,
 		},
 	})
 	if err != nil {
@@ -260,8 +275,8 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 
 	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
 		Msg: &linkerv1.GetExplicitLinksRequest{
-			LeftSet:  req.Msg.GetSetLeft(),
-			RightSet: req.Msg.GetSetRight(),
+			LeftSet:  left,
+			RightSet: right,
 		},
 	})
 	if err != nil {
@@ -294,6 +309,13 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 		}
 		rightKeys = append(rightKeys, key)
 	}
+
+	span.AddEvent("left keys", trace.WithAttributes(
+		attribute.StringSlice("keys", leftKeys),
+	))
+	span.AddEvent("right keys", trace.WithAttributes(
+		attribute.StringSlice("keys", rightKeys),
+	))
 
 	implicit := CreateImplicitLinks(leftKeys, rightKeys)
 	threshold := float64(req.Msg.GetThreshold())

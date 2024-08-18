@@ -118,8 +118,7 @@ func (q *Queries) DeleteKnownSets(ctx context.Context, sets []string) error {
 
 const getExplicitLinks = `-- name: GetExplicitLinks :many
 select leftset, leftkey, rightset, rightkey from ExplicitLink
-where (leftSet = ?1 and rightSet = ?2) or
-    (rightSet = ?2 and leftSet = ?1)
+where (leftSet = ?1 and rightSet = ?2)
 `
 
 type GetExplicitLinksParams struct {
