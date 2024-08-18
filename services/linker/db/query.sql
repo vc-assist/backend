@@ -1,7 +1,6 @@
 -- name: GetExplicitLinks :many
 select * from ExplicitLink
-where (leftSet = ?1 and rightSet = ?2) or
-    (rightSet = ?2 and leftSet = ?1);
+where (leftSet = ?1 and rightSet = ?2);
 
 -- name: CreateExplicitLink :exec
 insert into ExplicitLink(leftSet, leftKey, rightSet, rightKey) values (?, ?, ?, ?)
