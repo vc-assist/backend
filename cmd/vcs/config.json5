@@ -4,11 +4,14 @@
 		url: "",
 		auth_token: "",
 	},
+	auth_database: {
+		file: "<dev_state>/auth_service.db"
+	},
 	services: {
 		linker: {
 			base_url: "http://127.0.0.1:8222",
 			access_token: "",
-		}
+		},
 		keychain: {
 			base_url: "http://127.0.0.1:8333"
 		},
