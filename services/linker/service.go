@@ -276,23 +276,23 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 		resolvedRightKeys[k] = struct{}{}
 	}
 
-	leftKeys := make([]string, len(leftRes.Msg.GetKeys()))
+	leftKeys := []string{}
 	for i := 0; i < len(leftRes.Msg.GetKeys()); i++ {
 		key := leftRes.Msg.GetKeys()[i].GetKey()
 		_, resolved := resolvedLeftKeys[key]
 		if resolved {
 			continue
 		}
-		leftKeys[i] = key
+		leftKeys = append(leftKeys, key)
 	}
-	rightKeys := make([]string, len(rightRes.Msg.GetKeys()))
+	rightKeys := []string{}
 	for i := 0; i < len(rightRes.Msg.GetKeys()); i++ {
 		key := rightRes.Msg.GetKeys()[i].GetKey()
 		_, resolved := resolvedRightKeys[key]
 		if resolved {
 			continue
 		}
-		rightKeys[i] = key
+		rightKeys = append(rightKeys, key)
 	}
 
 	implicit := CreateImplicitLinks(leftKeys, rightKeys)
