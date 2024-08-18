@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	connectrpc.com/connect v1.16.2
+	connectrpc.com/otelconnect v0.7.1
 	github.com/DaRealFreak/cloudflare-bp-go v1.0.4
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/antzucaro/matchr v0.0.0-20221106193745-7bed6ef61ef9

@@ -7,6 +7,9 @@ import (
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/vcsmoodle"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type Config struct {
@@ -26,11 +29,20 @@ func main() {
 		config.KeychainBaseUrl,
 	)
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle(vcsmoodlev1connect.NewMoodleServiceHandler(
 		vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(
 			vcsmoodle.NewService(keychain),
 		),
+		connect.WithInterceptors(otelIntercept),
 	))
 	go serviceutil.StartHttpServer(9222, mux)
 

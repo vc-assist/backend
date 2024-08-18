@@ -11,6 +11,9 @@ import (
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	"vcassist-backend/services/powerservice"
 	powerservicedb "vcassist-backend/services/powerservice/db"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type OAuthConfig struct {
@@ -44,6 +47,14 @@ func main() {
 		serviceutil.Fatal("failed to open database", err)
 	}
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle(powerservicev1connect.NewPowerschoolServiceHandler(
 		powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
@@ -57,6 +68,7 @@ func main() {
 				powerservice.OAuthConfig(config.OAuth),
 			),
 		),
+		connect.WithInterceptors(otelIntercept),
 	))
 	go serviceutil.StartHttpServer(8555, mux)
 

@@ -10,6 +10,9 @@ import (
 	"vcassist-backend/proto/vcassist/services/gradesnapshots/v1/gradesnapshotsv1connect"
 	"vcassist-backend/services/gradesnapshots"
 	gradesnapshotsdb "vcassist-backend/services/gradesnapshots/db"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type Config struct {
@@ -35,11 +38,20 @@ func main() {
 	}
 	defer t.Shutdown(context.Background())
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle(gradesnapshotsv1connect.NewGradeSnapshotsServiceHandler(
 		gradesnapshotsv1connect.NewInstrumentedGradeSnapshotsServiceClient(
 			gradesnapshots.NewService(db),
 		),
+		connect.WithInterceptors(otelIntercept),
 	))
 	go serviceutil.StartHttpServer(8444, mux)
 

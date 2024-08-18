@@ -12,6 +12,7 @@ import (
 	linkerdb "vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type Config struct {
@@ -38,12 +39,23 @@ func main() {
 	}
 	defer t.Shutdown(context.Background())
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle(linkerv1connect.NewLinkerServiceHandler(
 		linkerv1connect.NewInstrumentedLinkerServiceClient(
 			linker.NewService(db),
 		),
-		connect.WithInterceptors(serviceutil.VerifyAccessTokenInterceptor(config.AccessToken)),
+		connect.WithInterceptors(
+			otelIntercept,
+			serviceutil.VerifyAccessTokenInterceptor(config.AccessToken),
+		),
 	))
 	go serviceutil.StartHttpServer(8222, mux)
 

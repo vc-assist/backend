@@ -10,6 +10,9 @@ import (
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
 	"vcassist-backend/services/auth/db"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type SmtpConfig struct {
@@ -48,6 +51,14 @@ func main() {
 	defer t.Shutdown(context.Background())
 	telemetry.InstrumentPerfStats(ctx)
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	service := auth.NewService(db, auth.Options{
 		AllowedDomains:       config.AllowedDomains,
 		Smtp:                 auth.SmtpConfig(config.Smtp),
@@ -59,6 +70,7 @@ func main() {
 		authv1connect.NewInstrumentedAuthServiceClient(
 			service,
 		),
+		connect.WithInterceptors(otelIntercept),
 	))
 
 	go serviceutil.StartHttpServer(8111, mux)
