@@ -9,7 +9,3 @@ dev/.state
 *.local.json5
 *.local.json
 
-cmd/vcs/vcs
-cmd/auth/auth
-cmd/linker-cli/linker-cli
-
