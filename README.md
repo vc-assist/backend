@@ -26,7 +26,7 @@
       - `vcsnet/` - [vcs.net](https://vcs.net)
    - `configutil/` - additional utilities for reading and resolving configuration.
    - `htmlutil/` - additional utilities for working with HTML.
-   - `osutil/` - additional utilities on top of the `os` package from std library.
+   - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
    - `testutil/` - utilities for testing
    - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
    - `telemetry/` - telemetry setup/teardown as well as instrumentation for libraries like `resty`.

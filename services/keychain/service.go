@@ -48,7 +48,7 @@ func NewService(ctx context.Context, database *sql.DB) keychainv1connect.Keychai
 	go s.refreshOAuthDaemon(ctx)
 	go s.deleteOAuthDaemon(ctx)
 
-	return keychainv1connect.NewInstrumentedKeychainServiceClient(s)
+	return s
 }
 
 func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) error {

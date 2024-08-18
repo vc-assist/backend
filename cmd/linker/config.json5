@@ -1,0 +1,8 @@
+{
+	database: {
+		file: "<dev_state>/linker_service.db"
+	},
+	// specify this value to require the `Authorization` header to be specified with
+	// this value (in the format of "<Basic/Bearer> <token>") when handling requests
+	access_token: "",
+}

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"vcassist-backend/lib/timezone"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
-	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
@@ -24,13 +23,11 @@ type Service struct {
 	db  *sql.DB
 }
 
-func NewService(database *sql.DB) linkerv1connect.LinkerServiceClient {
-	return linkerv1connect.NewInstrumentedLinkerServiceClient(
-		Service{
-			qry: db.New(database),
-			db:  database,
-		},
-	)
+func NewService(database *sql.DB) Service {
+	return Service{
+		qry: db.New(database),
+		db:  database,
+	}
 }
 
 func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[linkerv1.GetExplicitLinksRequest]) (*connect.Response[linkerv1.GetExplicitLinksResponse], error) {

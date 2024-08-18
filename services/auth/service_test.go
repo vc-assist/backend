@@ -52,7 +52,7 @@ func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
 		t.Fatal(err)
 	}
 
-	service := NewService(res.DB, Config{
+	service := NewService(res.DB, Options{
 		Smtp: SmtpConfig{
 			Server:       "localhost",
 			Port:         1025,
@@ -80,7 +80,10 @@ func getVerificationCodeFromEmail(t testing.TB) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code := codeRegex.FindString(res.String())
+	contents := res.String()
+	code := codeRegex.FindString(contents)
+	t.Log("message contents", contents)
+	t.Log("verification code", code)
 	return code
 }
 

@@ -12,7 +12,6 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
-	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
 	"vcassist-backend/services/powerservice/db"
 
@@ -20,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
 	"google.golang.org/protobuf/proto"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -31,9 +31,9 @@ var tracer = otel.Tracer("vcassist.services.powerservice")
 const keychainNamespace = "powerservice"
 
 type OAuthConfig struct {
-	BaseLoginUrl string `json:"base_login_url"`
-	RefreshUrl   string `json:"refresh_url"`
-	ClientId     string `json:"client_id"`
+	BaseLoginUrl string
+	RefreshUrl   string
+	ClientId     string
 }
 
 type Service struct {
@@ -49,16 +49,15 @@ func NewService(
 	keychain keychainv1connect.KeychainServiceClient,
 	baseUrl string,
 	oauth OAuthConfig,
-) powerservicev1connect.PowerschoolServiceClient {
-	return powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
-		Service{
-			baseUrl:  baseUrl,
-			oauth:    oauth,
-			db:       database,
-			qry:      db.New(database),
-			keychain: keychain,
-		},
-	)
+) Service {
+	return Service{
+		baseUrl:  baseUrl,
+		oauth:    oauth,
+		db:       database,
+		qry:      db.New(database),
+		keychain: keychain,
+	}
+
 }
 
 func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[powerservicev1.GetKnownCoursesRequest]) (*connect.Response[powerservicev1.GetKnownCoursesResponse], error) {

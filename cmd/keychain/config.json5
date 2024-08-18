@@ -1,0 +1,5 @@
+{
+	database: {
+		file: "<dev_state>/keychain_service.db"
+	},
+}
