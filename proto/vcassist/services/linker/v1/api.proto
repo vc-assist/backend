@@ -80,6 +80,7 @@ message LinkResponse {
 message SuggestLinksRequest {
   string set_left = 1;
   string set_right = 2;
+  float threshold = 3;
 }
 message LinkSuggestion {
   string left_key = 1;
