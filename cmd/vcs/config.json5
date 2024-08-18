@@ -1,24 +1,28 @@
 {
 	database: {
-		auth: {
-			file: "<dev_state>/auth_service.db"
-		},
-		keychain: {
-			file: "<dev_state>/keychain_service.db"
-		},
-		grade_snapshot: {
-			file: "<dev_state>/gradesnapshots_service.db"
-		},
+		file: "<dev_state>/vcs_service.db",
+		url: "",
+		auth_token: "",
+	},
+	services: {
 		linker: {
-			file: "<dev_state>/linker_service.db"
+			base_url: "http://127.0.0.1:8222",
+			access_token: "",
+		}
+		keychain: {
+			base_url: "http://127.0.0.1:8333"
+		},
+		gradesnapshots: {
+			base_url: "http://127.0.0.1:8444"
 		},
 		powerservice: {
-			file: "<dev_state>/powerservice_service.db"
+			base_url: "http://127.0.0.1:8555"
 		},
-		self: {
-			file: "<dev_state>/vcs_service.db"
+		vcsmoodle: {
+			base_url: "http://127.0.0.1:9222"
 		},
 	},
 	// 1 day = 60 * 60 * 24
 	max_data_cache_seconds: 86400,
+	weights_file: "./weights.json",
 }

@@ -1,0 +1,17 @@
+{
+	database: {
+		file: "<dev_state>/powerservice_service.db",
+		url: "",
+		auth_token: "",
+	},
+	base_url: "https://vcsnet.powerschool.com",
+	// this is the OAuth configuration for valley christian schools
+	// obtained by intercepting network requests from the powerschool
+	// android app
+	oauth: {
+		base_login_url: "https://accounts.google.com/o/oauth2/v2/auth",
+		refresh_url: "https://oauth2.googleapis.com/token",
+		client_id: "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
+	},
+	keychain_service_baseurl: "http://127.0.0.1:8333"
+}

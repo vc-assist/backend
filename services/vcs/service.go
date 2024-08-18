@@ -13,7 +13,6 @@ import (
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
-	"vcassist-backend/proto/vcassist/services/studentdata/v1/studentdatav1connect"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/auth/verifier"
@@ -35,7 +34,7 @@ var tracer = otel.Tracer("vcassist.services.vcs")
 
 type WeightData = map[string]map[string]float32
 
-type Config struct {
+type Options struct {
 	Gradesnapshots       gradesnapshotsv1connect.GradeSnapshotsServiceClient
 	Powerschool          powerservicev1connect.PowerschoolServiceClient
 	Moodle               vcsmoodlev1connect.MoodleServiceClient
@@ -49,25 +48,22 @@ type Service struct {
 	qry               *db.Queries
 	weightCourseNames []string
 
-	Config
+	Options
 }
 
-func NewService(database *sql.DB, params Config) studentdatav1connect.StudentDataServiceClient {
-	weightCourseNames := make([]string, len(params.Weights))
+func NewService(database *sql.DB, options Options) Service {
+	weightCourseNames := make([]string, len(options.Weights))
 	i := 0
-	for courseName := range params.Weights {
+	for courseName := range options.Weights {
 		weightCourseNames[i] = courseName
 		i++
 	}
-
-	return studentdatav1connect.NewInstrumentedStudentDataServiceClient(
-		Service{
-			db:                database,
-			qry:               db.New(database),
-			weightCourseNames: weightCourseNames,
-			Config:            params,
-		},
-	)
+	return Service{
+		db:                database,
+		qry:               db.New(database),
+		weightCourseNames: weightCourseNames,
+		Options:           options,
+	}
 }
 
 func (s Service) removeExpiredWorker(ctx context.Context) {
@@ -90,7 +86,7 @@ func (s Service) removeExpiredWorker(ctx context.Context) {
 }
 
 func (s Service) recacheAllStudents(ctx context.Context) {
-	ctx, span := tracer.Start(ctx, "recacheAllStudents")
+	ctx, span := tracer.Start(ctx, "cron_job:scrape_all_students")
 	defer span.End()
 
 	studentIds, err := s.qry.GetStudents(ctx)
@@ -262,7 +258,7 @@ func instrumentDataSnapshot(span trace.Span, message string, data *studentdatav1
 }
 
 func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*studentdatav1.StudentData, error) {
-	ctx, span := tracer.Start(ctx, "recacheStudentData")
+	ctx, span := tracer.Start(ctx, "scrape_students")
 	defer span.End()
 
 	data := &studentdatav1.StudentData{}

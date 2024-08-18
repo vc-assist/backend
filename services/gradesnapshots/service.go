@@ -6,7 +6,6 @@ import (
 	"time"
 	"vcassist-backend/lib/timezone"
 	gradesnapshotsv1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
-	"vcassist-backend/proto/vcassist/services/gradesnapshots/v1/gradesnapshotsv1connect"
 	"vcassist-backend/services/gradesnapshots/db"
 
 	"connectrpc.com/connect"
@@ -23,13 +22,11 @@ type Service struct {
 	qry *db.Queries
 }
 
-func NewService(database *sql.DB) gradesnapshotsv1connect.GradeSnapshotsServiceClient {
-	return gradesnapshotsv1connect.NewInstrumentedGradeSnapshotsServiceClient(
-		Service{
-			db:  database,
-			qry: db.New(database),
-		},
-	)
+func NewService(database *sql.DB) Service {
+	return Service{
+		db:  database,
+		qry: db.New(database),
+	}
 }
 
 func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1.PushRequest]) (*connect.Response[gradesnapshotsv1.PushResponse], error) {

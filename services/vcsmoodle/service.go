@@ -7,7 +7,6 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
-	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
@@ -25,11 +24,10 @@ type Service struct {
 	keychain keychainv1connect.KeychainServiceClient
 }
 
-func NewService(keychain keychainv1connect.KeychainServiceClient) vcsmoodlev1connect.MoodleServiceClient {
-	s := Service{
+func NewService(keychain keychainv1connect.KeychainServiceClient) Service {
+	return Service{
 		keychain: keychain,
 	}
-	return vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(s)
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcsmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcsmoodlev1.GetAuthStatusResponse], error) {

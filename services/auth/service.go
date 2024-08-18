@@ -11,7 +11,6 @@ import (
 	"time"
 	"vcassist-backend/lib/timezone"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
-	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
 
@@ -34,7 +33,7 @@ type SmtpConfig struct {
 	Password     string
 }
 
-type Config struct {
+type Options struct {
 	Smtp                 SmtpConfig
 	AllowedDomains       []string
 	TestEmail            string
@@ -45,18 +44,16 @@ type Service struct {
 	db       *sql.DB
 	qry      *db.Queries
 	verifier verifier.Verifier
-	config   Config
+	config   Options
 }
 
-func NewService(database *sql.DB, config Config) authv1connect.AuthServiceClient {
-	return authv1connect.NewInstrumentedAuthServiceClient(
-		Service{
-			db:       database,
-			qry:      db.New(database),
-			verifier: verifier.NewVerifier(database),
-			config:   config,
-		},
-	)
+func NewService(database *sql.DB, options Options) Service {
+	return Service{
+		db:       database,
+		qry:      db.New(database),
+		verifier: verifier.NewVerifier(database),
+		config:   options,
+	}
 }
 
 func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
@@ -92,7 +89,7 @@ func (s Service) sendVerificationCode(ctx context.Context, userEmail, code strin
 	mail.To = []string{userEmail}
 	mail.Subject = "Verification Code"
 
-	body := fmt.Sprintf(`Please enter the following verification code for you VC Assist account when prompted.
+	body := fmt.Sprintf(`Please enter the following verification code for your VC Assist account when prompted.
 
 %s
 
