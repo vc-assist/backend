@@ -20,6 +20,7 @@ import (
 	vcsdb "vcassist-backend/services/vcs/db"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type NoAuthConfig struct {
@@ -120,10 +121,18 @@ func main() {
 	verify := verifier.NewVerifier(authDb)
 	authInterceptor := verifier.NewAuthInterceptor(verify)
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	studentDataMux := http.NewServeMux()
 	studentDataMux.Handle(studentdatav1connect.NewStudentDataServiceHandler(
 		service,
-		connect.WithInterceptors(authInterceptor),
+		connect.WithInterceptors(otelIntercept, authInterceptor),
 	))
 
 	go serviceutil.StartHttpServer(9111, studentDataMux)

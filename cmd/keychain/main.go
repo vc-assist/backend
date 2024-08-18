@@ -10,6 +10,9 @@ import (
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/services/keychain"
 	keychaindb "vcassist-backend/services/keychain/db"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 )
 
 type Config struct {
@@ -35,11 +38,20 @@ func main() {
 	}
 	defer t.Shutdown(context.Background())
 
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		serviceutil.Fatal("failed to initialize otel interceptor", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle(keychainv1connect.NewKeychainServiceHandler(
 		keychainv1connect.NewInstrumentedKeychainServiceClient(
 			keychain.NewService(ctx, db),
 		),
+		connect.WithInterceptors(otelIntercept),
 	))
 	go serviceutil.StartHttpServer(8333, mux)
 
