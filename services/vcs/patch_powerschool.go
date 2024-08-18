@@ -50,8 +50,8 @@ func patchAssignmentWithPowerschool(ctx context.Context, out *studentdatav1.Assi
 
 	out.Name = assignment.GetTitle()
 	out.Description = assignment.GetDescription()
-	out.Scored = float32(assignment.GetPointsEarned())
-	out.Total = float32(assignment.GetPointsPossible())
+	out.Scored = assignment.GetPointsEarned()
+	out.Total = assignment.GetPointsPossible()
 	out.State = state
 	out.Time = duedate.Unix()
 	out.AssignmentTypeName = assignment.GetCategory()
@@ -108,7 +108,7 @@ func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, 
 	var assignmentTypeNameList []string
 	for _, psassign := range course.GetAssignments() {
 		if vcsmoodle.MatchName(psassign.GetTitle(), homeworkPassesKeywords) {
-			out.HomeworkPasses = psassign.GetPointsEarned()
+			out.HomeworkPasses = int32(psassign.GetPointsEarned())
 			continue
 		}
 

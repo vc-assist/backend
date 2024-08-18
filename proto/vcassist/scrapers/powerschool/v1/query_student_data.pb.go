@@ -88,17 +88,17 @@ type AssignmentData struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Title               string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Category            string `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
-	DueDate             string `protobuf:"bytes,3,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
-	Description         string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	PointsEarned        int32  `protobuf:"varint,5,opt,name=points_earned,json=pointsEarned,proto3" json:"points_earned,omitempty"`
-	PointsPossible      int32  `protobuf:"varint,6,opt,name=points_possible,json=pointsPossible,proto3" json:"points_possible,omitempty"`
-	AttributeMissing    bool   `protobuf:"varint,7,opt,name=attribute_missing,json=attributeMissing,proto3" json:"attribute_missing,omitempty"`
-	AttributeLate       bool   `protobuf:"varint,8,opt,name=attribute_late,json=attributeLate,proto3" json:"attribute_late,omitempty"`
-	AttributeCollected  bool   `protobuf:"varint,9,opt,name=attribute_collected,json=attributeCollected,proto3" json:"attribute_collected,omitempty"`
-	AttributeExempt     bool   `protobuf:"varint,10,opt,name=attribute_exempt,json=attributeExempt,proto3" json:"attribute_exempt,omitempty"`
-	AttributeIncomplete bool   `protobuf:"varint,11,opt,name=attribute_incomplete,json=attributeIncomplete,proto3" json:"attribute_incomplete,omitempty"`
+	Title               string  `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Category            string  `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
+	DueDate             string  `protobuf:"bytes,3,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
+	Description         string  `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	PointsEarned        float32 `protobuf:"fixed32,5,opt,name=points_earned,json=pointsEarned,proto3" json:"points_earned,omitempty"`
+	PointsPossible      float32 `protobuf:"fixed32,6,opt,name=points_possible,json=pointsPossible,proto3" json:"points_possible,omitempty"`
+	AttributeMissing    bool    `protobuf:"varint,7,opt,name=attribute_missing,json=attributeMissing,proto3" json:"attribute_missing,omitempty"`
+	AttributeLate       bool    `protobuf:"varint,8,opt,name=attribute_late,json=attributeLate,proto3" json:"attribute_late,omitempty"`
+	AttributeCollected  bool    `protobuf:"varint,9,opt,name=attribute_collected,json=attributeCollected,proto3" json:"attribute_collected,omitempty"`
+	AttributeExempt     bool    `protobuf:"varint,10,opt,name=attribute_exempt,json=attributeExempt,proto3" json:"attribute_exempt,omitempty"`
+	AttributeIncomplete bool    `protobuf:"varint,11,opt,name=attribute_incomplete,json=attributeIncomplete,proto3" json:"attribute_incomplete,omitempty"`
 }
 
 func (x *AssignmentData) Reset() {
@@ -161,14 +161,14 @@ func (x *AssignmentData) GetDescription() string {
 	return ""
 }
 
-func (x *AssignmentData) GetPointsEarned() int32 {
+func (x *AssignmentData) GetPointsEarned() float32 {
 	if x != nil {
 		return x.PointsEarned
 	}
 	return 0
 }
 
-func (x *AssignmentData) GetPointsPossible() int32 {
+func (x *AssignmentData) GetPointsPossible() float32 {
 	if x != nil {
 		return x.PointsPossible
 	}
@@ -549,9 +549,9 @@ var file_vcassist_scrapers_powerschool_v1_query_student_data_proto_rawDesc = []b
 	0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18,
 	0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69,
 	0x6f, 0x6e, 0x12, 0x23, 0x0a, 0x0d, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x73, 0x5f, 0x65, 0x61, 0x72,
-	0x6e, 0x65, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0c, 0x70, 0x6f, 0x69, 0x6e, 0x74,
+	0x6e, 0x65, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x02, 0x52, 0x0c, 0x70, 0x6f, 0x69, 0x6e, 0x74,
 	0x73, 0x45, 0x61, 0x72, 0x6e, 0x65, 0x64, 0x12, 0x27, 0x0a, 0x0f, 0x70, 0x6f, 0x69, 0x6e, 0x74,
-	0x73, 0x5f, 0x70, 0x6f, 0x73, 0x73, 0x69, 0x62, 0x6c, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x05,
+	0x73, 0x5f, 0x70, 0x6f, 0x73, 0x73, 0x69, 0x62, 0x6c, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x02,
 	0x52, 0x0e, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x73, 0x50, 0x6f, 0x73, 0x73, 0x69, 0x62, 0x6c, 0x65,
 	0x12, 0x2b, 0x0a, 0x11, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x5f, 0x6d, 0x69,
 	0x73, 0x73, 0x69, 0x6e, 0x67, 0x18, 0x07, 0x20, 0x01, 0x28, 0x08, 0x52, 0x10, 0x61, 0x74, 0x74,

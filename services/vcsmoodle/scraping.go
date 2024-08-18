@@ -14,6 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, href string) (string, error) {
@@ -152,6 +153,13 @@ func scrapeLessonPlanSection(ctx context.Context, client view.Client, section vi
 		return 0
 	})
 	for _, r := range resources {
+		if !strings.HasPrefix(strings.ToLower(r.Name), "quarter") {
+			span.AddEvent("skip lesson plan resource", trace.WithAttributes(
+				attribute.String("name", r.Name),
+			))
+			continue
+		}
+
 		lessonPlan, err := scrapeChapters(ctx, client, r)
 		if err != nil {
 			continue
