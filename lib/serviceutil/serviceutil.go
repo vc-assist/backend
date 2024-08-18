@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -70,4 +71,14 @@ func VerifyAccessTokenInterceptor(accessToken string) connect.UnaryInterceptorFu
 	}
 	return connect.UnaryInterceptorFunc(interceptor)
 
+}
+func NewConnectOtelInterceptor() *otelconnect.Interceptor {
+	otelIntercept, err := otelconnect.NewInterceptor(
+		otelconnect.WithTrustRemote(),
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		Fatal("failed to initialize otel interceptor", err)
+	}
+	return otelIntercept
 }
