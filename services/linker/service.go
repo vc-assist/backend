@@ -269,9 +269,11 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 
 	implicit := CreateImplicitLinks(leftKeys, rightKeys)
 
+	threshold := float64(req.Msg.GetThreshold())
+
 	suggestions := []*linkerv1.LinkSuggestion{}
 	for _, impl := range implicit {
-		if impl.Correlation < 0.75 || impl.Correlation == 1 {
+		if impl.Correlation < threshold || impl.Correlation == 1 {
 			continue
 		}
 		suggestions = append(suggestions, &linkerv1.LinkSuggestion{
