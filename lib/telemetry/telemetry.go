@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -101,6 +102,8 @@ func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, e
 		return Telemetry{}, err
 	}
 	otel.SetMeterProvider(meterProvider)
+
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	return Telemetry{
 		TracerProvider: tracerProvider,
