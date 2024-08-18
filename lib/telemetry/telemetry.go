@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 	"vcassist-backend/lib/configutil"
@@ -135,12 +136,25 @@ func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExport
 	defer cancel()
 
 	if c.Otlp.Traces.GrpcEndpoint != "" {
+		slog.Info(
+			"tracer export initialized",
+			"type", "grpc",
+			"endpoint", c.Otlp.Traces.GrpcEndpoint,
+			"headers", len(c.Otlp.Traces.Headers) > 0,
+		)
 		return otlptracegrpc.New(
 			ctx,
 			otlptracegrpc.WithEndpointURL(c.Otlp.Traces.GrpcEndpoint),
 			otlptracegrpc.WithHeaders(c.Otlp.Traces.Headers),
 		)
 	}
+
+	slog.Info(
+		"tracer export initialized",
+		"type", "http",
+		"endpoint", c.Otlp.Traces.HttpEndpoint,
+		"headers", len(c.Otlp.Traces.Headers) > 0,
+	)
 	return otlptracehttp.New(
 		ctx,
 		otlptracehttp.WithEndpointURL(c.Otlp.Traces.HttpEndpoint),
@@ -166,12 +180,24 @@ func otlpMetricExportFromConfig(ctx context.Context, c Config) (metric.Exporter,
 	defer cancel()
 
 	if c.Otlp.Metrics.GrpcEndpoint != "" {
+		slog.Info(
+			"metric exporter initialized",
+			"type", "grpc",
+			"endpoint", c.Otlp.Metrics.GrpcEndpoint,
+			"headers", len(c.Otlp.Metrics.Headers) > 0,
+		)
 		return otlpmetricgrpc.New(
 			ctx,
 			otlpmetricgrpc.WithEndpointURL(c.Otlp.Metrics.GrpcEndpoint),
 			otlpmetricgrpc.WithHeaders(c.Otlp.Metrics.Headers),
 		)
 	}
+	slog.Info(
+		"metric exporter initialized",
+		"type", "http",
+		"endpoint", c.Otlp.Metrics.HttpEndpoint,
+		"headers", len(c.Otlp.Metrics.Headers) > 0,
+	)
 	return otlpmetrichttp.New(
 		ctx,
 		otlpmetrichttp.WithEndpointURL(c.Otlp.Metrics.HttpEndpoint),

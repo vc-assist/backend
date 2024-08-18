@@ -18,8 +18,8 @@ message AssignmentData {
   string category = 2 [json_name = "category"];
   string due_date = 3 [json_name = "dueDate"];
   string description = 4 [json_name = "description"];
-  int32 points_earned = 5 [json_name = "pointsEarned"];
-  int32 points_possible = 6 [json_name = "pointsPossible"];
+  float points_earned = 5 [json_name = "pointsEarned"];
+  float points_possible = 6 [json_name = "pointsPossible"];
   bool attribute_missing = 7 [json_name = "attributeMissing"];
   bool attribute_late = 8 [json_name = "attributeLate"];
   bool attribute_collected = 9 [json_name = "attributeCollected"];
