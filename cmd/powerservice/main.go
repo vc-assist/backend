@@ -13,7 +13,6 @@ import (
 	powerservicedb "vcassist-backend/services/powerservice/db"
 
 	"connectrpc.com/connect"
-	"connectrpc.com/otelconnect"
 )
 
 type OAuthConfig struct {
@@ -47,13 +46,7 @@ func main() {
 		serviceutil.Fatal("failed to open database", err)
 	}
 
-	otelIntercept, err := otelconnect.NewInterceptor(
-		otelconnect.WithTrustRemote(),
-		otelconnect.WithoutServerPeerAttributes(),
-	)
-	if err != nil {
-		serviceutil.Fatal("failed to initialize otel interceptor", err)
-	}
+	otelIntercept := serviceutil.NewConnectOtelInterceptor()
 
 	mux := http.NewServeMux()
 	mux.Handle(powerservicev1connect.NewPowerschoolServiceHandler(
@@ -63,6 +56,7 @@ func main() {
 				keychainv1connect.NewKeychainServiceClient(
 					http.DefaultClient,
 					config.KeychainBaseUrl,
+					connect.WithInterceptors(otelIntercept),
 				),
 				config.BaseUrl,
 				powerservice.OAuthConfig(config.OAuth),

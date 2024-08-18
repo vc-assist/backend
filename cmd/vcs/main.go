@@ -20,7 +20,6 @@ import (
 	vcsdb "vcassist-backend/services/vcs/db"
 
 	"connectrpc.com/connect"
-	"connectrpc.com/otelconnect"
 )
 
 type NoAuthConfig struct {
@@ -65,24 +64,30 @@ func main() {
 		serviceutil.Fatal("failed to read config", err)
 	}
 
+	otelIntercept := serviceutil.NewConnectOtelInterceptor()
+
 	powerservice := powerservicev1connect.NewPowerschoolServiceClient(
 		http.DefaultClient,
 		config.Services.Powerservice.BaseUrl,
+		connect.WithInterceptors(otelIntercept),
 	)
 	vcsmoodle := vcsmoodlev1connect.NewMoodleServiceClient(
 		http.DefaultClient,
 		config.Services.Vcsmoodle.BaseUrl,
+		connect.WithInterceptors(otelIntercept),
 	)
 	linker := linkerv1connect.NewLinkerServiceClient(
 		http.DefaultClient,
 		config.Services.Linker.BaseUrl,
 		connect.WithInterceptors(
 			serviceutil.ProvideAccessTokenInterceptor(config.Services.Linker.AccessToken),
+			otelIntercept,
 		),
 	)
 	gradesnapshots := gradesnapshotsv1connect.NewGradeSnapshotsServiceClient(
 		http.DefaultClient,
 		config.Services.GradeSnapshots.BaseUrl,
+		connect.WithInterceptors(otelIntercept),
 	)
 
 	db, err := config.Database.OpenDB(vcsdb.Schema)
@@ -121,10 +126,6 @@ func main() {
 	verify := verifier.NewVerifier(authDb)
 	authInterceptor := verifier.NewAuthInterceptor(verify)
 
-	otelIntercept, err := otelconnect.NewInterceptor(
-		otelconnect.WithTrustRemote(),
-		otelconnect.WithoutServerPeerAttributes(),
-	)
 	if err != nil {
 		serviceutil.Fatal("failed to initialize otel interceptor", err)
 	}
