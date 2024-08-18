@@ -275,8 +275,9 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 			continue
 		}
 		suggestions = append(suggestions, &linkerv1.LinkSuggestion{
-			LeftKey:  impl.Left,
-			RightKey: impl.Right,
+			LeftKey:     impl.Left,
+			RightKey:    impl.Right,
+			Correlation: float32(impl.Correlation),
 		})
 	}
 
