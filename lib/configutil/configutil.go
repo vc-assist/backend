@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	mergestruct "github.com/geraldo-labs/merge-struct"
+	"dario.cat/mergo"
 	"github.com/titanous/json5"
 )
 
@@ -58,7 +58,7 @@ func ReadConfig[T any](name string) (T, error) {
 		if err != nil {
 			return out, err
 		}
-		_, err = mergestruct.Struct(&out, override)
+		err = mergo.Merge(&out, override)
 		if err != nil {
 			return out, err
 		}
