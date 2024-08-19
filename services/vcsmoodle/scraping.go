@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"vcassist-backend/lib/scrapers/moodle/view"
+	"vcassist-backend/lib/textutil"
 	"vcassist-backend/lib/timezone"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 
@@ -75,7 +76,7 @@ func scrapeZoomLink(ctx context.Context, client view.Client, section view.Sectio
 	}
 
 	for _, r := range resources {
-		if MatchName(r.Name, zoomKeywords) {
+		if textutil.MatchName(r.Name, zoomKeywords) {
 			link, err := scrapeThroughWorkaroundLink(ctx, client, r.Href)
 			if err != nil {
 				span.RecordError(err)
@@ -207,7 +208,7 @@ func scrapeCourseData(ctx context.Context, client view.Client, course view.Cours
 	}()
 
 	for _, s := range sections {
-		if MatchName(s.Name, lessonPlanKeywords) {
+		if textutil.MatchName(s.Name, lessonPlanKeywords) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -243,7 +244,7 @@ func scrapeCourses(ctx context.Context, client view.Client) ([]*vcsmoodlev1.Cour
 
 	wg := sync.WaitGroup{}
 	for _, c := range courses {
-		if MatchName(c.Name, blacklistCourseKeywords) {
+		if textutil.MatchName(c.Name, blacklistCourseKeywords) {
 			continue
 		}
 
