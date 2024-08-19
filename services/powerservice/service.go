@@ -2,7 +2,6 @@ package powerservice
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 	"vcassist-backend/lib/oauth"
@@ -13,14 +12,11 @@ import (
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
-	"vcassist-backend/services/powerservice/db"
 
 	"connectrpc.com/connect"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
-	"google.golang.org/protobuf/proto"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
@@ -38,14 +34,11 @@ type OAuthConfig struct {
 
 type Service struct {
 	baseUrl  string
-	db       *sql.DB
 	oauth    OAuthConfig
-	qry      *db.Queries
 	keychain keychainv1connect.KeychainServiceClient
 }
 
 func NewService(
-	database *sql.DB,
 	keychain keychainv1connect.KeychainServiceClient,
 	baseUrl string,
 	oauth OAuthConfig,
@@ -53,36 +46,9 @@ func NewService(
 	return Service{
 		baseUrl:  baseUrl,
 		oauth:    oauth,
-		db:       database,
-		qry:      db.New(database),
 		keychain: keychain,
 	}
 
-}
-
-func (s Service) GetKnownCourses(ctx context.Context, req *connect.Request[powerservicev1.GetKnownCoursesRequest]) (*connect.Response[powerservicev1.GetKnownCoursesResponse], error) {
-	courses, err := s.qry.GetKnownCourses(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]*powerservicev1.KnownCourse, len(courses))
-	for i, c := range courses {
-		res[i] = &powerservicev1.KnownCourse{
-			Guid:             c.Guid,
-			Name:             c.Name,
-			Period:           c.Period.String,
-			Room:             c.Room.String,
-			TeacherFirstName: c.Teacherfirstname.String,
-			TeacherLastName:  c.Teacherlastname.String,
-			TeacherEmail:     c.Teacheremail.String,
-		}
-	}
-	return &connect.Response[powerservicev1.GetKnownCoursesResponse]{
-		Msg: &powerservicev1.GetKnownCoursesResponse{
-			Courses: res,
-		},
-	}, nil
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerservicev1.GetAuthStatusRequest]) (*connect.Response[powerservicev1.GetAuthStatusResponse], error) {
@@ -242,34 +208,6 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 
 	courseList := studentData.GetStudent().GetSections()
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to begin transaction")
-	}
-	defer tx.Rollback()
-	txqry := s.qry.WithTx(tx)
-	for _, c := range courseList {
-		err = txqry.CreateOrUpdateKnownCourse(ctx, db.CreateOrUpdateKnownCourseParams{
-			Guid:             c.GetGuid(),
-			Name:             c.GetName(),
-			Teacherfirstname: sql.NullString{String: c.GetTeacherFirstName()},
-			Teacherlastname:  sql.NullString{String: c.GetTeacherLastName()},
-			Teacheremail:     sql.NullString{String: c.GetTeacherEmail()},
-			Period:           sql.NullString{String: c.GetPeriod()},
-			Room:             sql.NullString{String: c.GetRoom()},
-		})
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "failed to add known course to register transaction")
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to register known courses")
-	}
-
 	guids := make([]string, len(courseList))
 	for i, course := range courseList {
 		guids[i] = course.GetGuid()
@@ -291,28 +229,12 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		}
 	}
 
-	// cache and return response
-	response := &powerservicev1.GetStudentDataResponse{
-		Profile:    psStudent,
-		CourseData: courseList,
-		Meetings:   courseMeetingList,
-		Photo:      studentPhoto,
-	}
-
-	serializedResponse, err := proto.Marshal(response)
-	if err != nil {
-		return nil, err
-	}
-	err = s.qry.CreateOrUpdateStudentData(ctx, db.CreateOrUpdateStudentDataParams{
-		Studentid: studentId,
-		Createdat: timezone.Now().Unix(),
-		Cached:    serializedResponse,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return &connect.Response[powerservicev1.GetStudentDataResponse]{
-		Msg: response,
+		Msg: &powerservicev1.GetStudentDataResponse{
+			Profile:    psStudent,
+			CourseData: courseList,
+			Meetings:   courseMeetingList,
+			Photo:      studentPhoto,
+		},
 	}, nil
 }

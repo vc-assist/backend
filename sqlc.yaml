@@ -1,13 +1,6 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "services/powerservice/db/query.sql"
-    schema: "services/powerservice/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/powerservice/db"
-  - engine: "sqlite"
     queries: "services/auth/db/query.sql"
     schema: "services/auth/db/schema.sql"
     gen:

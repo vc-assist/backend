@@ -45,19 +45,15 @@ const (
 	// PowerschoolServiceGetStudentDataProcedure is the fully-qualified name of the PowerschoolService's
 	// GetStudentData RPC.
 	PowerschoolServiceGetStudentDataProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/GetStudentData"
-	// PowerschoolServiceGetKnownCoursesProcedure is the fully-qualified name of the
-	// PowerschoolService's GetKnownCourses RPC.
-	PowerschoolServiceGetKnownCoursesProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/GetKnownCourses"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	powerschoolServiceServiceDescriptor               = v1.File_vcassist_services_powerservice_v1_api_proto.Services().ByName("PowerschoolService")
-	powerschoolServiceGetAuthStatusMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("GetAuthStatus")
-	powerschoolServiceGetOAuthFlowMethodDescriptor    = powerschoolServiceServiceDescriptor.Methods().ByName("GetOAuthFlow")
-	powerschoolServiceProvideOAuthMethodDescriptor    = powerschoolServiceServiceDescriptor.Methods().ByName("ProvideOAuth")
-	powerschoolServiceGetStudentDataMethodDescriptor  = powerschoolServiceServiceDescriptor.Methods().ByName("GetStudentData")
-	powerschoolServiceGetKnownCoursesMethodDescriptor = powerschoolServiceServiceDescriptor.Methods().ByName("GetKnownCourses")
+	powerschoolServiceServiceDescriptor              = v1.File_vcassist_services_powerservice_v1_api_proto.Services().ByName("PowerschoolService")
+	powerschoolServiceGetAuthStatusMethodDescriptor  = powerschoolServiceServiceDescriptor.Methods().ByName("GetAuthStatus")
+	powerschoolServiceGetOAuthFlowMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("GetOAuthFlow")
+	powerschoolServiceProvideOAuthMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("ProvideOAuth")
+	powerschoolServiceGetStudentDataMethodDescriptor = powerschoolServiceServiceDescriptor.Methods().ByName("GetStudentData")
 )
 
 // PowerschoolServiceClient is a client for the vcassist.services.powerservice.v1.PowerschoolService
@@ -67,7 +63,6 @@ type PowerschoolServiceClient interface {
 	GetOAuthFlow(context.Context, *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error)
 	ProvideOAuth(context.Context, *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error)
 	GetStudentData(context.Context, *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error)
-	GetKnownCourses(context.Context, *connect.Request[v1.GetKnownCoursesRequest]) (*connect.Response[v1.GetKnownCoursesResponse], error)
 }
 
 // NewPowerschoolServiceClient constructs a client for the
@@ -105,22 +100,15 @@ func NewPowerschoolServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(powerschoolServiceGetStudentDataMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		getKnownCourses: connect.NewClient[v1.GetKnownCoursesRequest, v1.GetKnownCoursesResponse](
-			httpClient,
-			baseURL+PowerschoolServiceGetKnownCoursesProcedure,
-			connect.WithSchema(powerschoolServiceGetKnownCoursesMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // powerschoolServiceClient implements PowerschoolServiceClient.
 type powerschoolServiceClient struct {
-	getAuthStatus   *connect.Client[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse]
-	getOAuthFlow    *connect.Client[v1.GetOAuthFlowRequest, v1.GetOAuthFlowResponse]
-	provideOAuth    *connect.Client[v1.ProvideOAuthRequest, v1.ProvideOAuthResponse]
-	getStudentData  *connect.Client[v1.GetStudentDataRequest, v1.GetStudentDataResponse]
-	getKnownCourses *connect.Client[v1.GetKnownCoursesRequest, v1.GetKnownCoursesResponse]
+	getAuthStatus  *connect.Client[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse]
+	getOAuthFlow   *connect.Client[v1.GetOAuthFlowRequest, v1.GetOAuthFlowResponse]
+	provideOAuth   *connect.Client[v1.ProvideOAuthRequest, v1.ProvideOAuthResponse]
+	getStudentData *connect.Client[v1.GetStudentDataRequest, v1.GetStudentDataResponse]
 }
 
 // GetAuthStatus calls vcassist.services.powerservice.v1.PowerschoolService.GetAuthStatus.
@@ -143,11 +131,6 @@ func (c *powerschoolServiceClient) GetStudentData(ctx context.Context, req *conn
 	return c.getStudentData.CallUnary(ctx, req)
 }
 
-// GetKnownCourses calls vcassist.services.powerservice.v1.PowerschoolService.GetKnownCourses.
-func (c *powerschoolServiceClient) GetKnownCourses(ctx context.Context, req *connect.Request[v1.GetKnownCoursesRequest]) (*connect.Response[v1.GetKnownCoursesResponse], error) {
-	return c.getKnownCourses.CallUnary(ctx, req)
-}
-
 // PowerschoolServiceHandler is an implementation of the
 // vcassist.services.powerservice.v1.PowerschoolService service.
 type PowerschoolServiceHandler interface {
@@ -155,7 +138,6 @@ type PowerschoolServiceHandler interface {
 	GetOAuthFlow(context.Context, *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error)
 	ProvideOAuth(context.Context, *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error)
 	GetStudentData(context.Context, *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error)
-	GetKnownCourses(context.Context, *connect.Request[v1.GetKnownCoursesRequest]) (*connect.Response[v1.GetKnownCoursesResponse], error)
 }
 
 // NewPowerschoolServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -188,12 +170,6 @@ func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect
 		connect.WithSchema(powerschoolServiceGetStudentDataMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	powerschoolServiceGetKnownCoursesHandler := connect.NewUnaryHandler(
-		PowerschoolServiceGetKnownCoursesProcedure,
-		svc.GetKnownCourses,
-		connect.WithSchema(powerschoolServiceGetKnownCoursesMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/vcassist.services.powerservice.v1.PowerschoolService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PowerschoolServiceGetAuthStatusProcedure:
@@ -204,8 +180,6 @@ func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect
 			powerschoolServiceProvideOAuthHandler.ServeHTTP(w, r)
 		case PowerschoolServiceGetStudentDataProcedure:
 			powerschoolServiceGetStudentDataHandler.ServeHTTP(w, r)
-		case PowerschoolServiceGetKnownCoursesProcedure:
-			powerschoolServiceGetKnownCoursesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -229,8 +203,4 @@ func (UnimplementedPowerschoolServiceHandler) ProvideOAuth(context.Context, *con
 
 func (UnimplementedPowerschoolServiceHandler) GetStudentData(context.Context, *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.GetStudentData is not implemented"))
-}
-
-func (UnimplementedPowerschoolServiceHandler) GetKnownCourses(context.Context, *connect.Request[v1.GetKnownCoursesRequest]) (*connect.Response[v1.GetKnownCoursesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.GetKnownCourses is not implemented"))
 }
