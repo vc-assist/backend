@@ -68,11 +68,6 @@ var periodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, course *powerschoolv1.CourseData) error {
 	span := trace.SpanFromContext(ctx)
 
-	// skip chapel
-	if strings.HasPrefix(course.GetPeriod(), "CH") {
-		return nil
-	}
-
 	matches := periodRegex.FindStringSubmatch(course.GetPeriod())
 	if len(matches) < 3 {
 		err := fmt.Errorf("could not run regex on course period '%s'", course.GetPeriod())
@@ -166,6 +161,11 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 		}
 		if course == nil {
 			course = &studentdatav1.Course{}
+		}
+
+		// skip chapel
+		if strings.HasPrefix(pscourse.GetPeriod(), "CH") {
+			continue
 		}
 
 		err := patchCourseWithPowerschool(ctx, course, pscourse)
