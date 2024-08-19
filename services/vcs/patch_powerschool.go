@@ -9,14 +9,17 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"vcassist-backend/lib/scrapers/powerschool"
+	"vcassist-backend/lib/textutil"
 	"vcassist-backend/lib/timezone"
 	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 	studentdatav1 "vcassist-backend/proto/vcassist/services/studentdata/v1"
-	"vcassist-backend/services/vcsmoodle"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var homeworkPassesKeywords = []string{
@@ -25,8 +28,7 @@ var homeworkPassesKeywords = []string{
 }
 
 func patchAssignmentWithPowerschool(ctx context.Context, out *studentdatav1.Assignment, assignment *powerschoolv1.AssignmentData) {
-	ctx, span := tracer.Start(ctx, "patchAssignment:WithPowerschool")
-	defer span.End()
+	span := trace.SpanFromContext(ctx)
 
 	state := studentdatav1.AssignmentState_ASSIGNMENT_STATE_UNSPECIFIED
 	switch {
@@ -44,6 +46,10 @@ func patchAssignmentWithPowerschool(ctx context.Context, out *studentdatav1.Assi
 
 	duedate, err := powerschool.DecodeAssignmentTime(assignment.GetDueDate())
 	if err != nil {
+		span.AddEvent("failed to decode assignment time", trace.WithAttributes(
+			attribute.String("title", assignment.GetTitle()),
+			attribute.String("due_date", assignment.GetDueDate()),
+		))
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
@@ -60,14 +66,21 @@ func patchAssignmentWithPowerschool(ctx context.Context, out *studentdatav1.Assi
 var periodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 
 func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, course *powerschoolv1.CourseData) error {
-	ctx, span := tracer.Start(ctx, "patchCourse:WithPowerschool")
-	defer span.End()
+	span := trace.SpanFromContext(ctx)
+
+	// skip chapel
+	if strings.HasPrefix(course.GetPeriod(), "CH") {
+		return nil
+	}
 
 	matches := periodRegex.FindStringSubmatch(course.GetPeriod())
 	if len(matches) < 3 {
 		err := fmt.Errorf("could not run regex on course period '%s'", course.GetPeriod())
+		span.AddEvent(
+			"could not run regex on course period",
+			trace.WithAttributes(attribute.String("period", course.GetPeriod())),
+		)
 		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	currentDay := matches[2]
@@ -77,14 +90,20 @@ func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, 
 	for _, term := range course.GetTerms() {
 		start, err := powerschool.DecodeCourseTermTime(term.GetStart())
 		if err != nil {
+			span.AddEvent(
+				"could not decode course term time",
+				trace.WithAttributes(attribute.String("time", term.GetStart())),
+			)
 			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 		end, err := powerschool.DecodeCourseTermTime(term.GetEnd())
 		if err != nil {
+			span.AddEvent(
+				"could not decode course term time",
+				trace.WithAttributes(attribute.String("time", term.GetEnd())),
+			)
 			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 
@@ -107,7 +126,7 @@ func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, 
 
 	var assignmentTypeNameList []string
 	for _, psassign := range course.GetAssignments() {
-		if vcsmoodle.MatchName(psassign.GetTitle(), homeworkPassesKeywords) {
+		if textutil.MatchName(psassign.GetTitle(), homeworkPassesKeywords) {
 			out.HomeworkPasses = int32(psassign.GetPointsEarned())
 			continue
 		}
@@ -131,7 +150,7 @@ func patchCourseWithPowerschool(ctx context.Context, out *studentdatav1.Course, 
 }
 
 func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.StudentData, psdata *powerservicev1.GetStudentDataResponse) error {
-	ctx, span := tracer.Start(ctx, "patchStudentData:WithPowerschool")
+	ctx, span := tracer.Start(ctx, "patch:powerschool")
 	defer span.End()
 
 	var courseListGuids []string
@@ -151,6 +170,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 
 		err := patchCourseWithPowerschool(ctx, course, pscourse)
 		if err != nil {
+			span.SetStatus(codes.Error, "patch has errors")
 			continue
 		}
 
@@ -178,20 +198,26 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 				meeting.GetSectionGuid(),
 			)
 			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "patch has errors")
 			continue
 		}
 
 		start, err := powerschool.DecodeSectionMeetingTimestamp(meeting.GetStart())
 		if err != nil {
+			span.AddEvent("failed to decode meeting start timestamp", trace.WithAttributes(
+				attribute.String("time", meeting.GetStart()),
+			))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "patch has errors")
 			continue
 		}
 		stop, err := powerschool.DecodeSectionMeetingTimestamp(meeting.GetStop())
 		if err != nil {
+			span.AddEvent("failed to decode meeting stop timestamp", trace.WithAttributes(
+				attribute.String("time", meeting.GetStop()),
+			))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "patch has errors")
 			continue
 		}
 
@@ -207,8 +233,11 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 
 	gpa, err := strconv.ParseFloat(psdata.GetProfile().GetCurrentGpa(), 32)
 	if err != nil {
+		span.AddEvent("failed to parse gpa", trace.WithAttributes(
+			attribute.String("gpa", psdata.GetProfile().GetCurrentGpa()),
+		))
 		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+		span.SetStatus(codes.Error, "patch has errors")
 	}
 
 	out.Gpa = float32(gpa)
@@ -220,8 +249,11 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 	decoder := base64.NewDecoder(base64.StdEncoding, imageBuff)
 	decodedImage, err := io.ReadAll(decoder)
 	if err != nil {
+		span.AddEvent("failed to decode base64 image", trace.WithAttributes(
+			attribute.String("base64_image", string(psdata.GetPhoto().GetStudentPhoto().GetImage())),
+		))
 		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+		span.SetStatus(codes.Error, "patch has errors")
 	}
 	out.Photo = decodedImage
 

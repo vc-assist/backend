@@ -6,7 +6,7 @@ import (
 )
 
 func patchStudentDataWithWeights(ctx context.Context, data *studentdatav1.StudentData, weights WeightData) {
-	ctx, span := tracer.Start(ctx, "patchStudentDataWithWeights")
+	ctx, span := tracer.Start(ctx, "patch:weights")
 	defer span.End()
 
 	for _, course := range data.GetCourses() {

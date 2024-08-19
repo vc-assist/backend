@@ -51,6 +51,10 @@ func (s Service) Push(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	}
 
 	for _, course := range req.Msg.GetCourses() {
+		if course.GetCourse() == "" {
+			continue
+		}
+
 		err := txqry.CreateUserCourse(ctx, db.CreateUserCourseParams{
 			User:   req.Msg.GetUser(),
 			Course: course.GetCourse(),
@@ -94,6 +98,10 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	lastCourse := &gradesnapshotsv1.PullResponse_Course{}
 
 	for _, r := range rows {
+		if r.Course == "" {
+			continue
+		}
+
 		// this works because the rows are sorted by course name
 		// so all the rows with the same course name will be next to each other
 		//

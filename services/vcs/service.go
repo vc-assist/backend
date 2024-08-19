@@ -74,7 +74,7 @@ func (s Service) removeExpiredWorker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			ctx, span := tracer.Start(ctx, "removeExpiredRows")
+			ctx, span := tracer.Start(ctx, "cron_job:remove_expired_cache")
 			err := s.qry.DeleteCachedStudentDataBefore(ctx, timezone.Now().Unix())
 			if err != nil {
 				span.RecordError(err)
@@ -217,7 +217,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[stu
 }
 
 func (s Service) getCachedStudentData(ctx context.Context, studentEmail string) (*studentdatav1.StudentData, error) {
-	ctx, span := tracer.Start(ctx, "getCachedStudentData")
+	ctx, span := tracer.Start(ctx, "get_cached_student_data")
 	defer span.End()
 
 	cachedRow, err := s.qry.GetCachedStudentData(ctx, studentEmail)
@@ -255,6 +255,12 @@ func instrumentDataSnapshot(span trace.Span, message string, data *studentdatav1
 		message,
 		trace.WithAttributes(attribute.String("data", protojson.Format(data))),
 	)
+}
+
+var nonGradedCoursesKeywords = []string{
+	"openperiod",
+	"unscheduled",
+	"chapel",
 }
 
 func (s Service) recacheStudentData(ctx context.Context, userEmail string) (*studentdatav1.StudentData, error) {
