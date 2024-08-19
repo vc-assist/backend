@@ -4,13 +4,11 @@ import (
 	"context"
 	"net/http"
 	"vcassist-backend/lib/configutil"
-	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/serviceutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	"vcassist-backend/services/powerservice"
-	powerservicedb "vcassist-backend/services/powerservice/db"
 
 	"connectrpc.com/connect"
 )
@@ -22,10 +20,9 @@ type OAuthConfig struct {
 }
 
 type Config struct {
-	BaseUrl         string              `json:"base_url"`
-	Database        configlibsql.Struct `json:"database"`
-	OAuth           OAuthConfig         `json:"oauth"`
-	KeychainBaseUrl string              `json:"keychain_service_baseurl"`
+	BaseUrl         string      `json:"base_url"`
+	OAuth           OAuthConfig `json:"oauth"`
+	KeychainBaseUrl string      `json:"keychain_service_baseurl"`
 }
 
 func main() {
@@ -41,10 +38,6 @@ func main() {
 	if err != nil {
 		serviceutil.Fatal("failed to read config", err)
 	}
-	db, err := config.Database.OpenDB(powerservicedb.Schema)
-	if err != nil {
-		serviceutil.Fatal("failed to open database", err)
-	}
 
 	otelIntercept := serviceutil.NewConnectOtelInterceptor()
 
@@ -52,7 +45,6 @@ func main() {
 	mux.Handle(powerservicev1connect.NewPowerschoolServiceHandler(
 		powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
 			powerservice.NewService(
-				db,
 				keychainv1connect.NewKeychainServiceClient(
 					http.DefaultClient,
 					config.KeychainBaseUrl,

@@ -1,9 +1,4 @@
 {
-	database: {
-		file: "<dev_state>/powerservice_service.db",
-		url: "",
-		auth_token: "",
-	},
 	base_url: "https://vcsnet.powerschool.com",
 	// this is the OAuth configuration for valley christian schools
 	// obtained by intercepting network requests from the powerschool
