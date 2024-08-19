@@ -33,6 +33,7 @@ func main() {
 		serviceutil.Fatal("failed to setup telemetry", err)
 	}
 	defer t.Shutdown(context.Background())
+	telemetry.InstrumentPerfStats(ctx)
 
 	config, err := configutil.ReadConfig[Config]("config.json5")
 	if err != nil {

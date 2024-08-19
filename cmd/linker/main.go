@@ -37,6 +37,7 @@ func main() {
 		serviceutil.Fatal("failed to setup telemetry", err)
 	}
 	defer t.Shutdown(context.Background())
+	telemetry.InstrumentPerfStats(ctx)
 
 	otelIntercept := serviceutil.NewConnectOtelInterceptor()
 
