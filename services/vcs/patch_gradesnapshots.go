@@ -24,7 +24,7 @@ func patchStudentDataWithGradeSnapshots(ctx context.Context, data *studentdatav1
 				break
 			}
 		}
-		if course == nil {
+		if course == nil || course.GetName() == "" {
 			continue
 		}
 
