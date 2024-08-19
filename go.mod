@@ -5,10 +5,10 @@ go 1.22.2
 require (
 	connectrpc.com/connect v1.16.2
 	connectrpc.com/otelconnect v0.7.1
+	dario.cat/mergo v1.0.1
 	github.com/DaRealFreak/cloudflare-bp-go v1.0.4
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/antzucaro/matchr v0.0.0-20221106193745-7bed6ef61ef9
-	github.com/geraldo-labs/merge-struct v1.0.0
 	github.com/go-resty/resty/v2 v2.13.1
 	github.com/google/go-cmp v0.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
@@ -35,7 +35,6 @@ require (
 )
 
 require (
-	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/EDDYCJY/fake-useragent v0.2.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
@@ -52,7 +51,6 @@ require (
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
