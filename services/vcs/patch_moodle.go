@@ -7,7 +7,7 @@ import (
 )
 
 func patchStudentDataWithMoodle(ctx context.Context, data *studentdatav1.StudentData, moodledata *vcsmoodlev1.GetStudentDataResponse) {
-	ctx, span := tracer.Start(ctx, "patchStudentData:WithMoodle")
+	ctx, span := tracer.Start(ctx, "patch:moodle")
 	defer span.End()
 
 	for _, moodleCourse := range moodledata.GetCourses() {

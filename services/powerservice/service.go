@@ -234,7 +234,7 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 	}
 
 	if studentData.GetStudent() == nil {
-		span.SetStatus(codes.Ok, "student data unavailable, only returning profile...")
+		span.SetStatus(codes.Error, "student data unavailable, only returning profile...")
 		return &connect.Response[powerservicev1.GetStudentDataResponse]{
 			Msg: &powerservicev1.GetStudentDataResponse{Profile: psStudent},
 		}, nil

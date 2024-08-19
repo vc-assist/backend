@@ -18,7 +18,7 @@ func linkMoodleToPowerschool(
 	moodle *vcsmoodlev1.GetStudentDataResponse,
 	ps *powerservicev1.GetStudentDataResponse,
 ) error {
-	ctx, span := tracer.Start(ctx, "linkMoodleToPowerschool")
+	ctx, span := tracer.Start(ctx, "link:moodle-powerschool")
 	defer span.End()
 
 	moodleKeys := make([]string, len(moodle.GetCourses()))
@@ -61,7 +61,7 @@ func linkWeightsToPowerschool(
 	weightData WeightData,
 	weightCourseNames []string,
 ) (WeightData, error) {
-	ctx, span := tracer.Start(ctx, "linkWeightsToPowerschool")
+	ctx, span := tracer.Start(ctx, "link:weights-powerschool")
 	defer span.End()
 
 	courseNames := make([]string, len(ps.GetCourseData()))
