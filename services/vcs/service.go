@@ -58,12 +58,17 @@ func NewService(database *sql.DB, options Options) Service {
 		weightCourseNames[i] = courseName
 		i++
 	}
-	return Service{
+
+	s := Service{
 		db:                database,
 		qry:               db.New(database),
 		weightCourseNames: weightCourseNames,
 		Options:           options,
 	}
+	go s.removeExpiredWorker(context.Background())
+	go s.recacheWorker(context.Background())
+
+	return s
 }
 
 func (s Service) removeExpiredWorker(ctx context.Context) {
@@ -125,11 +130,6 @@ func (s Service) recacheWorker(ctx context.Context) {
 			}
 		}
 	}
-}
-
-func (s Service) StartWorker(ctx context.Context) {
-	go s.removeExpiredWorker(ctx)
-	go s.recacheWorker(ctx)
 }
 
 func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[studentdatav1.GetCredentialStatusRequest]) (*connect.Response[studentdatav1.GetCredentialStatusResponse], error) {
