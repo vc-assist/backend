@@ -23,6 +23,7 @@ message Course {
   string name = 1;
   string lesson_plan = 2;
   string zoom_link = 3;
+  string url = 4;
 }
 message GetStudentDataRequest {
   string student_id = 1;

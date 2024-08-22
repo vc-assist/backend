@@ -23,6 +23,7 @@ type Client struct {
 
 func NewClient(baseUrl string) (*Client, error) {
 	client := resty.New()
+	client.SetTimeout(time.Minute)
 	client.SetBaseURL(baseUrl)
 	jar, err := cookiejar.New(nil)
 	if err != nil {

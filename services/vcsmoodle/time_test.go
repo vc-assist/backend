@@ -114,6 +114,15 @@ func TestParseTOCDate(t *testing.T) {
 				},
 			},
 		},
+		{
+			text: "August 15, 2024",
+			expected: []MonthDay{
+				{
+					Month: time.August,
+					Day:   15,
+				},
+			},
+		},
 	}
 
 	for _, test := range testCases {
