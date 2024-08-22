@@ -2,6 +2,9 @@ package vcsmoodle
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 	"time"
 	devenv "vcassist-backend/dev/env"
@@ -34,6 +37,13 @@ func setup(t testing.TB) (vcsmoodlev1connect.MoodleServiceClient, func()) {
 		cleanupSelf()
 		cancelKeychain()
 	}
+}
+
+type failedCourse struct {
+	Name       string `json:"name"`
+	Url        string `json:"url"`
+	Zoom       bool   `json:"zoom"`
+	LessonPlan bool   `json:"lesson_plan"`
 }
 
 func TestService(t *testing.T) {
@@ -84,6 +94,9 @@ func TestService(t *testing.T) {
 		}
 		require.True(t, res.Msg.GetProvided())
 	}
+
+	failed := []failedCourse{}
+
 	{
 		res, err := service.GetStudentData(ctx, &connect.Request[vcsmoodlev1.GetStudentDataRequest]{
 			Msg: &vcsmoodlev1.GetStudentDataRequest{
@@ -99,12 +112,36 @@ func TestService(t *testing.T) {
 			require.NotEmpty(t, c.GetName())
 			lessonPlan := c.GetLessonPlan()
 			zoomLink := c.GetZoomLink()
-			if lessonPlan == "" {
-				t.Log("WARN", c.GetName(), "has an empty lesson plan")
+
+			hasLessonPlan := lessonPlan != ""
+			hasZoom := strings.Contains(zoomLink, "vcs.zoom.us")
+			if hasLessonPlan && hasZoom {
+				continue
 			}
-			if zoomLink == "" {
-				t.Log("WARN", c.GetName(), "has an empty zoom link")
-			}
+
+			failed = append(failed, failedCourse{
+				Name:       c.GetName(),
+				Zoom:       hasZoom,
+				LessonPlan: hasLessonPlan,
+			})
 		}
 	}
+
+	failedJson, err := json.MarshalIndent(failed, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := os.Create("failed_courses.local.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	_, err = f.Write(failedJson)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("The full information of courses which are missing lesson plans or zoom links was written to './failed_courses.local.json'")
 }

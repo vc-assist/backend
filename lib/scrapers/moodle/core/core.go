@@ -41,6 +41,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	}
 
 	client := resty.New()
+	client.SetTimeout(time.Minute * 2)
 	client.SetBaseURL(opts.BaseUrl)
 	jar, err := cookiejar.New(nil)
 	if err != nil {

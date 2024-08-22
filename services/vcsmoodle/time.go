@@ -42,8 +42,8 @@ func resolveMonthDay(month time.Month, day int) time.Time {
 	return time.Date(now.Year(), month, day, 0, 0, 0, 0, timezone.Location)
 }
 
-var monthDayRegex = regexp.MustCompile(`(\w{3,9}) *(\d+)`)
-var monthDayDayRegex = regexp.MustCompile(`(\w+) *(\d+) *[^\d\w\s] *(\d+)`)
+var monthDayRegex = regexp.MustCompile(`([A-Za-z]{3,9}) *(\d{1,2})`)
+var monthDayDayRegex = regexp.MustCompile(`(\w+) *(\d{1,2}) *[^\d\w\s] *(\d{1,2})(?:[^\d]|$)`)
 
 func parseTOCDate(ctx context.Context, text string) ([]time.Time, error) {
 	ctx, span := tracer.Start(ctx, "parseTOCDate")
