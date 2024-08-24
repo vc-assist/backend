@@ -20,7 +20,6 @@ import (
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	"vcassist-backend/services/keychain"
 	keychaindb "vcassist-backend/services/keychain/db"
-	"vcassist-backend/services/powerservice/db"
 
 	_ "embed"
 
@@ -151,14 +150,10 @@ func promptForToken(t testing.TB, ctx context.Context, service powerservicev1con
 	}
 }
 
-//go:embed db/schema.sql
-var schemaSql string
-
 func setup(t testing.TB, dbname string) (powerservicev1connect.PowerschoolServiceClient, func()) {
-	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
-		Name:     "services/powerservice",
-		DbSchema: db.Schema,
-		DbPath:   dbname,
+	_, cleanup := testutil.SetupService(t, testutil.ServiceParams{
+		Name:   "services/powerservice",
+		DbPath: dbname,
 	})
 	keychainRes, cleanupKeychain := testutil.SetupService(t, testutil.ServiceParams{
 		Name:     "services/keychain",
@@ -174,7 +169,7 @@ func setup(t testing.TB, dbname string) (powerservicev1connect.PowerschoolServic
 		RefreshUrl:   "https://oauth2.googleapis.com/token",
 		ClientId:     "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 	}
-	service := NewService(res.DB, keychainService, "https://vcsnet.powerschool.com", oauthConfig)
+	service := NewService(keychainService, "https://vcsnet.powerschool.com", oauthConfig)
 
 	return service, func() {
 		cleanupKeychain()
