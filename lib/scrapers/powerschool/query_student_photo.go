@@ -2,7 +2,6 @@ package powerschool
 
 import (
 	"context"
-	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
 )
 
 const studentPhotoQuery = `query StudentPhoto($guid: ID!) {
@@ -11,8 +10,21 @@ const studentPhotoQuery = `query StudentPhoto($guid: ID!) {
   }
 }`
 
-func (c *Client) GetStudentPhoto(ctx context.Context, input *powerschoolv1.GetStudentDataInput) (*powerschoolv1.StudentPhoto, error) {
-	res := &powerschoolv1.StudentPhoto{}
-	err := graphqlQuery(ctx, c.http, "StudentPhoto", studentPhotoQuery, input, res)
+type GetStudentPhotoRequest struct {
+	Guid string `json:"guid"`
+}
+
+type GetStudentPhotoResponse struct {
+	StudentPhoto struct {
+		Image string `json:"image"`
+	} `json:"studentPhoto"`
+}
+
+func (c *Client) GetStudentPhoto(ctx context.Context, req GetStudentPhotoRequest) (*GetStudentPhotoResponse, error) {
+	res := &GetStudentPhotoResponse{}
+	err := graphqlQuery(
+		ctx, c.http, "StudentPhoto", studentPhotoQuery,
+		req, res,
+	)
 	return res, err
 }

@@ -246,28 +246,24 @@ func TestOAuth(t *testing.T) {
 	require.NotEmpty(t, foundStudentData.GetProfile().GetFirstName())
 	require.NotEmpty(t, foundStudentData.GetProfile().GetLastName())
 
-	require.Greater(t, len(foundStudentData.GetProfile().GetSchools()), 0, "provided powerschool account must be a part of at least one school")
-	for _, school := range foundStudentData.GetProfile().GetSchools() {
+	require.Greater(t, len(foundStudentData.GetSchools()), 0, "provided powerschool account must be a part of at least one school")
+	for _, school := range foundStudentData.GetSchools() {
 		require.NotEmpty(t, school.GetName())
 	}
 
-	courses := foundStudentData.GetCourseData()
+	courses := foundStudentData.GetCourses()
 	if len(courses) > 0 {
 		for _, course := range courses {
 			require.NotEmpty(t, course.GetGuid())
 			require.NotEmpty(t, course.GetName())
 			require.NotEmpty(t, course.GetPeriod())
-		}
-	}
 
-	meetings := foundStudentData.GetMeetings().GetSectionMeetings()
-	if len(meetings) > 0 {
-		for _, meeting := range meetings {
-			require.NotEmpty(t, meeting.GetSectionGuid())
-			_, err = powerschool.DecodeSectionMeetingTimestamp(meeting.GetStart())
-			require.Nil(t, err)
-			_, err = powerschool.DecodeSectionMeetingTimestamp(meeting.GetStop())
-			require.Nil(t, err)
+			for _, meeting := range course.Meetings {
+				_, err = powerschool.DecodeCourseMeetingTimestamp(meeting.GetStart())
+				require.Nil(t, err)
+				_, err = powerschool.DecodeCourseMeetingTimestamp(meeting.GetStop())
+				require.Nil(t, err)
+			}
 		}
 	}
 }

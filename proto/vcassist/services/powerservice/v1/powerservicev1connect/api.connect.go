@@ -33,15 +33,12 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// PowerschoolServiceGetAuthStatusProcedure is the fully-qualified name of the PowerschoolService's
-	// GetAuthStatus RPC.
-	PowerschoolServiceGetAuthStatusProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/GetAuthStatus"
-	// PowerschoolServiceGetOAuthFlowProcedure is the fully-qualified name of the PowerschoolService's
-	// GetOAuthFlow RPC.
-	PowerschoolServiceGetOAuthFlowProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/GetOAuthFlow"
-	// PowerschoolServiceProvideOAuthProcedure is the fully-qualified name of the PowerschoolService's
-	// ProvideOAuth RPC.
-	PowerschoolServiceProvideOAuthProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/ProvideOAuth"
+	// PowerschoolServiceGetCredentialStatusProcedure is the fully-qualified name of the
+	// PowerschoolService's GetCredentialStatus RPC.
+	PowerschoolServiceGetCredentialStatusProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/GetCredentialStatus"
+	// PowerschoolServiceProvideCredentialProcedure is the fully-qualified name of the
+	// PowerschoolService's ProvideCredential RPC.
+	PowerschoolServiceProvideCredentialProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/ProvideCredential"
 	// PowerschoolServiceGetStudentDataProcedure is the fully-qualified name of the PowerschoolService's
 	// GetStudentData RPC.
 	PowerschoolServiceGetStudentDataProcedure = "/vcassist.services.powerservice.v1.PowerschoolService/GetStudentData"
@@ -49,19 +46,17 @@ const (
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	powerschoolServiceServiceDescriptor              = v1.File_vcassist_services_powerservice_v1_api_proto.Services().ByName("PowerschoolService")
-	powerschoolServiceGetAuthStatusMethodDescriptor  = powerschoolServiceServiceDescriptor.Methods().ByName("GetAuthStatus")
-	powerschoolServiceGetOAuthFlowMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("GetOAuthFlow")
-	powerschoolServiceProvideOAuthMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("ProvideOAuth")
-	powerschoolServiceGetStudentDataMethodDescriptor = powerschoolServiceServiceDescriptor.Methods().ByName("GetStudentData")
+	powerschoolServiceServiceDescriptor                   = v1.File_vcassist_services_powerservice_v1_api_proto.Services().ByName("PowerschoolService")
+	powerschoolServiceGetCredentialStatusMethodDescriptor = powerschoolServiceServiceDescriptor.Methods().ByName("GetCredentialStatus")
+	powerschoolServiceProvideCredentialMethodDescriptor   = powerschoolServiceServiceDescriptor.Methods().ByName("ProvideCredential")
+	powerschoolServiceGetStudentDataMethodDescriptor      = powerschoolServiceServiceDescriptor.Methods().ByName("GetStudentData")
 )
 
 // PowerschoolServiceClient is a client for the vcassist.services.powerservice.v1.PowerschoolService
 // service.
 type PowerschoolServiceClient interface {
-	GetAuthStatus(context.Context, *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error)
-	GetOAuthFlow(context.Context, *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error)
-	ProvideOAuth(context.Context, *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error)
+	GetCredentialStatus(context.Context, *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error)
+	ProvideCredential(context.Context, *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error)
 	GetStudentData(context.Context, *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error)
 }
 
@@ -76,22 +71,16 @@ type PowerschoolServiceClient interface {
 func NewPowerschoolServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PowerschoolServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &powerschoolServiceClient{
-		getAuthStatus: connect.NewClient[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse](
+		getCredentialStatus: connect.NewClient[v1.GetCredentialStatusRequest, v1.GetCredentialStatusResponse](
 			httpClient,
-			baseURL+PowerschoolServiceGetAuthStatusProcedure,
-			connect.WithSchema(powerschoolServiceGetAuthStatusMethodDescriptor),
+			baseURL+PowerschoolServiceGetCredentialStatusProcedure,
+			connect.WithSchema(powerschoolServiceGetCredentialStatusMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		getOAuthFlow: connect.NewClient[v1.GetOAuthFlowRequest, v1.GetOAuthFlowResponse](
+		provideCredential: connect.NewClient[v1.ProvideCredentialRequest, v1.ProvideCredentialResponse](
 			httpClient,
-			baseURL+PowerschoolServiceGetOAuthFlowProcedure,
-			connect.WithSchema(powerschoolServiceGetOAuthFlowMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
-		provideOAuth: connect.NewClient[v1.ProvideOAuthRequest, v1.ProvideOAuthResponse](
-			httpClient,
-			baseURL+PowerschoolServiceProvideOAuthProcedure,
-			connect.WithSchema(powerschoolServiceProvideOAuthMethodDescriptor),
+			baseURL+PowerschoolServiceProvideCredentialProcedure,
+			connect.WithSchema(powerschoolServiceProvideCredentialMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		getStudentData: connect.NewClient[v1.GetStudentDataRequest, v1.GetStudentDataResponse](
@@ -105,25 +94,20 @@ func NewPowerschoolServiceClient(httpClient connect.HTTPClient, baseURL string, 
 
 // powerschoolServiceClient implements PowerschoolServiceClient.
 type powerschoolServiceClient struct {
-	getAuthStatus  *connect.Client[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse]
-	getOAuthFlow   *connect.Client[v1.GetOAuthFlowRequest, v1.GetOAuthFlowResponse]
-	provideOAuth   *connect.Client[v1.ProvideOAuthRequest, v1.ProvideOAuthResponse]
-	getStudentData *connect.Client[v1.GetStudentDataRequest, v1.GetStudentDataResponse]
+	getCredentialStatus *connect.Client[v1.GetCredentialStatusRequest, v1.GetCredentialStatusResponse]
+	provideCredential   *connect.Client[v1.ProvideCredentialRequest, v1.ProvideCredentialResponse]
+	getStudentData      *connect.Client[v1.GetStudentDataRequest, v1.GetStudentDataResponse]
 }
 
-// GetAuthStatus calls vcassist.services.powerservice.v1.PowerschoolService.GetAuthStatus.
-func (c *powerschoolServiceClient) GetAuthStatus(ctx context.Context, req *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error) {
-	return c.getAuthStatus.CallUnary(ctx, req)
+// GetCredentialStatus calls
+// vcassist.services.powerservice.v1.PowerschoolService.GetCredentialStatus.
+func (c *powerschoolServiceClient) GetCredentialStatus(ctx context.Context, req *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error) {
+	return c.getCredentialStatus.CallUnary(ctx, req)
 }
 
-// GetOAuthFlow calls vcassist.services.powerservice.v1.PowerschoolService.GetOAuthFlow.
-func (c *powerschoolServiceClient) GetOAuthFlow(ctx context.Context, req *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error) {
-	return c.getOAuthFlow.CallUnary(ctx, req)
-}
-
-// ProvideOAuth calls vcassist.services.powerservice.v1.PowerschoolService.ProvideOAuth.
-func (c *powerschoolServiceClient) ProvideOAuth(ctx context.Context, req *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error) {
-	return c.provideOAuth.CallUnary(ctx, req)
+// ProvideCredential calls vcassist.services.powerservice.v1.PowerschoolService.ProvideCredential.
+func (c *powerschoolServiceClient) ProvideCredential(ctx context.Context, req *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error) {
+	return c.provideCredential.CallUnary(ctx, req)
 }
 
 // GetStudentData calls vcassist.services.powerservice.v1.PowerschoolService.GetStudentData.
@@ -134,9 +118,8 @@ func (c *powerschoolServiceClient) GetStudentData(ctx context.Context, req *conn
 // PowerschoolServiceHandler is an implementation of the
 // vcassist.services.powerservice.v1.PowerschoolService service.
 type PowerschoolServiceHandler interface {
-	GetAuthStatus(context.Context, *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error)
-	GetOAuthFlow(context.Context, *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error)
-	ProvideOAuth(context.Context, *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error)
+	GetCredentialStatus(context.Context, *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error)
+	ProvideCredential(context.Context, *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error)
 	GetStudentData(context.Context, *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error)
 }
 
@@ -146,22 +129,16 @@ type PowerschoolServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	powerschoolServiceGetAuthStatusHandler := connect.NewUnaryHandler(
-		PowerschoolServiceGetAuthStatusProcedure,
-		svc.GetAuthStatus,
-		connect.WithSchema(powerschoolServiceGetAuthStatusMethodDescriptor),
+	powerschoolServiceGetCredentialStatusHandler := connect.NewUnaryHandler(
+		PowerschoolServiceGetCredentialStatusProcedure,
+		svc.GetCredentialStatus,
+		connect.WithSchema(powerschoolServiceGetCredentialStatusMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	powerschoolServiceGetOAuthFlowHandler := connect.NewUnaryHandler(
-		PowerschoolServiceGetOAuthFlowProcedure,
-		svc.GetOAuthFlow,
-		connect.WithSchema(powerschoolServiceGetOAuthFlowMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
-	powerschoolServiceProvideOAuthHandler := connect.NewUnaryHandler(
-		PowerschoolServiceProvideOAuthProcedure,
-		svc.ProvideOAuth,
-		connect.WithSchema(powerschoolServiceProvideOAuthMethodDescriptor),
+	powerschoolServiceProvideCredentialHandler := connect.NewUnaryHandler(
+		PowerschoolServiceProvideCredentialProcedure,
+		svc.ProvideCredential,
+		connect.WithSchema(powerschoolServiceProvideCredentialMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	powerschoolServiceGetStudentDataHandler := connect.NewUnaryHandler(
@@ -172,12 +149,10 @@ func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect
 	)
 	return "/vcassist.services.powerservice.v1.PowerschoolService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case PowerschoolServiceGetAuthStatusProcedure:
-			powerschoolServiceGetAuthStatusHandler.ServeHTTP(w, r)
-		case PowerschoolServiceGetOAuthFlowProcedure:
-			powerschoolServiceGetOAuthFlowHandler.ServeHTTP(w, r)
-		case PowerschoolServiceProvideOAuthProcedure:
-			powerschoolServiceProvideOAuthHandler.ServeHTTP(w, r)
+		case PowerschoolServiceGetCredentialStatusProcedure:
+			powerschoolServiceGetCredentialStatusHandler.ServeHTTP(w, r)
+		case PowerschoolServiceProvideCredentialProcedure:
+			powerschoolServiceProvideCredentialHandler.ServeHTTP(w, r)
 		case PowerschoolServiceGetStudentDataProcedure:
 			powerschoolServiceGetStudentDataHandler.ServeHTTP(w, r)
 		default:
@@ -189,16 +164,12 @@ func NewPowerschoolServiceHandler(svc PowerschoolServiceHandler, opts ...connect
 // UnimplementedPowerschoolServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedPowerschoolServiceHandler struct{}
 
-func (UnimplementedPowerschoolServiceHandler) GetAuthStatus(context.Context, *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.GetAuthStatus is not implemented"))
+func (UnimplementedPowerschoolServiceHandler) GetCredentialStatus(context.Context, *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.GetCredentialStatus is not implemented"))
 }
 
-func (UnimplementedPowerschoolServiceHandler) GetOAuthFlow(context.Context, *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.GetOAuthFlow is not implemented"))
-}
-
-func (UnimplementedPowerschoolServiceHandler) ProvideOAuth(context.Context, *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.ProvideOAuth is not implemented"))
+func (UnimplementedPowerschoolServiceHandler) ProvideCredential(context.Context, *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.powerservice.v1.PowerschoolService.ProvideCredential is not implemented"))
 }
 
 func (UnimplementedPowerschoolServiceHandler) GetStudentData(context.Context, *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error) {

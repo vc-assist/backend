@@ -2,7 +2,6 @@ package powerschool
 
 import (
 	"context"
-	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
 )
 
 const scheduleQuery = `query SectionMeetings(
@@ -20,8 +19,29 @@ fragment sectionMeetingData on SectionMeetingType {
   stop
 }`
 
-func (c *Client) GetCourseMeetingList(ctx context.Context, input *powerschoolv1.GetCourseMeetingListInput) (*powerschoolv1.CourseMeetingList, error) {
-	res := &powerschoolv1.CourseMeetingList{}
-	err := graphqlQuery(ctx, c.http, "SectionMeetings", scheduleQuery, input, res)
+type CourseMeeting struct {
+	CourseGuid string `json:"sectionGuid"`
+	Start      string `json:"start"`
+	Stop       string `json:"stop"`
+}
+
+type GetCourseMeetingListResponse struct {
+	Meetings []CourseMeeting `json:"sectionMeetings"`
+}
+
+type GetCourseMeetingListRequest struct {
+	CourseGuids []string `json:"sectionGuids"`
+	// ISO timestamp
+	Start string `json:"start"`
+	// ISO timestamp
+	Stop string `json:"stop"`
+}
+
+func (c *Client) GetCourseMeetingList(ctx context.Context, req GetCourseMeetingListRequest) (*GetCourseMeetingListResponse, error) {
+	res := &GetCourseMeetingListResponse{}
+	err := graphqlQuery(
+		ctx, c.http, "SectionMeetings", scheduleQuery,
+		req, res,
+	)
 	return res, err
 }

@@ -3,11 +3,12 @@ package powerservice
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strconv"
 	"time"
 	"vcassist-backend/lib/oauth"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
-	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	powerservicev1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
@@ -48,7 +49,6 @@ func NewService(
 		oauth:    oauth,
 		keychain: keychain,
 	}
-
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[powerservicev1.GetAuthStatusRequest]) (*connect.Response[powerservicev1.GetAuthStatusResponse], error) {
@@ -178,63 +178,85 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 	if err != nil {
 		return nil, err
 	}
-	if len(allStudents.GetStudents()) == 0 {
-		err := fmt.Errorf("could not find student profile, are your powerschoolv1.credentials expired?")
+	if len(allStudents.Profiles) == 0 {
+		err := fmt.Errorf("could not find student profile, are your credentials expired?")
 		return nil, err
 	}
 
-	psStudent := allStudents.GetStudents()[0]
-	studentData, err := client.GetStudentData(ctx, &powerschoolv1.GetStudentDataInput{
-		Guid: psStudent.GetGuid(),
+	psStudent := allStudents.Profiles[0]
+	studentData, err := client.GetStudentData(ctx, scraper.GetStudentDataRequest{
+		Guid: psStudent.Guid,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	studentPhoto, err := client.GetStudentPhoto(ctx, &powerschoolv1.GetStudentDataInput{
-		Guid: psStudent.GetGuid(),
-	})
+	// MAY BE USED LATER, DO NOT DELETE
+	// studentPhoto, err := client.GetStudentPhoto(ctx, scraper.GetStudentPhotoRequest{
+	// 	Guid: psStudent.Guid,
+	// })
+	// if err != nil {
+	// 	span.RecordError(err)
+	// 	span.SetStatus(codes.Error, "failed to get student photo")
+	// }
+
+	gpa, err := strconv.ParseFloat(psStudent.CurrentGpa, 32)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get student photo")
+		slog.Warn("failed to parse gpa", "gpa", psStudent.CurrentGpa, "err", err)
 	}
 
-	if studentData.GetStudent() == nil {
+	if len(studentData.Student.Courses) == 0 {
 		span.SetStatus(codes.Error, "student data unavailable, only returning profile...")
 		return &connect.Response[powerservicev1.GetStudentDataResponse]{
-			Msg: &powerservicev1.GetStudentDataResponse{Profile: psStudent},
+			Msg: &powerservicev1.GetStudentDataResponse{Profile: &powerservicev1.StudentProfile{
+				Guid:       psStudent.Guid,
+				CurrentGpa: float32(gpa),
+				FirstName:  psStudent.FirstName,
+				LastName:   psStudent.LastName,
+				// photo is disabled for now as it doesn't have a use
+				// Photo: "",
+			}},
 		}, nil
 	}
 
-	courseList := studentData.GetStudent().GetSections()
+	courses := transformCourses(ctx, studentData.Student.Courses)
 
-	guids := make([]string, len(courseList))
-	for i, course := range courseList {
-		guids[i] = course.GetGuid()
-	}
+	if len(courses) > 0 {
+		guids := make([]string, len(courses))
+		for i, course := range courses {
+			guids[i] = course.Guid
+		}
 
-	var courseMeetingList *powerschoolv1.CourseMeetingList
-	if len(guids) > 0 {
 		start, stop := getCurrentWeek()
-
-		courseMeetingList, err = client.GetCourseMeetingList(ctx, &powerschoolv1.GetCourseMeetingListInput{
-			SectionGuids: guids,
-			Start:        start.Format(time.RFC3339),
-			Stop:         stop.Format(time.RFC3339),
+		res, err := client.GetCourseMeetingList(ctx, scraper.GetCourseMeetingListRequest{
+			CourseGuids: guids,
+			Start:       start.Format(time.RFC3339),
+			Stop:        stop.Format(time.RFC3339),
 		})
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "failed to fetch course meetings")
-			return nil, err
+			slog.Warn(
+				"failed to fetch course meetings",
+				"err", err,
+			)
 		}
+
+		transformCourseMeetings(ctx, courses, res.Meetings)
 	}
+
+	schools := transformSchools(psStudent.Schools)
+	bulletins := transformBulletins(psStudent.Bulletins)
 
 	return &connect.Response[powerservicev1.GetStudentDataResponse]{
 		Msg: &powerservicev1.GetStudentDataResponse{
-			Profile:    psStudent,
-			CourseData: courseList,
-			Meetings:   courseMeetingList,
-			Photo:      studentPhoto,
+			Profile: &powerservicev1.StudentProfile{
+				Guid:       psStudent.Guid,
+				CurrentGpa: float32(gpa),
+				FirstName:  psStudent.FirstName,
+				LastName:   psStudent.LastName,
+			},
+			Schools:   schools,
+			Bulletins: bulletins,
+			Courses:   courses,
 		},
 	}, nil
 }
