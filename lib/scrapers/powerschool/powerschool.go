@@ -67,17 +67,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 	return expiresAt, nil
 }
 
-func DecodeAssignmentTime(tstr string) (time.Time, error) {
-	// aka. parse by ISO timestamp
-	return time.Parse(time.RFC3339, tstr)
-}
-
-func DecodeCourseTermTime(tstr string) (time.Time, error) {
-	// aka. parse by ISO timestamp
-	return time.Parse(time.RFC3339, tstr)
-}
-
-func DecodeSectionMeetingTimestamp(tstr string) (time.Time, error) {
+func DecodeTimestamp(tstr string) (time.Time, error) {
 	// aka. parse by ISO timestamp
 	return time.Parse(time.RFC3339, tstr)
 }

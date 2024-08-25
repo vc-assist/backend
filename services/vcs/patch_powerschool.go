@@ -44,7 +44,7 @@ func patchAssignmentWithPowerschool(ctx context.Context, out *studentdatav1.Assi
 		state = studentdatav1.AssignmentState_ASSIGNMENT_STATE_EXEMPT
 	}
 
-	duedate, err := powerschool.DecodeAssignmentTime(assignment.GetDueDate())
+	duedate, err := powerschool.DecodeTimestamp(assignment.GetDueDate())
 	if err != nil {
 		span.AddEvent("failed to decode assignment time", trace.WithAttributes(
 			attribute.String("title", assignment.GetTitle()),
@@ -202,7 +202,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 			continue
 		}
 
-		start, err := powerschool.DecodeSectionMeetingTimestamp(meeting.GetStart())
+		start, err := powerschool.DecodeCourseMeetingTimestamp(meeting.GetStart())
 		if err != nil {
 			span.AddEvent("failed to decode meeting start timestamp", trace.WithAttributes(
 				attribute.String("time", meeting.GetStart()),
@@ -211,7 +211,7 @@ func patchStudentDataWithPowerschool(ctx context.Context, out *studentdatav1.Stu
 			span.SetStatus(codes.Error, "patch has errors")
 			continue
 		}
-		stop, err := powerschool.DecodeSectionMeetingTimestamp(meeting.GetStop())
+		stop, err := powerschool.DecodeCourseMeetingTimestamp(meeting.GetStop())
 		if err != nil {
 			span.AddEvent("failed to decode meeting stop timestamp", trace.WithAttributes(
 				attribute.String("time", meeting.GetStop()),
