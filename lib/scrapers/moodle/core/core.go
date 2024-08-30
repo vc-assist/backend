@@ -18,6 +18,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"golang.org/x/time/rate"
 )
 
 var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.core")
@@ -53,6 +54,17 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 	client.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(baseUrl.Hostname()))
 	client.SetTimeout(time.Second * 30)
+
+	// 2 requests max per second
+	// max burst >= 2 just means that no requests will be dropped
+	rateLimiter := rate.NewLimiter(2, 2)
+	client.OnBeforeRequest(func(_ *resty.Client, req *resty.Request) error {
+		err = rateLimiter.Wait(req.Context())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 
 	telemetry.InstrumentResty(client, tracer)
 
