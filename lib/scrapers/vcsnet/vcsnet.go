@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/goquery"
@@ -68,9 +68,8 @@ type Event struct {
 var tracer = otel.Tracer("vcassist.lib.scrapers.vcsnet")
 var client = resty.New()
 
-func init() {
-	client = resty.New()
-	telemetry.InstrumentResty(client, tracer)
+func SetInstrumentOutput(out restyutil.InstrumentOutput) {
+	restyutil.InstrumentClient(client, tracer, out)
 }
 
 func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
