@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"golang.org/x/time/rate"
 )
 
 var tracer = otel.Tracer("vcassist.lib.scrapers.powerschool")
@@ -31,6 +32,17 @@ func NewClient(baseUrl string) (*Client, error) {
 	}
 	client.SetCookieJar(jar)
 	client.SetHeader("user-agent", "okhttp/4.9.1")
+
+	// 2 requests max per second
+	// max burst >= 2 just means that no requests will be dropped
+	rateLimiter := rate.NewLimiter(2, 2)
+	client.OnBeforeRequest(func(_ *resty.Client, req *resty.Request) error {
+		err = rateLimiter.Wait(req.Context())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 
 	telemetry.InstrumentResty(client, tracer)
 
