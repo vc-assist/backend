@@ -7,7 +7,7 @@ import (
 	"net/http/cookiejar"
 	"time"
 	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/timezone"
 
 	"github.com/go-resty/resty/v2"
@@ -32,9 +32,11 @@ func NewClient(baseUrl string) (*Client, error) {
 	client.SetCookieJar(jar)
 	client.SetHeader("user-agent", "okhttp/4.9.1")
 
-	telemetry.InstrumentResty(client, tracer)
-
 	return &Client{http: client}, nil
+}
+
+func (c *Client) SetRestyInstrumentOutput(out restyutil.InstrumentOutput) {
+	restyutil.InstrumentClient(c.http, tracer, out)
 }
 
 func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.Time, err error) {

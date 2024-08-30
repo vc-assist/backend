@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 	"vcassist-backend/lib/htmlutil"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/restyutil"
 
 	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"
 	"github.com/PuerkitoBio/goquery"
@@ -54,13 +54,15 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 	client.SetRedirectPolicy(resty.DomainCheckRedirectPolicy(baseUrl.Hostname()))
 	client.SetTimeout(time.Second * 30)
 
-	telemetry.InstrumentResty(client, tracer)
-
 	c := &Client{
 		BaseUrl: baseUrl,
 		Http:    client,
 	}
 	return c, nil
+}
+
+func (c *Client) SetRestyInstrumentOutput(out restyutil.InstrumentOutput) {
+	restyutil.InstrumentClient(c.Http, tracer, out)
 }
 
 var moodleConfigRegex = regexp.MustCompile(`(?m)M\.cfg *= *(.+?);`)

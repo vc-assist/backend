@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/timezone"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
@@ -33,11 +33,17 @@ type Service struct {
 	client *resty.Client
 }
 
-func NewService(ctx context.Context, database *sql.DB) keychainv1connect.KeychainServiceClient {
+func NewService(
+	ctx context.Context,
+	database *sql.DB,
+	restyInstrumentOutput restyutil.InstrumentOutput,
+) keychainv1connect.KeychainServiceClient {
 	client := resty.New()
 	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 	client.SetTimeout(time.Second * 30)
-	telemetry.InstrumentResty(client, tracer)
+	if restyInstrumentOutput != nil {
+		restyutil.InstrumentClient(client, tracer, restyInstrumentOutput)
+	}
 
 	s := Service{
 		db:     database,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"testing"
 	"time"
 	"vcassist-backend/lib/configutil"
 
@@ -53,7 +52,7 @@ var setupTestEnvironments = map[string]bool{}
 
 // sets up telemetry in a testing environment, ensuring that it isn't
 // set up more than once
-func SetupForTesting(t testing.TB, serviceName string) func() {
+func SetupForTesting(serviceName string) func() {
 	_, setupAlready := setupTestEnvironments[serviceName]
 	if setupAlready {
 		return func() {}
@@ -61,12 +60,12 @@ func SetupForTesting(t testing.TB, serviceName string) func() {
 	ctx := context.WithValue(context.Background(), "telemetry_test_env", struct{}{})
 	tel, err := SetupFromEnv(ctx, serviceName)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 	return func() {
 		err := tel.Shutdown(ctx)
 		if err != nil {
-			t.Fatal(err)
+			panic(err)
 		}
 	}
 }
