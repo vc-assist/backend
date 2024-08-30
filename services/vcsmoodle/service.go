@@ -3,7 +3,6 @@ package vcsmoodle
 import (
 	"context"
 	"vcassist-backend/lib/scrapers/moodle/core"
-	"vcassist-backend/lib/scrapers/moodle/view"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
@@ -98,21 +97,21 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[vcsmoo
 	if err != nil {
 		return nil, err
 	}
-	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
-		ClientId: req.Msg.GetStudentId(),
-	})
-	if err != nil {
-		return nil, err
-	}
+	// client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
+	// 	ClientId: req.Msg.GetStudentId(),
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	courses, err := scrapeCourses(ctx, client)
-	if err != nil {
-		return nil, err
-	}
+	// courses, err := scrapeCourses(ctx, client)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &connect.Response[vcsmoodlev1.GetStudentDataResponse]{
 		Msg: &vcsmoodlev1.GetStudentDataResponse{
-			Courses: courses,
+			// Courses: courses,
 		},
 	}, nil
 }

@@ -23,8 +23,8 @@ func NewInstrumentedPowerschoolServiceClient(inner PowerschoolServiceClient) Ins
 	return InstrumentedPowerschoolServiceClient{inner: inner}
 }
 
-func (c InstrumentedPowerschoolServiceClient) GetAuthStatus(ctx context.Context, req *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error) {
-	ctx, span := powerschoolServiceTracer.Start(ctx, "GetAuthStatus")
+func (c InstrumentedPowerschoolServiceClient) GetCredentialStatus(ctx context.Context, req *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error) {
+	ctx, span := powerschoolServiceTracer.Start(ctx, "GetCredentialStatus")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -37,7 +37,7 @@ func (c InstrumentedPowerschoolServiceClient) GetAuthStatus(ctx context.Context,
 		}
 	}
 
-	res, err := c.inner.GetAuthStatus(ctx, req)
+	res, err := c.inner.GetCredentialStatus(ctx, req)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -57,8 +57,8 @@ func (c InstrumentedPowerschoolServiceClient) GetAuthStatus(ctx context.Context,
 	return res, nil
 }
 
-func (c InstrumentedPowerschoolServiceClient) GetOAuthFlow(ctx context.Context, req *connect.Request[v1.GetOAuthFlowRequest]) (*connect.Response[v1.GetOAuthFlowResponse], error) {
-	ctx, span := powerschoolServiceTracer.Start(ctx, "GetOAuthFlow")
+func (c InstrumentedPowerschoolServiceClient) ProvideCredential(ctx context.Context, req *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error) {
+	ctx, span := powerschoolServiceTracer.Start(ctx, "ProvideCredential")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -71,41 +71,7 @@ func (c InstrumentedPowerschoolServiceClient) GetOAuthFlow(ctx context.Context, 
 		}
 	}
 
-	res, err := c.inner.GetOAuthFlow(ctx, req)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	}
-
-	if span.IsRecording() {
-		output, err := protojson.Marshal(res.Msg)
-		if err == nil {
-			span.SetAttributes(attribute.String("output", string(output)))
-		} else {
-			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
-			span.RecordError(err)
-		}
-	}
-
-	return res, nil
-}
-
-func (c InstrumentedPowerschoolServiceClient) ProvideOAuth(ctx context.Context, req *connect.Request[v1.ProvideOAuthRequest]) (*connect.Response[v1.ProvideOAuthResponse], error) {
-	ctx, span := powerschoolServiceTracer.Start(ctx, "ProvideOAuth")
-	defer span.End()
-
-	if span.IsRecording() {
-		input, err := protojson.Marshal(req.Msg)
-		if err == nil {
-			span.SetAttributes(attribute.String("input", string(input)))
-		} else {
-			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
-			span.RecordError(err)
-		}
-	}
-
-	res, err := c.inner.ProvideOAuth(ctx, req)
+	res, err := c.inner.ProvideCredential(ctx, req)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

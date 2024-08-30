@@ -26,6 +26,9 @@ func formatRequestBody(req *http.Request) string {
 	if err != nil {
 		return fmt.Sprintf("failed to get request body: %s", err.Error())
 	}
+	if body == nil {
+		return "<NO BODY AVAILABLE>"
+	}
 	readBody, err := io.ReadAll(body)
 	if err != nil {
 		return fmt.Sprintf("failed to read request body: %s", err.Error())

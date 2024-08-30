@@ -58,7 +58,7 @@ func ReadConfig[T any](name string) (T, error) {
 		if err != nil {
 			return out, err
 		}
-		err = mergo.Merge(&out, override)
+		err = mergo.Merge(&out, override, mergo.WithOverride)
 		if err != nil {
 			return out, err
 		}

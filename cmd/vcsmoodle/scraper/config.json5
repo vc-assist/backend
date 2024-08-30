@@ -1,0 +1,9 @@
+{
+	database: {
+		file: "<dev_state>/vcsmoodle.db",
+	},
+	// these should be the credentials for the vcassist moodle account
+	// the one that has all the courses in it
+	username: "...",
+	password: "...",
+}

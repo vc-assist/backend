@@ -164,7 +164,7 @@ func (c *Client) LoginUsernamePassword(ctx context.Context, username, password s
 		return err
 	}
 
-	if len(doc.Find("div.usermenu span.login").Nodes) > 0 {
+	if len(doc.Find("span.avatar.current").Nodes) == 0 {
 		span.SetStatus(codes.Error, LoginFailed.Error())
 		return LoginFailed
 	}
