@@ -19,6 +19,7 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/lmittmann/tint"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
@@ -28,8 +29,9 @@ var tracer = otel.Tracer("vcassist.services.powerservice_test")
 var restyInstrumentOutput = restyutil.NewFilesystemOutput("<dev_state>/tests/powerservice_scrape/resty")
 
 func init() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      slog.LevelDebug,
+		TimeFormat: time.Kitchen,
 	}))
 	slog.SetDefault(logger)
 }

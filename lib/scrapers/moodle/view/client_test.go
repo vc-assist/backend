@@ -17,7 +17,7 @@ type TestConfig struct {
 }
 
 func TestClient(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/view")
+	cleanup := telemetry.SetupForTesting("test:scrapers/moodle/view")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestClient")

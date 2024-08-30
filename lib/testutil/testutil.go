@@ -25,7 +25,7 @@ type ServiceResult struct {
 }
 
 func SetupService(t testing.TB, params ServiceParams) (ServiceResult, func()) {
-	cleanup := telemetry.SetupForTesting(t, fmt.Sprintf("test:%s", params.Name))
+	cleanup := telemetry.SetupForTesting(fmt.Sprintf("test:%s", params.Name))
 
 	dbpath := ":memory:"
 	if params.DbPath != "" && params.DbPath != ":memory:" {

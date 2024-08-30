@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 	devenv "vcassist-backend/dev/env"
+	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/testutil"
 	vcsmoodlev1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
@@ -29,7 +30,7 @@ func setup(t testing.TB) (vcsmoodlev1connect.MoodleServiceClient, func()) {
 	})
 
 	ctx, cancelKeychain := context.WithCancel(context.Background())
-	keychainService := keychain.NewService(ctx, keyRes.DB)
+	keychainService := keychain.NewService(ctx, keyRes.DB, restyutil.NewFilesystemOutput("<dev_state>/tests/vcsmoodle/keychain/resty"))
 	s := NewService(keychainService)
 
 	return s, func() {
