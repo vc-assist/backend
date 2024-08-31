@@ -9,11 +9,8 @@ import (
 	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
-	"go.opentelemetry.io/otel"
 	"golang.org/x/net/html"
 )
-
-var tracer = otel.Tracer("vcassist.lib.htmlutil")
 
 func GetText(node *html.Node) string {
 	var buffer bytes.Buffer

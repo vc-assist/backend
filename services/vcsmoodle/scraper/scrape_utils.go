@@ -59,7 +59,7 @@ func scrapeChapters(ctx context.Context, client view.Client, resource view.Resou
 
 	now := timezone.Now()
 	for _, c := range chapters {
-		dates, err := parseTOCDate(ctx, c.Name)
+		dates, err := parseTOCDate(c.Name)
 		if err != nil {
 			continue
 		}

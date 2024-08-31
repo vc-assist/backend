@@ -74,7 +74,7 @@ func transformCourses(ctx context.Context, input []powerschool.CourseData) []*po
 	return courses
 }
 
-func transformCourseMeetings(ctx context.Context, out []*powerservicev1.CourseData, input []powerschool.CourseMeeting) {
+func transformCourseMeetings(out []*powerservicev1.CourseData, input []powerschool.CourseMeeting) {
 	if len(out) == 0 {
 		return
 	}

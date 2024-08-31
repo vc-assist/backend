@@ -43,9 +43,7 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := NewClient(ctx, coreClient, ClientOptions{
-		ClientId: coreConfig.Username,
-	})
+	client, err := NewClient(ctx, coreClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +74,11 @@ func TestClient(t *testing.T) {
 	}
 
 	t.Run("TestSections", func(t *testing.T) {
-		t.Log("Target Course", targetCourse.Name, targetCourse.Id())
+		id, err := targetCourse.Id()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log("Target Course", targetCourse.Name, id)
 
 		sections, err := client.Sections(ctx, targetCourse)
 		if err != nil {

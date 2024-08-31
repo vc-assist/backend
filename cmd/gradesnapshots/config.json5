@@ -1,5 +1,0 @@
-{
-	database: {
-		file: "<dev_state>/gradesnapshots_service.db"
-	},
-}

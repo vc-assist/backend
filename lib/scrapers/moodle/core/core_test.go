@@ -10,7 +10,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/core")
+	cleanup := telemetry.SetupForTesting("test:scrapers/moodle/core")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestClient")

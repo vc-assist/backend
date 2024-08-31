@@ -57,7 +57,11 @@ func setup(t testing.TB, ctx context.Context) Course {
 
 	for _, c := range courses {
 		if c.Name == config.TargetCourse {
-			course, err := NewCourse(ctx, c.Id(), coreClient)
+			id, err := c.Id()
+			if err != nil {
+				t.Fatal(err)
+			}
+			course, err := NewCourse(ctx, int(id), coreClient)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -70,7 +74,7 @@ func setup(t testing.TB, ctx context.Context) Course {
 }
 
 func TestSections(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/edit")
+	cleanup := telemetry.SetupForTesting("test:scrapers/moodle/edit")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestCourse")

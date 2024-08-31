@@ -33,7 +33,7 @@ func createClient(username, password string) view.Client {
 	if err != nil {
 		serviceutil.Fatal("failed to initialize core moodle client", err)
 	}
-	coreClient.SetRestyInstrumentOutput(restyutil.NewFilesystemOutput("<dev_state>/vcsmoodle/resty"))
+	core.SetRestyInstrumentOutput(restyutil.NewFilesystemOutput("<dev_state>/vcsmoodle/resty"))
 
 	err = coreClient.LoginUsernamePassword(ctx, username, password)
 	if err != nil {

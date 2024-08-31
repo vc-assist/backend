@@ -173,11 +173,7 @@ func (s scraper) scrapeDashboard(ctx context.Context) {
 		slog.WarnContext(ctx, "failed to get courses", "err", err)
 		return
 	}
-	for i, course := range courseList {
-		// DEBUG CODE; REMOVE LATER
-		if i%40 != 0 {
-			continue
-		}
+	for _, course := range courseList {
 		s.wg.Add(1)
 		go s.scrapeCourse(ctx, course)
 	}

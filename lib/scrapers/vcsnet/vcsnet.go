@@ -11,12 +11,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -65,12 +63,7 @@ type Event struct {
 	Date time.Time
 }
 
-var tracer = otel.Tracer("vcassist.lib.scrapers.vcsnet")
 var client = resty.New()
-
-func SetInstrumentOutput(out restyutil.InstrumentOutput) {
-	restyutil.InstrumentClient(client, tracer, out)
-}
 
 func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 	ctx, span := tracer.Start(ctx, "FetchEvents")
