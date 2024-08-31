@@ -35,3 +35,6 @@ on conflict (id) do update
         resource_idx = excluded.resource_idx,
         name = excluded.name,
         content_html = excluded.content_html;
+
+-- name: GetCourseContent :one
+select content_html from Chapter where id = ?;

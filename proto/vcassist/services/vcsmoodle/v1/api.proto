@@ -3,37 +3,65 @@ syntax = "proto3";
 package vcassist.services.vcsmoodle.v1;
 
 // GetAuthStatus
-message GetAuthStatusRequest {
-  string student_id = 1;
-}
+message GetAuthStatusRequest {}
 message GetAuthStatusResponse {
   bool provided = 1;
 }
 
 // ProvideUsernamePassword
 message ProvideUsernamePasswordRequest {
-  string student_id = 1;
-  string username = 2;
-  string password = 3;
+  string username = 1;
+  string password = 2;
 }
 message ProvideUsernamePasswordResponse {}
 
-// GetStudentData
+// GetCourses
+enum ResourceType {
+  GENERIC_URL = 0;
+  BOOK = 1;
+  HTML_AREA = 2;
+}
+message Chapter {
+  int64 id = 1;
+  string name = 2;
+}
+message Resource {
+  int64 idx = 1;
+  ResourceType type = 2;
+  string url = 3;
+  string display_content = 4;
+  // this will be null for resources that are not BOOK
+  repeated Chapter chapters = 5;
+}
+message Section {
+  int64 idx = 1;
+  string name = 2;
+  string url = 3;
+  repeated Resource resources = 4;
+}
 message Course {
-  string name = 1;
-  string lesson_plan = 2;
-  string zoom_link = 3;
-  string url = 4;
+  int64 id = 1;
+  string name = 2;
+  string url = 3;
+  repeated Section sections = 4;
 }
-message GetStudentDataRequest {
-  string student_id = 1;
-}
-message GetStudentDataResponse {
+message GetCoursesRequest {}
+message GetCoursesResponse {
   repeated Course courses = 1;
+}
+
+// GetChapterContent
+message GetChapterContentRequest {
+  int64 id = 1;
+}
+message GetChapterContentResponse {
+  string html = 1;
 }
 
 service MoodleService {
   rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
   rpc ProvideUsernamePassword(ProvideUsernamePasswordRequest) returns (ProvideUsernamePasswordResponse);
-  rpc GetStudentData(GetStudentDataRequest) returns (GetStudentDataResponse);
+
+  rpc GetCourses(GetCoursesRequest) returns (GetCoursesResponse);
+  rpc GetChapterContent(GetChapterContentRequest) returns (GetChapterContentResponse);
 }

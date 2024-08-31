@@ -45,6 +45,17 @@ func (q *Queries) DeleteAllSections(ctx context.Context) error {
 	return err
 }
 
+const getCourseContent = `-- name: GetCourseContent :one
+select content_html from Chapter where id = ?
+`
+
+func (q *Queries) GetCourseContent(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getCourseContent, id)
+	var content_html string
+	err := row.Scan(&content_html)
+	return content_html, err
+}
+
 const noteChapter = `-- name: NoteChapter :exec
 insert into Chapter(course_id, section_idx, resource_idx, id, name, content_html) values (?, ?, ?, ?, ?, ?)
 on conflict (id) do update

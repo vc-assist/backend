@@ -1,4 +1,4 @@
-package vcsmoodle
+package scraper
 
 import (
 	"context"

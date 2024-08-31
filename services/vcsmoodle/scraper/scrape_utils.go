@@ -1,4 +1,4 @@
-package vcsmoodle
+package scraper
 
 import (
 	"bytes"
@@ -10,18 +10,11 @@ import (
 	"vcassist-backend/lib/timezone"
 
 	"github.com/PuerkitoBio/goquery"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 )
 
 // NOTE: much of this is legacy scraping code, it may be used later so it is kept here
 
 func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link string) (string, error) {
-	ctx, span := tracer.Start(ctx, "scrapeThroughWorkaroundLink")
-	defer span.End()
-
-	span.SetAttributes(attribute.String("url", link))
-
 	if !strings.Contains(link, client.Core.Http.BaseURL) ||
 		!(strings.Contains(link, "/mod/url") || strings.Contains(link, "/mod/resource")) {
 		return link, nil
@@ -31,14 +24,10 @@ func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link s
 		SetContext(ctx).
 		Get(link)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 
@@ -52,8 +41,6 @@ func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link s
 	}
 
 	err = fmt.Errorf("failed to get find workaround target anchor for '%s'", link)
-	span.RecordError(err)
-	span.SetStatus(codes.Error, err.Error())
 	return "", err
 }
 
@@ -63,16 +50,8 @@ type datedChapter struct {
 }
 
 func scrapeChapters(ctx context.Context, client view.Client, resource view.Resource) (lessonPlan string, err error) {
-	ctx, span := tracer.Start(ctx, "scrapeChapters")
-	defer span.End()
-
-	span.SetAttributes(attribute.String("name", resource.Name))
-	span.SetAttributes(attribute.String("href", resource.Url.String()))
-
 	chapters, err := client.Chapters(ctx, resource)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 
@@ -123,7 +102,5 @@ func scrapeChapters(ctx context.Context, client view.Client, resource view.Resou
 	}
 
 	err = fmt.Errorf("could not find lesson plan")
-	span.RecordError(err)
-	span.SetStatus(codes.Error, err.Error())
 	return "", err
 }
