@@ -66,18 +66,17 @@ func (q *Queries) DeleteGradeSnapshotsIn(ctx context.Context, arg DeleteGradeSna
 }
 
 const getGradeSnapshots = `-- name: GetGradeSnapshots :many
-select FoundCourses.course, time, value from GradeSnapshot
+select FoundCourses.course, json_group_array(json_array(time, value)) as grades from GradeSnapshot
 inner join (
     select id, user, course from UserCourse where user = ?
 ) as FoundCourses
     on FoundCourses.id = user_course_id
-order by FoundCourses.course, time
+group by FoundCourses.course
 `
 
 type GetGradeSnapshotsRow struct {
 	Course string
-	Time   int64
-	Value  float64
+	Grades interface{}
 }
 
 func (q *Queries) GetGradeSnapshots(ctx context.Context, user string) ([]GetGradeSnapshotsRow, error) {
@@ -89,7 +88,7 @@ func (q *Queries) GetGradeSnapshots(ctx context.Context, user string) ([]GetGrad
 	var items []GetGradeSnapshotsRow
 	for rows.Next() {
 		var i GetGradeSnapshotsRow
-		if err := rows.Scan(&i.Course, &i.Time, &i.Value); err != nil {
+		if err := rows.Scan(&i.Course, &i.Grades); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
