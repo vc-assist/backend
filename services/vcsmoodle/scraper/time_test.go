@@ -1,7 +1,6 @@
-package vcsmoodle
+package scraper
 
 import (
-	"context"
 	"testing"
 	"time"
 	"vcassist-backend/lib/telemetry"
@@ -126,7 +125,7 @@ func TestParseTOCDate(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		dates, err := parseTOCDate(context.Background(), test.text)
+		dates, err := parseTOCDate(test.text)
 		if err != nil {
 			t.Fatal(err)
 		}

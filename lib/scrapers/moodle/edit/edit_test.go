@@ -25,9 +25,7 @@ func setupClients(t testing.TB, ctx context.Context, config core.TestConfig) (*c
 		t.Fatal(err)
 	}
 
-	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
-		ClientId: config.Username,
-	})
+	client, err := view.NewClient(ctx, coreClient)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -160,7 +160,9 @@ func (s Service) GetStudentData(ctx context.Context, req *connect.Request[powers
 		return nil, err
 	}
 
-	return &connect.Response[powerservicev1.GetStudentDataResponse]{
+	response := &connect.Response[powerservicev1.GetStudentDataResponse]{
 		Msg: data,
-	}, nil
+	}
+	response.Header().Add("cache-control", "max-age=10800")
+	return response, nil
 }

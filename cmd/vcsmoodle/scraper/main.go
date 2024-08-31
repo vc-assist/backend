@@ -11,8 +11,8 @@ import (
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/services/vcsmoodle"
 	"vcassist-backend/services/vcsmoodle/db"
+	"vcassist-backend/services/vcsmoodle/scraper"
 
 	"github.com/lmittmann/tint"
 )
@@ -39,9 +39,7 @@ func createClient(username, password string) view.Client {
 	if err != nil {
 		serviceutil.Fatal("failed to login to moodle", err)
 	}
-	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
-		ClientId: "main",
-	})
+	client, err := view.NewClient(ctx, coreClient)
 	if err != nil {
 		serviceutil.Fatal("failed to initialize client", err)
 	}
@@ -68,7 +66,7 @@ func main() {
 	client := createClient(cfg.Username, cfg.Password)
 
 	t1 := time.Now()
-	vcsmoodle.Scrape(context.Background(), out, client)
+	scraper.Scrape(context.Background(), out, client)
 	t2 := time.Now()
 
 	slog.Info("scraping time", "seconds", t2.Sub(t1).Seconds())

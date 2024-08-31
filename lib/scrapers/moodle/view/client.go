@@ -20,19 +20,12 @@ import (
 var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.view")
 
 type Client struct {
-	ClientId string
-	Core     *core.Client
+	Core *core.Client
 }
 
-type ClientOptions struct {
-	// a unique id for this client, used for cache
-	ClientId string
-}
-
-func NewClient(ctx context.Context, coreClient *core.Client, opts ClientOptions) (Client, error) {
+func NewClient(ctx context.Context, coreClient *core.Client) (Client, error) {
 	c := Client{
-		ClientId: opts.ClientId,
-		Core:     coreClient,
+		Core: coreClient,
 	}
 	return c, nil
 }

@@ -76,6 +76,7 @@ Here are some commands relating to linting and code generation that will probabl
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
 - `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
 - `go install github.com/LQR471814/connectrpc-otel-gen@latest`
+- `go install github.com/lqr471814/sqlc-joins-gen@latest`
 - [atlas](https://atlasgo.io/)
 
 ## Testing

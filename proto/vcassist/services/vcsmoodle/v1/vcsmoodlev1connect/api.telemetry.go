@@ -91,8 +91,8 @@ func (c InstrumentedMoodleServiceClient) ProvideUsernamePassword(ctx context.Con
 	return res, nil
 }
 
-func (c InstrumentedMoodleServiceClient) GetStudentData(ctx context.Context, req *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error) {
-	ctx, span := moodleServiceTracer.Start(ctx, "GetStudentData")
+func (c InstrumentedMoodleServiceClient) GetCourses(ctx context.Context, req *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error) {
+	ctx, span := moodleServiceTracer.Start(ctx, "GetCourses")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -105,7 +105,41 @@ func (c InstrumentedMoodleServiceClient) GetStudentData(ctx context.Context, req
 		}
 	}
 
-	res, err := c.inner.GetStudentData(ctx, req)
+	res, err := c.inner.GetCourses(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if span.IsRecording() {
+		output, err := protojson.Marshal(res.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("output", string(output)))
+		} else {
+			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	return res, nil
+}
+
+func (c InstrumentedMoodleServiceClient) GetChapterContent(ctx context.Context, req *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error) {
+	ctx, span := moodleServiceTracer.Start(ctx, "GetChapterContent")
+	defer span.End()
+
+	if span.IsRecording() {
+		input, err := protojson.Marshal(req.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("input", string(input)))
+		} else {
+			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	res, err := c.inner.GetChapterContent(ctx, req)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

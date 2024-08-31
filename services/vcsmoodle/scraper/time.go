@@ -1,15 +1,12 @@
-package vcsmoodle
+package scraper
 
 import (
-	"context"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"vcassist-backend/lib/timezone"
-
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 )
 
 var referenceMonths = []string{
@@ -45,33 +42,18 @@ func resolveMonthDay(month time.Month, day int) time.Time {
 var monthDayRegex = regexp.MustCompile(`([A-Za-z]{3,9}) *(\d{1,2})`)
 var monthDayDayRegex = regexp.MustCompile(`(\w+) *(\d{1,2}) *[^\d\w\s] *(\d{1,2})(?:[^\d]|$)`)
 
-func parseTOCDate(ctx context.Context, text string) ([]time.Time, error) {
-	ctx, span := tracer.Start(ctx, "parseTOCDate")
-	defer span.End()
-
-	span.SetAttributes(attribute.String("text", text))
-
+func parseTOCDate(text string) ([]time.Time, error) {
 	monthDayDayMatch := monthDayDayRegex.FindStringSubmatch(text)
 	if len(monthDayDayMatch) >= 4 {
 		month := parseMonth(monthDayDayMatch[1])
 		day1, err := strconv.ParseInt(monthDayDayMatch[2], 10, 32)
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 		day2, err := strconv.ParseInt(monthDayDayMatch[3], 10, 32)
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
-
-		span.SetAttributes(
-			attribute.String("month", month.String()),
-			attribute.Int64("day1", day1),
-			attribute.Int64("day2", day2),
-		)
 
 		return []time.Time{
 			resolveMonthDay(month, int(day1)),
@@ -88,7 +70,7 @@ func parseTOCDate(ctx context.Context, text string) ([]time.Time, error) {
 		month := parseMonth(match[1])
 		day, err := strconv.ParseInt(match[2], 10, 32)
 		if err != nil {
-			span.RecordError(err)
+			slog.Warn("failed to parse day", "matches", match, "err", err)
 			continue
 		}
 		dates = append(dates, resolveMonthDay(month, int(day)))

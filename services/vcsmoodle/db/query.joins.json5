@@ -1,0 +1,45 @@
+[
+    {
+        name: "getCourses", 
+        return: "many",
+        table: "Course",
+        query: {
+            with: {
+                Section: { 
+					columns: {
+						idx: true,
+						name: true,
+					},
+                    with: {
+						Resource: {
+							columns: {
+								idx: true,
+								type: true,
+								url: true,
+								display_content: true,
+							},
+							with: {
+								Chapter: {
+									columns: {
+										id: true,
+										name: true,
+									},
+								}
+							}
+						}
+					}
+                },
+            },
+            // common select options
+            // note that interpolation of arguments in where must take the form of
+            // $<argname>:<int | str | float | bool>(?)([])
+            // ex: $age:int -> func (..., age int) ...
+            // ex: $name:str? -> func (..., name sql.NullString) ...
+            // ex: $emails:str[] -> func (..., name []string) ...
+            // ex: $null_emails:str?[] -> func (..., name []sql.NullString) ...
+            // passing an empty slice or `nil` into an arg with an array type
+            // will be treated as `null`
+            where: "Course.id in ($id:int[])",
+        },
+    },
+]
