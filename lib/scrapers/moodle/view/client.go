@@ -10,11 +10,14 @@ import (
 	"strings"
 	"vcassist-backend/lib/htmlutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
+	"vcassist-backend/lib/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
+
+var tracer = telemetry.Tracer("vcassist.lib.scrapers.moodle.view")
 
 type Client struct {
 	Core *core.Client

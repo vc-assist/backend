@@ -8,15 +8,15 @@ import (
 	"time"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/time/rate"
 )
 
-var tracer = otel.Tracer("vcassist.lib.scrapers.powerschool")
+var tracer = telemetry.Tracer("vcassist.lib.scrapers.powerschool")
 
 type Client struct {
 	http *resty.Client

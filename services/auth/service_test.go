@@ -6,6 +6,7 @@ import (
 	"log"
 	"regexp"
 	"testing"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/testutil"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
@@ -15,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -91,7 +91,7 @@ func TestLoginFlow(t *testing.T) {
 	service, cleanup := setup(t)
 	defer cleanup()
 
-	tracer := otel.Tracer("vcassist.services.auth.service_test")
+	tracer := telemetry.Tracer("vcassist.services.auth.service_test")
 	ctx, span := tracer.Start(context.Background(), "TestLoginFlow")
 	defer span.End()
 

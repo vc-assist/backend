@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 	gradesnapshotsv1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
 	"vcassist-backend/proto/vcassist/services/gradesnapshots/v1/gradesnapshotsv1connect"
@@ -20,7 +21,6 @@ import (
 	"vcassist-backend/services/vcs/db"
 
 	"connectrpc.com/connect"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -31,7 +31,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var tracer = otel.Tracer("vcassist.services.vcs")
+var tracer = telemetry.Tracer("vcassist.services.vcs")
 
 type WeightData = map[string]map[string]float32
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/auth/db"
 
@@ -11,10 +12,10 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("vcassist.services.auth.verifier")
+var tracer = telemetry.Tracer("vcassist.services.auth.verifier")
 var meter = otel.Meter("vcassist.services.auth.verifier")
 
-var uniqueLoginCounter, _ = meter.Int64Counter("uniqueLoginCounter")
+var uniqueLoginCounter, _ = meter.Int64Counter("auth_service.unique_login_counter")
 var loggedInToday = map[string]struct{}{}
 var todaysDate = timezone.Now().Day()
 

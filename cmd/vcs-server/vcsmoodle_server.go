@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	configlibsql "vcassist-backend/lib/configutil/libsql"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/vcsmoodle/v1/vcsmoodlev1connect"
 	"vcassist-backend/services/vcsmoodle/db"
@@ -22,11 +23,14 @@ func InitVcsmoodleServer(
 	if err != nil {
 		return err
 	}
+
+	vcsmoodlev1connect.MoodleServiceTracer = telemetry.Tracer("vcsmoodle_server")
 	mux.Handle(vcsmoodlev1connect.NewMoodleServiceHandler(
 		vcsmoodlev1connect.NewInstrumentedMoodleServiceClient(
 			server.NewService(keychain, database),
 		),
 	))
+
 	return nil
 
 }

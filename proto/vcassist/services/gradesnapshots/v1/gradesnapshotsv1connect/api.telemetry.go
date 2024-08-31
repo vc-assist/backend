@@ -7,12 +7,17 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
 )
 
+type TracerLike interface {
+	Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+}
+
 var (
-	gradeSnapshotsServiceTracer = otel.Tracer("vcassist.services.gradesnapshots.v1.GradeSnapshotsService")
+	GradeSnapshotsServiceTracer TracerLike = otel.Tracer("vcassist.services.gradesnapshots.v1.GradeSnapshotsService")
 )
 
 type InstrumentedGradeSnapshotsServiceClient struct {
@@ -24,7 +29,7 @@ func NewInstrumentedGradeSnapshotsServiceClient(inner GradeSnapshotsServiceClien
 }
 
 func (c InstrumentedGradeSnapshotsServiceClient) Push(ctx context.Context, req *connect.Request[v1.PushRequest]) (*connect.Response[v1.PushResponse], error) {
-	ctx, span := gradeSnapshotsServiceTracer.Start(ctx, "Push")
+	ctx, span := GradeSnapshotsServiceTracer.Start(ctx, "Push")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -58,7 +63,7 @@ func (c InstrumentedGradeSnapshotsServiceClient) Push(ctx context.Context, req *
 }
 
 func (c InstrumentedGradeSnapshotsServiceClient) Pull(ctx context.Context, req *connect.Request[v1.PullRequest]) (*connect.Response[v1.PullResponse], error) {
-	ctx, span := gradeSnapshotsServiceTracer.Start(ctx, "Pull")
+	ctx, span := GradeSnapshotsServiceTracer.Start(ctx, "Pull")
 	defer span.End()
 
 	if span.IsRecording() {
