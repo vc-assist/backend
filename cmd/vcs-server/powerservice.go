@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/powerservice/v1/powerservicev1connect"
 	"vcassist-backend/services/powerservice"
@@ -23,6 +24,7 @@ func InitPowerservice(
 	cfg PowerserviceConfig,
 	keychain keychainv1connect.KeychainServiceClient,
 ) {
+	powerservicev1connect.PowerschoolServiceTracer = telemetry.Tracer("powerservice")
 	mux.Handle(powerservicev1connect.NewPowerschoolServiceHandler(
 		powerservicev1connect.NewInstrumentedPowerschoolServiceClient(
 			powerservice.NewService(

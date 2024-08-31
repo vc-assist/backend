@@ -5,13 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/url"
+	"vcassist-backend/lib/telemetry"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("vcassist.lib.oauth")
+var tracer = telemetry.Tracer("vcassist.lib.oauth")
 
 type AuthCodeRequest struct {
 	AccessType   string

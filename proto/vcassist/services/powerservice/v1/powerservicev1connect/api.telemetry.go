@@ -7,12 +7,17 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "vcassist-backend/proto/vcassist/services/powerservice/v1"
 )
 
+type TracerLike interface {
+	Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+}
+
 var (
-	powerschoolServiceTracer = otel.Tracer("vcassist.services.powerservice.v1.PowerschoolService")
+	PowerschoolServiceTracer TracerLike = otel.Tracer("vcassist.services.powerservice.v1.PowerschoolService")
 )
 
 type InstrumentedPowerschoolServiceClient struct {
@@ -24,7 +29,7 @@ func NewInstrumentedPowerschoolServiceClient(inner PowerschoolServiceClient) Ins
 }
 
 func (c InstrumentedPowerschoolServiceClient) GetCredentialStatus(ctx context.Context, req *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error) {
-	ctx, span := powerschoolServiceTracer.Start(ctx, "GetCredentialStatus")
+	ctx, span := PowerschoolServiceTracer.Start(ctx, "GetCredentialStatus")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -58,7 +63,7 @@ func (c InstrumentedPowerschoolServiceClient) GetCredentialStatus(ctx context.Co
 }
 
 func (c InstrumentedPowerschoolServiceClient) ProvideCredential(ctx context.Context, req *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error) {
-	ctx, span := powerschoolServiceTracer.Start(ctx, "ProvideCredential")
+	ctx, span := PowerschoolServiceTracer.Start(ctx, "ProvideCredential")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -92,7 +97,7 @@ func (c InstrumentedPowerschoolServiceClient) ProvideCredential(ctx context.Cont
 }
 
 func (c InstrumentedPowerschoolServiceClient) GetStudentData(ctx context.Context, req *connect.Request[v1.GetStudentDataRequest]) (*connect.Response[v1.GetStudentDataResponse], error) {
-	ctx, span := powerschoolServiceTracer.Start(ctx, "GetStudentData")
+	ctx, span := PowerschoolServiceTracer.Start(ctx, "GetStudentData")
 	defer span.End()
 
 	if span.IsRecording() {

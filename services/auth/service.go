@@ -9,6 +9,7 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 	"vcassist-backend/services/auth/db"
@@ -22,6 +23,8 @@ import (
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
+
+var tracer = telemetry.Tracer("vcassist.services.auth")
 
 type SmtpConfig struct {
 	Server       string

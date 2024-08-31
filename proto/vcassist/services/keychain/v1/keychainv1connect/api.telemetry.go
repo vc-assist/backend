@@ -7,12 +7,17 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 )
 
+type TracerLike interface {
+	Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+}
+
 var (
-	keychainServiceTracer = otel.Tracer("vcassist.services.keychain.v1.KeychainService")
+	KeychainServiceTracer TracerLike = otel.Tracer("vcassist.services.keychain.v1.KeychainService")
 )
 
 type InstrumentedKeychainServiceClient struct {
@@ -24,7 +29,7 @@ func NewInstrumentedKeychainServiceClient(inner KeychainServiceClient) Instrumen
 }
 
 func (c InstrumentedKeychainServiceClient) SetOAuth(ctx context.Context, req *connect.Request[v1.SetOAuthRequest]) (*connect.Response[v1.SetOAuthResponse], error) {
-	ctx, span := keychainServiceTracer.Start(ctx, "SetOAuth")
+	ctx, span := KeychainServiceTracer.Start(ctx, "SetOAuth")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -58,7 +63,7 @@ func (c InstrumentedKeychainServiceClient) SetOAuth(ctx context.Context, req *co
 }
 
 func (c InstrumentedKeychainServiceClient) GetOAuth(ctx context.Context, req *connect.Request[v1.GetOAuthRequest]) (*connect.Response[v1.GetOAuthResponse], error) {
-	ctx, span := keychainServiceTracer.Start(ctx, "GetOAuth")
+	ctx, span := KeychainServiceTracer.Start(ctx, "GetOAuth")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -92,7 +97,7 @@ func (c InstrumentedKeychainServiceClient) GetOAuth(ctx context.Context, req *co
 }
 
 func (c InstrumentedKeychainServiceClient) SetUsernamePassword(ctx context.Context, req *connect.Request[v1.SetUsernamePasswordRequest]) (*connect.Response[v1.SetUsernamePasswordResponse], error) {
-	ctx, span := keychainServiceTracer.Start(ctx, "SetUsernamePassword")
+	ctx, span := KeychainServiceTracer.Start(ctx, "SetUsernamePassword")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -126,7 +131,7 @@ func (c InstrumentedKeychainServiceClient) SetUsernamePassword(ctx context.Conte
 }
 
 func (c InstrumentedKeychainServiceClient) GetUsernamePassword(ctx context.Context, req *connect.Request[v1.GetUsernamePasswordRequest]) (*connect.Response[v1.GetUsernamePasswordResponse], error) {
-	ctx, span := keychainServiceTracer.Start(ctx, "GetUsernamePassword")
+	ctx, span := KeychainServiceTracer.Start(ctx, "GetUsernamePassword")
 	defer span.End()
 
 	if span.IsRecording() {

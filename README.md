@@ -6,18 +6,18 @@
 
 - `docs/` - additional documentation
 - `services/` - gRPC services
-   - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
-      - `verifier/` - a package that exposes utilities to verify authentication tokens.
-   - `keychain/` - the service that handles storing, retrieving, and keeping fresh user credentials
-   - `powerservice/` - the service that fetches a student's powerschool data given a valid key in keychain.
-   - `gradesnapshots/` - a service that can store and retrieve grade snapshots.
-   - `linker/` - a service that does hybrid automatic and manual data linking
-   - `studentdata/` - the interface all student data providers must fulfill to talk to the frontend
-   - `vcsmoodle/` - the service for getting student data specific to vcs flavored moodle
-   - `vcs/` - the student data provider for vcs
+   - `auth/` - handles the authentication flow, issuing of tokens, and verification codes
+      - `verifier/` - exposes utilities to verify authentication tokens
+   - `keychain/` - handles storing, retrieving, and refreshing user credentials
+   - `powerservice/` - fetches a student's powerschool data given a valid key in keychain
+   - `gradesnapshots/` - stores and retrieves grade snapshots
+   - `linker/` - does data linking
+   - `vcsmoodle/` - stuff that power quick moodle
+      - `server/` - the service that provides an API for reading moodle data
+      - `scraper/` - a library that makes it easy to scrape moodle data
 - `cmd/` - all official entrypoints/build targets
-   - `auth/` - the entrypoint to the `auth` service
-   - `vcs/` - the entrypoint to the `vcs` service
+   - `vcs-server/` - a single binary monolith for Valley Christian Schools that strings together all the services under `services/`
+   - `vcsmoodle-test/` - a testing utility to scrape all the moodle courses
    - `linker-cli/` - the CLI tool for viewing and editing data linker behavior
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms.
@@ -28,8 +28,9 @@
    - `htmlutil/` - additional utilities for working with HTML.
    - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
    - `testutil/` - utilities for testing
+   - `restyutil/` - utilities for the `resty` HTTP client
    - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
-   - `telemetry/` - telemetry setup/teardown as well as instrumentation for libraries like `resty`.
+   - `telemetry/` - telemetry setup/teardown as well as misc. instrumentation utilities
 - `dev/` - code for setting up the development environment
    - `local_stack/` - docker compose stuff for setting up grafana and other things locally
    - `.state/ (gitignore'd)` - internal state (like secrets, usernames, passwords, etc...) that are used by tests and other dev/local-only processes

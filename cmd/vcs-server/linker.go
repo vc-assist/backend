@@ -4,6 +4,7 @@ import (
 	"net/http"
 	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker"
 	"vcassist-backend/services/linker/db"
@@ -21,6 +22,7 @@ func InitLinker(mux *http.ServeMux, cfg LinkerConfig) error {
 	if err != nil {
 		return err
 	}
+	linkerv1connect.LinkerServiceTracer = telemetry.Tracer("linker")
 	mux.Handle(linkerv1connect.NewLinkerServiceHandler(
 		linkerv1connect.NewInstrumentedLinkerServiceClient(
 			linker.NewService(db),

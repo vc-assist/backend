@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"strconv"
 	"sync/atomic"
+	"vcassist-backend/lib/telemetry"
 
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/semconv/v1.13.0/httpconv"
 	"go.opentelemetry.io/otel/trace"
@@ -20,18 +20,18 @@ type InstrumentOutput interface {
 
 type instrumentCtx struct {
 	output    InstrumentOutput
-	tracer    trace.Tracer
+	tracer    telemetry.TracerLike
 	idcounter *uint64
 }
 
 // `tracer` can be nil, it will default to a library name of "resty"
 // `output` can also be nil, if it is, then the function is a no-op
-func InstrumentClient(client *resty.Client, tracer trace.Tracer, output InstrumentOutput) {
+func InstrumentClient(client *resty.Client, tracer telemetry.TracerLike, output InstrumentOutput) {
 	if output == nil {
 		return
 	}
 	if tracer == nil {
-		tracer = otel.Tracer("resty")
+		tracer = telemetry.Tracer("resty")
 	}
 
 	var idcounter uint64
@@ -43,7 +43,7 @@ func InstrumentClient(client *resty.Client, tracer trace.Tracer, output Instrume
 
 const messageIdContextKey = "vcassist.restyutil.instrument.message_id"
 
-func (i instrumentCtx) onBeforeRequest(tracer trace.Tracer) resty.RequestMiddleware {
+func (i instrumentCtx) onBeforeRequest(tracer telemetry.TracerLike) resty.RequestMiddleware {
 	return func(cli *resty.Client, req *resty.Request) error {
 		ctx, _ := tracer.Start(req.Context(), req.Method)
 

@@ -7,12 +7,17 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "vcassist-backend/proto/vcassist/services/vcsmoodle/v1"
 )
 
+type TracerLike interface {
+	Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+}
+
 var (
-	moodleServiceTracer = otel.Tracer("vcassist.services.vcsmoodle.v1.MoodleService")
+	MoodleServiceTracer TracerLike = otel.Tracer("vcassist.services.vcsmoodle.v1.MoodleService")
 )
 
 type InstrumentedMoodleServiceClient struct {
@@ -24,7 +29,7 @@ func NewInstrumentedMoodleServiceClient(inner MoodleServiceClient) InstrumentedM
 }
 
 func (c InstrumentedMoodleServiceClient) GetAuthStatus(ctx context.Context, req *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error) {
-	ctx, span := moodleServiceTracer.Start(ctx, "GetAuthStatus")
+	ctx, span := MoodleServiceTracer.Start(ctx, "GetAuthStatus")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -58,7 +63,7 @@ func (c InstrumentedMoodleServiceClient) GetAuthStatus(ctx context.Context, req 
 }
 
 func (c InstrumentedMoodleServiceClient) ProvideUsernamePassword(ctx context.Context, req *connect.Request[v1.ProvideUsernamePasswordRequest]) (*connect.Response[v1.ProvideUsernamePasswordResponse], error) {
-	ctx, span := moodleServiceTracer.Start(ctx, "ProvideUsernamePassword")
+	ctx, span := MoodleServiceTracer.Start(ctx, "ProvideUsernamePassword")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -92,7 +97,7 @@ func (c InstrumentedMoodleServiceClient) ProvideUsernamePassword(ctx context.Con
 }
 
 func (c InstrumentedMoodleServiceClient) GetCourses(ctx context.Context, req *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error) {
-	ctx, span := moodleServiceTracer.Start(ctx, "GetCourses")
+	ctx, span := MoodleServiceTracer.Start(ctx, "GetCourses")
 	defer span.End()
 
 	if span.IsRecording() {
@@ -126,7 +131,7 @@ func (c InstrumentedMoodleServiceClient) GetCourses(ctx context.Context, req *co
 }
 
 func (c InstrumentedMoodleServiceClient) GetChapterContent(ctx context.Context, req *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error) {
-	ctx, span := moodleServiceTracer.Start(ctx, "GetChapterContent")
+	ctx, span := MoodleServiceTracer.Start(ctx, "GetChapterContent")
 	defer span.End()
 
 	if span.IsRecording() {

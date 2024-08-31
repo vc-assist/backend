@@ -10,11 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"vcassist-backend/lib/scrapers/moodle/core"
+	"vcassist-backend/lib/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel/codes"
 )
+
+var tracer = telemetry.Tracer("vcassist.lib.scrapers.moodle.edit")
 
 type Course struct {
 	Id   int
