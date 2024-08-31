@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 	"vcassist-backend/lib/timezone"
@@ -91,13 +92,8 @@ func (s Service) removeExpiredWorker(ctx context.Context) {
 }
 
 func (s Service) recacheAllStudents(ctx context.Context) {
-	ctx, span := tracer.Start(ctx, "cron_job:scrape_all_students")
-	defer span.End()
-
 	studentIds, err := s.qry.GetStudents(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
@@ -108,8 +104,7 @@ func (s Service) recacheAllStudents(ctx context.Context) {
 			defer wg.Done()
 			_, err := s.recacheStudentData(ctx, id)
 			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
+				slog.ErrorContext(ctx, "failed to scrape student data", "err", err)
 			}
 		}()
 	}

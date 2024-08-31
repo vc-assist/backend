@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"sync"
 	"time"
@@ -17,15 +18,10 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
-
-var tracer = otel.Tracer("vcassist.services.keychain")
 
 type Service struct {
 	db     *sql.DB
@@ -33,17 +29,12 @@ type Service struct {
 	client *resty.Client
 }
 
-func NewService(
-	ctx context.Context,
-	database *sql.DB,
-	restyInstrumentOutput restyutil.InstrumentOutput,
-) keychainv1connect.KeychainServiceClient {
+func NewService(ctx context.Context, database *sql.DB) keychainv1connect.KeychainServiceClient {
 	client := resty.New()
 	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 	client.SetTimeout(time.Second * 30)
-	if restyInstrumentOutput != nil {
-		restyutil.InstrumentClient(client, tracer, restyInstrumentOutput)
-	}
+
+	restyutil.InstrumentClient(client, nil, restyInstrumentOutput)
 
 	s := Service{
 		db:     database,
@@ -58,33 +49,15 @@ func NewService(
 }
 
 func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) error {
-	ctx, span := tracer.Start(ctx, "refreshOAuthKey")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "expires_at",
-			Value: attribute.Int64Value(originalRow.ExpiresAt),
-		},
-		attribute.KeyValue{
-			Key:   "token",
-			Value: attribute.StringValue(originalRow.Token),
-		},
-	)
-
 	var originalToken oauth.OpenIdToken
 	err := json.Unmarshal([]byte(originalRow.Token), &originalToken)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to deserialize original token")
 		return err
 	}
 
 	if originalToken.RefreshToken == "" {
 		err := fmt.Errorf("token is not refreshable")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil
+		return err
 	}
 
 	form := url.Values{}
@@ -99,16 +72,12 @@ func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) erro
 		SetHeader("content-type", "application/x-www-form-urlencoded").
 		Post(originalRow.RefreshUrl)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to refresh oauth token")
 		return err
 	}
 
 	var newToken oauth.OpenIdToken
 	err = json.Unmarshal(res.Body(), &newToken)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse response token")
 		return err
 	}
 
@@ -117,12 +86,10 @@ func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) erro
 
 	newTokenJson, err := json.Marshal(newToken)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to serialize new token")
 		return err
 	}
 
-	span.SetAttributes(attribute.String("new-token", string(newTokenJson)))
+	slog.DebugContext(ctx, "new token", "token", string(newTokenJson))
 
 	err = s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
 		ID:         originalRow.ID,
@@ -133,8 +100,6 @@ func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) erro
 		ExpiresAt:  expiresAt.Unix(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to update db with refreshed token")
 		return err
 	}
 
@@ -142,14 +107,9 @@ func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) erro
 }
 
 func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
-	ctx, span := tracer.Start(ctx, "refreshAllOAuthKeys")
-	defer span.End()
-
 	now := timezone.Now().Add(5 * time.Minute)
 	almostExpired, err := s.qry.GetOAuthBefore(ctx, now.Unix())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -157,7 +117,10 @@ func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
 	for _, row := range almostExpired {
 		wg.Add(1)
 		go func(row db.OAuth) {
-			s.refreshOAuthKey(ctx, row)
+			err := s.refreshOAuthKey(ctx, row)
+			if err != nil {
+				slog.WarnContext(ctx, "failed to refresh oauth key", "err", err)
+			}
 			wg.Done()
 		}(row)
 	}
@@ -185,15 +148,10 @@ func (s Service) deleteOAuthDaemon(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			ctx, span := tracer.Start(ctx, "deleteExpiredOAuth")
-
 			err := s.qry.DeleteOAuthBefore(ctx, timezone.Now().Unix())
 			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
+				slog.WarnContext(ctx, "failed to delete expired oauth keys", "err", err)
 			}
-
-			span.End()
 		case <-ctx.Done():
 			return
 		}

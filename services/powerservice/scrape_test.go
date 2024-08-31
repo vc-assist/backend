@@ -22,11 +22,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
 )
-
-var tracer = otel.Tracer("vcassist.services.powerservice_test")
-var restyInstrumentOutput = restyutil.NewFilesystemOutput("<dev_state>/tests/powerservice_scrape/resty")
 
 func init() {
 	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
@@ -34,6 +30,10 @@ func init() {
 		TimeFormat: time.Kitchen,
 	}))
 	slog.SetDefault(logger)
+
+	SetRestyInstrumentOutput(restyutil.NewFilesystemOutput(
+		"<dev_state>/tests/powerservice_scrape/resty",
+	))
 }
 
 func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) {
@@ -86,7 +86,7 @@ func tokenFromCallbackUrl(t testing.TB, oauthFlow *keychainv1.OAuthFlow, callbac
 	}
 
 	client := resty.New()
-	restyutil.InstrumentClient(client, tracer, restyInstrumentOutput)
+	restyutil.InstrumentClient(client, nil, restyInstrumentOutput)
 
 	res, err := client.R().
 		SetBody(body).

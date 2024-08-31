@@ -14,13 +14,10 @@ import (
 	"vcassist-backend/services/vcsmoodle/db"
 
 	"connectrpc.com/connect"
-	"go.opentelemetry.io/otel"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
-
-var tracer = otel.Tracer("vcassist.services.vcsmoodle")
 
 const baseUrl = "https://learn.vcs.net"
 const keychainNamespace = "vcsmoodle"

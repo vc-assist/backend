@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/go-resty/resty/v2"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/semconv/v1.13.0/httpconv"
 	"go.opentelemetry.io/otel/trace"
@@ -23,7 +24,16 @@ type instrumentCtx struct {
 	idcounter *uint64
 }
 
+// `tracer` can be nil, it will default to a library name of "resty"
+// `output` can also be nil, if it is, then the function is a no-op
 func InstrumentClient(client *resty.Client, tracer trace.Tracer, output InstrumentOutput) {
+	if output == nil {
+		return
+	}
+	if tracer == nil {
+		tracer = otel.Tracer("resty")
+	}
+
 	var idcounter uint64
 	i := instrumentCtx{output: output, tracer: tracer, idcounter: &idcounter}
 	client.OnBeforeRequest(i.onBeforeRequest(i.tracer))

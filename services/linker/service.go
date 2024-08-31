@@ -8,15 +8,12 @@ import (
 	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
-
-var tracer = otel.Tracer("vcassist.services.linker")
 
 type Service struct {
 	qry *db.Queries

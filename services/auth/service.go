@@ -17,14 +17,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/jordan-wright/email"
 	"github.com/mazen160/go-random"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
-
-var tracer = otel.Tracer("vcassist.services.auth")
 
 type SmtpConfig struct {
 	Server       string
