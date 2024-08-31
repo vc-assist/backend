@@ -1,10 +1,10 @@
 -- name: GetGradeSnapshots :many
-select FoundCourses.course, time, value from GradeSnapshot
+select FoundCourses.course, json_group_array(json_array(time, value)) as grades from GradeSnapshot
 inner join (
     select * from UserCourse where user = ?
 ) as FoundCourses
     on FoundCourses.id = user_course_id
-order by FoundCourses.course, time;
+group by FoundCourses.course;
 
 -- name: CreateUserCourse :exec
 insert into UserCourse(user, course)

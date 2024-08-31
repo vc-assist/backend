@@ -3,6 +3,8 @@ package gradesnapshots
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"log/slog"
 	"time"
 	"vcassist-backend/lib/timezone"
 	gradesnapshotsv1 "vcassist-backend/proto/vcassist/services/gradesnapshots/v1"
@@ -95,38 +97,29 @@ func (s Service) Pull(ctx context.Context, req *connect.Request[gradesnapshotsv1
 	}
 
 	var courses []*gradesnapshotsv1.PullResponse_Course
-	lastCourse := &gradesnapshotsv1.PullResponse_Course{}
-
 	for _, r := range rows {
 		if r.Course == "" {
 			continue
 		}
 
-		// this works because the rows are sorted by course name
-		// so all the rows with the same course name will be next to each other
-		//
-		// ex.
-		// course 1 | time 1 | 98
-		// course 1 | time 2 | 97
-		// course 1 | time 3 | 98
-		// course 2 | time 1 | 70
-		// course 2 | time 2 | 70
-		// etc...
-		if r.Course != lastCourse.GetCourse() {
-			if lastCourse != nil {
-				courses = append(courses, lastCourse)
-			}
-			lastCourse = &gradesnapshotsv1.PullResponse_Course{
-				Course: r.Course,
+		var grades db.GetGradeSnapshotsRowGrades
+		err = json.Unmarshal([]byte(r.Grades.(string)), &grades)
+		if err != nil {
+			slog.WarnContext(ctx, "failed to unmarshal db grades", "err", err)
+			continue
+		}
+
+		snapshots := make([]*gradesnapshotsv1.PullResponse_Course_Snapshot, len(grades))
+		for i, tuple := range grades {
+			snapshots[i] = &gradesnapshotsv1.PullResponse_Course_Snapshot{
+				Time:  int64(tuple[0]),
+				Value: float32(tuple[1]),
 			}
 		}
-		lastCourse.Snapshots = append(lastCourse.Snapshots, &gradesnapshotsv1.PullResponse_Course_Snapshot{
-			Time:  r.Time,
-			Value: float32(r.Value),
+		courses = append(courses, &gradesnapshotsv1.PullResponse_Course{
+			Course:    r.Course,
+			Snapshots: snapshots,
 		})
-	}
-	if lastCourse != nil {
-		courses = append(courses, lastCourse)
 	}
 
 	return &connect.Response[gradesnapshotsv1.PullResponse]{
