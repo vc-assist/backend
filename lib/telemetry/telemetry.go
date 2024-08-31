@@ -20,6 +20,7 @@ import (
 )
 
 type Telemetry struct {
+	SpanExporter   trace.SpanExporter
 	TracerProvider *trace.TracerProvider
 	MeterProvider  *metric.MeterProvider
 }
@@ -85,12 +86,12 @@ func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, e
 	ctx, cancel := context.WithTimeout(ctx, time.Second*15)
 	defer cancel()
 
-	r, err := newResource(serviceName)
+	r, err := NewResource(serviceName)
 	if err != nil {
 		return Telemetry{}, err
 	}
 
-	tracerProvider, err := newTraceProvider(ctx, r, config)
+	spanExporter, tracerProvider, err := newTraceProvider(ctx, r, config)
 	if err != nil {
 		return Telemetry{}, err
 	}
@@ -105,12 +106,13 @@ func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, e
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	return Telemetry{
+		SpanExporter:   spanExporter,
 		TracerProvider: tracerProvider,
 		MeterProvider:  meterProvider,
 	}, nil
 }
 
-func newResource(serviceName string) (*resource.Resource, error) {
+func NewResource(serviceName string) (*resource.Resource, error) {
 	return resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
@@ -120,17 +122,17 @@ func newResource(serviceName string) (*resource.Resource, error) {
 	)
 }
 
-func newTraceProvider(ctx context.Context, r *resource.Resource, config Config) (*trace.TracerProvider, error) {
+func newTraceProvider(ctx context.Context, r *resource.Resource, config Config) (trace.SpanExporter, *trace.TracerProvider, error) {
 	exporter, err := otlpTracerExportFromConfig(ctx, config)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	traceProvider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
 		trace.WithResource(r),
 	)
-	return traceProvider, nil
+	return exporter, traceProvider, nil
 }
 
 func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExporter, error) {
