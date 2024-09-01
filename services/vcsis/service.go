@@ -144,7 +144,7 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[sis
 	}, nil
 }
 
-func (s Service) getCachedData(ctx context.Context, studentId string) (*sisv1.GetDataResponse, error) {
+func (s Service) getCachedData(ctx context.Context, studentId string) (*sisv1.Data, error) {
 	row, err := s.qry.GetStudentData(ctx, studentId)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("no data cached")
@@ -156,12 +156,12 @@ func (s Service) getCachedData(ctx context.Context, studentId string) (*sisv1.Ge
 		return nil, fmt.Errorf("data is more than a day old")
 	}
 
-	data := &sisv1.GetDataResponse{}
+	data := &sisv1.Data{}
 	err = proto.Unmarshal(row.Data, data)
 	return data, err
 }
 
-func (s Service) cacheNewData(ctx context.Context, studentId string, data *sisv1.GetDataResponse) error {
+func (s Service) cacheNewData(ctx context.Context, studentId string, data *sisv1.Data) error {
 	marshaled, err := proto.Marshal(data)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (s Service) cacheNewData(ctx context.Context, studentId string, data *sisv1
 	return err
 }
 
-func (s Service) addGradeSnapshots(ctx context.Context, studentId string, data *sisv1.GetDataResponse) error {
+func (s Service) addGradeSnapshots(ctx context.Context, studentId string, data *sisv1.Data) error {
 	series, err := s.gradestore.Pull(ctx, studentId)
 	if err != nil {
 		return err
@@ -204,15 +204,9 @@ func (s Service) addGradeSnapshots(ctx context.Context, studentId string, data *
 	return nil
 }
 
-func (s Service) cachedStudentDataResponse(data *sisv1.GetDataResponse) *connect.Response[sisv1.GetDataResponse] {
-	response := &connect.Response[sisv1.GetDataResponse]{
-		Msg: data,
-	}
-	response.Header().Add("cache-control", "max-age=10800")
-	return response
-}
+const dataResponseCacheControl = "max-age=10800"
 
-func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.GetDataResponse, error) {
+func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, error) {
 	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
 		Msg: &keychainv1.GetOAuthRequest{
 			Namespace: keychainNamespace,
@@ -259,7 +253,11 @@ func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetData
 	cached, err := s.getCachedData(ctx, studentId)
 	if err == nil {
 		slog.DebugContext(ctx, "student data cache hit", "student_id", studentId)
-		return s.cachedStudentDataResponse(cached), nil
+		res := &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
+			Data: cached,
+		}}
+		res.Header().Add("cache-control", dataResponseCacheControl)
+		return res, nil
 	} else {
 		slog.WarnContext(ctx, "get cached data", "err", err)
 	}
@@ -275,5 +273,30 @@ func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetData
 		slog.WarnContext(ctx, "cache student data response", "err", err)
 	}
 
-	return s.cachedStudentDataResponse(data), nil
+	res := &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
+		Data: data,
+	}}
+	res.Header().Add("cache-control", dataResponseCacheControl)
+	return res, nil
+}
+
+func (s Service) RefreshData(ctx context.Context, req *connect.Request[sisv1.RefreshDataRequest]) (*connect.Response[sisv1.RefreshDataResponse], error) {
+	profile, _ := verifier.ProfileFromContext(ctx)
+	studentId := profile.Email
+
+	data, err := s.scrape(ctx, studentId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.cacheNewData(ctx, studentId, data)
+	if err != nil {
+		slog.WarnContext(ctx, "cache student data response", "err", err)
+	}
+
+	res := &connect.Response[sisv1.RefreshDataResponse]{Msg: &sisv1.RefreshDataResponse{
+		Data: data,
+	}}
+	res.Header().Add("cache-control", dataResponseCacheControl)
+	return res, nil
 }

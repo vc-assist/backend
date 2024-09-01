@@ -162,6 +162,61 @@ export class ProvideCredentialResponse extends Message<ProvideCredentialResponse
 }
 
 /**
+ * @generated from message vcassist.services.sis.v1.Data
+ */
+export class Data extends Message<Data> {
+  /**
+   * @generated from field: vcassist.services.sis.v1.StudentProfile profile = 1;
+   */
+  profile?: StudentProfile;
+
+  /**
+   * @generated from field: repeated vcassist.services.sis.v1.SchoolData schools = 2;
+   */
+  schools: SchoolData[] = [];
+
+  /**
+   * @generated from field: repeated vcassist.services.sis.v1.Bulletin bulletins = 3;
+   */
+  bulletins: Bulletin[] = [];
+
+  /**
+   * @generated from field: repeated vcassist.services.sis.v1.CourseData courses = 4;
+   */
+  courses: CourseData[] = [];
+
+  constructor(data?: PartialMessage<Data>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.sis.v1.Data";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "profile", kind: "message", T: StudentProfile },
+    { no: 2, name: "schools", kind: "message", T: SchoolData, repeated: true },
+    { no: 3, name: "bulletins", kind: "message", T: Bulletin, repeated: true },
+    { no: 4, name: "courses", kind: "message", T: CourseData, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Data {
+    return new Data().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Data {
+    return new Data().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Data {
+    return new Data().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Data | PlainMessage<Data> | undefined, b: Data | PlainMessage<Data> | undefined): boolean {
+    return proto3.util.equals(Data, a, b);
+  }
+}
+
+/**
  * GetData
  *
  * @generated from message vcassist.services.sis.v1.GetDataRequest
@@ -199,24 +254,9 @@ export class GetDataRequest extends Message<GetDataRequest> {
  */
 export class GetDataResponse extends Message<GetDataResponse> {
   /**
-   * @generated from field: vcassist.services.sis.v1.StudentProfile profile = 1;
+   * @generated from field: vcassist.services.sis.v1.Data data = 1;
    */
-  profile?: StudentProfile;
-
-  /**
-   * @generated from field: repeated vcassist.services.sis.v1.SchoolData schools = 2;
-   */
-  schools: SchoolData[] = [];
-
-  /**
-   * @generated from field: repeated vcassist.services.sis.v1.Bulletin bulletins = 3;
-   */
-  bulletins: Bulletin[] = [];
-
-  /**
-   * @generated from field: repeated vcassist.services.sis.v1.CourseData courses = 4;
-   */
-  courses: CourseData[] = [];
+  data?: Data;
 
   constructor(data?: PartialMessage<GetDataResponse>) {
     super();
@@ -226,10 +266,7 @@ export class GetDataResponse extends Message<GetDataResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "vcassist.services.sis.v1.GetDataResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "profile", kind: "message", T: StudentProfile },
-    { no: 2, name: "schools", kind: "message", T: SchoolData, repeated: true },
-    { no: 3, name: "bulletins", kind: "message", T: Bulletin, repeated: true },
-    { no: 4, name: "courses", kind: "message", T: CourseData, repeated: true },
+    { no: 1, name: "data", kind: "message", T: Data },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDataResponse {
@@ -246,6 +283,76 @@ export class GetDataResponse extends Message<GetDataResponse> {
 
   static equals(a: GetDataResponse | PlainMessage<GetDataResponse> | undefined, b: GetDataResponse | PlainMessage<GetDataResponse> | undefined): boolean {
     return proto3.util.equals(GetDataResponse, a, b);
+  }
+}
+
+/**
+ * RefreshData
+ *
+ * @generated from message vcassist.services.sis.v1.RefreshDataRequest
+ */
+export class RefreshDataRequest extends Message<RefreshDataRequest> {
+  constructor(data?: PartialMessage<RefreshDataRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.sis.v1.RefreshDataRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshDataRequest {
+    return new RefreshDataRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshDataRequest {
+    return new RefreshDataRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshDataRequest {
+    return new RefreshDataRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefreshDataRequest | PlainMessage<RefreshDataRequest> | undefined, b: RefreshDataRequest | PlainMessage<RefreshDataRequest> | undefined): boolean {
+    return proto3.util.equals(RefreshDataRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message vcassist.services.sis.v1.RefreshDataResponse
+ */
+export class RefreshDataResponse extends Message<RefreshDataResponse> {
+  /**
+   * @generated from field: vcassist.services.sis.v1.Data data = 1;
+   */
+  data?: Data;
+
+  constructor(data?: PartialMessage<RefreshDataResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.sis.v1.RefreshDataResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "data", kind: "message", T: Data },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshDataResponse {
+    return new RefreshDataResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshDataResponse {
+    return new RefreshDataResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshDataResponse {
+    return new RefreshDataResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefreshDataResponse | PlainMessage<RefreshDataResponse> | undefined, b: RefreshDataResponse | PlainMessage<RefreshDataResponse> | undefined): boolean {
+    return proto3.util.equals(RefreshDataResponse, a, b);
   }
 }
 

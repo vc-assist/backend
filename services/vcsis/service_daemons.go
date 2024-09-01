@@ -28,7 +28,7 @@ func (s Service) takeGradeSnapshots(ctx context.Context) error {
 			continue
 		}
 
-		data := &sisv1.GetDataResponse{}
+		data := &sisv1.Data{}
 		err = proto.Unmarshal(row.Data, data)
 		if err != nil {
 			slog.WarnContext(ctx, "unmarshal data", "student", studentId, "err", err)

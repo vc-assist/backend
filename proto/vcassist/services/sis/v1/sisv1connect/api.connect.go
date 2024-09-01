@@ -41,6 +41,8 @@ const (
 	SIServiceProvideCredentialProcedure = "/vcassist.services.sis.v1.SIService/ProvideCredential"
 	// SIServiceGetDataProcedure is the fully-qualified name of the SIService's GetData RPC.
 	SIServiceGetDataProcedure = "/vcassist.services.sis.v1.SIService/GetData"
+	// SIServiceRefreshDataProcedure is the fully-qualified name of the SIService's RefreshData RPC.
+	SIServiceRefreshDataProcedure = "/vcassist.services.sis.v1.SIService/RefreshData"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -49,6 +51,7 @@ var (
 	sIServiceGetCredentialStatusMethodDescriptor = sIServiceServiceDescriptor.Methods().ByName("GetCredentialStatus")
 	sIServiceProvideCredentialMethodDescriptor   = sIServiceServiceDescriptor.Methods().ByName("ProvideCredential")
 	sIServiceGetDataMethodDescriptor             = sIServiceServiceDescriptor.Methods().ByName("GetData")
+	sIServiceRefreshDataMethodDescriptor         = sIServiceServiceDescriptor.Methods().ByName("RefreshData")
 )
 
 // SIServiceClient is a client for the vcassist.services.sis.v1.SIService service.
@@ -56,6 +59,7 @@ type SIServiceClient interface {
 	GetCredentialStatus(context.Context, *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error)
 	ProvideCredential(context.Context, *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error)
 	GetData(context.Context, *connect.Request[v1.GetDataRequest]) (*connect.Response[v1.GetDataResponse], error)
+	RefreshData(context.Context, *connect.Request[v1.RefreshDataRequest]) (*connect.Response[v1.RefreshDataResponse], error)
 }
 
 // NewSIServiceClient constructs a client for the vcassist.services.sis.v1.SIService service. By
@@ -86,6 +90,12 @@ func NewSIServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...c
 			connect.WithSchema(sIServiceGetDataMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		refreshData: connect.NewClient[v1.RefreshDataRequest, v1.RefreshDataResponse](
+			httpClient,
+			baseURL+SIServiceRefreshDataProcedure,
+			connect.WithSchema(sIServiceRefreshDataMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -94,6 +104,7 @@ type sIServiceClient struct {
 	getCredentialStatus *connect.Client[v1.GetCredentialStatusRequest, v1.GetCredentialStatusResponse]
 	provideCredential   *connect.Client[v1.ProvideCredentialRequest, v1.ProvideCredentialResponse]
 	getData             *connect.Client[v1.GetDataRequest, v1.GetDataResponse]
+	refreshData         *connect.Client[v1.RefreshDataRequest, v1.RefreshDataResponse]
 }
 
 // GetCredentialStatus calls vcassist.services.sis.v1.SIService.GetCredentialStatus.
@@ -111,11 +122,17 @@ func (c *sIServiceClient) GetData(ctx context.Context, req *connect.Request[v1.G
 	return c.getData.CallUnary(ctx, req)
 }
 
+// RefreshData calls vcassist.services.sis.v1.SIService.RefreshData.
+func (c *sIServiceClient) RefreshData(ctx context.Context, req *connect.Request[v1.RefreshDataRequest]) (*connect.Response[v1.RefreshDataResponse], error) {
+	return c.refreshData.CallUnary(ctx, req)
+}
+
 // SIServiceHandler is an implementation of the vcassist.services.sis.v1.SIService service.
 type SIServiceHandler interface {
 	GetCredentialStatus(context.Context, *connect.Request[v1.GetCredentialStatusRequest]) (*connect.Response[v1.GetCredentialStatusResponse], error)
 	ProvideCredential(context.Context, *connect.Request[v1.ProvideCredentialRequest]) (*connect.Response[v1.ProvideCredentialResponse], error)
 	GetData(context.Context, *connect.Request[v1.GetDataRequest]) (*connect.Response[v1.GetDataResponse], error)
+	RefreshData(context.Context, *connect.Request[v1.RefreshDataRequest]) (*connect.Response[v1.RefreshDataResponse], error)
 }
 
 // NewSIServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -142,6 +159,12 @@ func NewSIServiceHandler(svc SIServiceHandler, opts ...connect.HandlerOption) (s
 		connect.WithSchema(sIServiceGetDataMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	sIServiceRefreshDataHandler := connect.NewUnaryHandler(
+		SIServiceRefreshDataProcedure,
+		svc.RefreshData,
+		connect.WithSchema(sIServiceRefreshDataMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/vcassist.services.sis.v1.SIService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SIServiceGetCredentialStatusProcedure:
@@ -150,6 +173,8 @@ func NewSIServiceHandler(svc SIServiceHandler, opts ...connect.HandlerOption) (s
 			sIServiceProvideCredentialHandler.ServeHTTP(w, r)
 		case SIServiceGetDataProcedure:
 			sIServiceGetDataHandler.ServeHTTP(w, r)
+		case SIServiceRefreshDataProcedure:
+			sIServiceRefreshDataHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -169,4 +194,8 @@ func (UnimplementedSIServiceHandler) ProvideCredential(context.Context, *connect
 
 func (UnimplementedSIServiceHandler) GetData(context.Context, *connect.Request[v1.GetDataRequest]) (*connect.Response[v1.GetDataResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.sis.v1.SIService.GetData is not implemented"))
+}
+
+func (UnimplementedSIServiceHandler) RefreshData(context.Context, *connect.Request[v1.RefreshDataRequest]) (*connect.Response[v1.RefreshDataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.sis.v1.SIService.RefreshData is not implemented"))
 }
