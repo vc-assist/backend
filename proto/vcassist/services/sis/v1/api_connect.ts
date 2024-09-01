@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetCredentialStatusRequest, GetCredentialStatusResponse, GetDataRequest, GetDataResponse, ProvideCredentialRequest, ProvideCredentialResponse } from "./api_pb.js";
+import { GetCredentialStatusRequest, GetCredentialStatusResponse, GetDataRequest, GetDataResponse, ProvideCredentialRequest, ProvideCredentialResponse, RefreshDataRequest, RefreshDataResponse } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -39,6 +39,15 @@ export const SIService = {
       name: "GetData",
       I: GetDataRequest,
       O: GetDataResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc vcassist.services.sis.v1.SIService.RefreshData
+     */
+    refreshData: {
+      name: "RefreshData",
+      I: RefreshDataRequest,
+      O: RefreshDataResponse,
       kind: MethodKind.Unary,
     },
   }

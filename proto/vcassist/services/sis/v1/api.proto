@@ -20,13 +20,23 @@ message ProvideCredentialRequest {
 }
 message ProvideCredentialResponse {}
 
-// GetData
-message GetDataRequest {}
-message GetDataResponse {
+message Data {
   StudentProfile profile = 1;
   repeated SchoolData schools = 2;
   repeated Bulletin bulletins = 3;
   repeated CourseData courses = 4;
+}
+
+// GetData
+message GetDataRequest {}
+message GetDataResponse {
+  Data data = 1;
+}
+
+// RefreshData
+message RefreshDataRequest {}
+message RefreshDataResponse {
+  Data data = 1;
 }
 
 // SIS stands for "school information service"
@@ -34,4 +44,5 @@ service SIService {
   rpc GetCredentialStatus(GetCredentialStatusRequest) returns (GetCredentialStatusResponse);
   rpc ProvideCredential(ProvideCredentialRequest) returns (ProvideCredentialResponse);
   rpc GetData(GetDataRequest) returns (GetDataResponse);
+  rpc RefreshData(RefreshDataRequest) returns (RefreshDataResponse);
 }

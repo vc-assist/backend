@@ -129,3 +129,4 @@ func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *con
 
 	return res, nil
 }
+

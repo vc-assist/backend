@@ -333,3 +333,4 @@ func (c InstrumentedLinkerServiceClient) SuggestLinks(ctx context.Context, req *
 
 	return res, nil
 }
+

@@ -11,7 +11,7 @@ import (
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
 )
 
-func Scrape(ctx context.Context, client *powerschool.Client) (*sisv1.GetDataResponse, error) {
+func Scrape(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error) {
 	allStudents, err := client.GetAllStudents(ctx)
 	if err != nil {
 		return nil, err

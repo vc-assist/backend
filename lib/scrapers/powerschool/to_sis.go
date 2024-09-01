@@ -198,7 +198,7 @@ func ToSISData(
 	profile StudentProfile,
 	data *GetStudentDataResponse,
 	courseMeetings []CourseMeeting,
-) *sisv1.GetDataResponse {
+) *sisv1.Data {
 	gpa, err := strconv.ParseFloat(profile.CurrentGpa, 32)
 	if err != nil {
 		slog.WarnContext(ctx, "parse gpa", "gpa", profile.CurrentGpa, "err", err)
@@ -206,7 +206,7 @@ func ToSISData(
 
 	if len(data.Student.Courses) == 0 {
 		slog.WarnContext(ctx, "student data unavailable, only returning profile...")
-		return &sisv1.GetDataResponse{
+		return &sisv1.Data{
 			Profile: &sisv1.StudentProfile{
 				Guid:       profile.Guid,
 				CurrentGpa: float32(gpa),
@@ -222,7 +222,7 @@ func ToSISData(
 	schools := toSisSchools(profile.Schools)
 	bulletins := toSisBulletins(profile.Bulletins)
 
-	return &sisv1.GetDataResponse{
+	return &sisv1.Data{
 		Profile: &sisv1.StudentProfile{
 			Guid:       profile.Guid,
 			CurrentGpa: float32(gpa),
