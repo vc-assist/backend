@@ -3,12 +3,27 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
 	"time"
 
+	"github.com/lmittmann/tint"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+func InitSlog(verbose bool) {
+	level := slog.LevelInfo
+	if verbose {
+		level = slog.LevelDebug
+	}
+	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      level,
+		TimeFormat: time.Kitchen,
+	}))
+	slog.SetDefault(logger)
+}
 
 var globalTracerProvider *trace.TracerProvider
 
@@ -36,7 +51,7 @@ func (w *wrappedTracer) getTracer() oteltrace.Tracer {
 }
 
 func (w *wrappedTracer) Start(ctx context.Context, spanName string, opts ...oteltrace.SpanStartOption) (context.Context, oteltrace.Span) {
-	return w.Start(ctx, fmt.Sprintf("%s.%s", w.libraryName, spanName), opts...)
+	return w.getTracer().Start(ctx, fmt.Sprintf("%s.%s", w.libraryName, spanName), opts...)
 }
 
 func Tracer(libraryName string) TracerLike {

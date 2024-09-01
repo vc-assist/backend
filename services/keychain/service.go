@@ -19,7 +19,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/go-resty/resty/v2"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 

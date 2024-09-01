@@ -163,4 +163,3 @@ func (c InstrumentedMoodleServiceClient) GetChapterContent(ctx context.Context, 
 
 	return res, nil
 }
-

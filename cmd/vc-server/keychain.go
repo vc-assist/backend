@@ -7,7 +7,6 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/services/keychain"
-	"vcassist-backend/services/keychain/db"
 )
 
 type KeychainConfig struct {
@@ -15,7 +14,7 @@ type KeychainConfig struct {
 }
 
 func InitKeychain(ctx context.Context, mux *http.ServeMux, cfg KeychainConfig) (keychainv1connect.InstrumentedKeychainServiceClient, error) {
-	db, err := cfg.Database.OpenDB(db.Schema)
+	db, err := cfg.Database.OpenDB()
 	if err != nil {
 		return keychainv1connect.NewInstrumentedKeychainServiceClient(nil), err
 	}

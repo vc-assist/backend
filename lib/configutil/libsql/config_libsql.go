@@ -3,11 +3,12 @@ package configlibsql
 import (
 	"database/sql"
 	"fmt"
-	"net/url"
 	"os"
+	"time"
 	devenv "vcassist-backend/dev/env"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	"github.com/tursodatabase/go-libsql"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -17,16 +18,16 @@ type Struct struct {
 	AuthToken string `json:"auth_token"`
 }
 
-func (config Struct) OpenDB(schema string) (*sql.DB, error) {
-	if config.Url == "" {
-		if config.File == "" {
-			return nil, fmt.Errorf("a subpath was not specified")
-		}
-		dbpath, statErr := devenv.ResolvePath(config.File)
-		if statErr != nil {
-			return nil, statErr
-		}
+func (config Struct) OpenDB() (*sql.DB, error) {
+	if config.File == "" {
+		return nil, fmt.Errorf("a path was not specified")
+	}
+	dbpath, statErr := devenv.ResolvePath(config.File)
+	if statErr != nil {
+		return nil, statErr
+	}
 
+	if config.Url == "" {
 		_, statErr = os.Stat(dbpath)
 		isNewDb := os.IsNotExist(statErr)
 		if isNewDb {
@@ -37,30 +38,23 @@ func (config Struct) OpenDB(schema string) (*sql.DB, error) {
 			f.Close()
 		}
 
-		db, err := sql.Open("libsql", fmt.Sprintf("file:%s", dbpath))
+		db, err := sql.Open("sqlite", dbpath)
 		if err != nil {
 			return nil, err
-		}
-
-		if isNewDb && schema != "" {
-			_, err := db.Exec(schema)
-			if err != nil {
-				return nil, err
-			}
 		}
 
 		return db, nil
 	}
 
-	urlQuery := ""
-	if config.AuthToken != "" {
-		values := url.Values{"authToken": []string{config.AuthToken}}
-		urlQuery = "?" + values.Encode()
-	}
-
-	db, err := sql.Open("libsql", config.Url+urlQuery)
+	connector, err := libsql.NewEmbeddedReplicaConnector(
+		dbpath,
+		config.Url,
+		libsql.WithAuthToken(config.AuthToken),
+		libsql.WithReadYourWrites(true),
+		libsql.WithSyncInterval(time.Minute),
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create libsql connector: %w", err)
 	}
-	return db, nil
+	return sql.OpenDB(connector), nil
 }

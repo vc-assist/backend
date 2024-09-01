@@ -6,7 +6,6 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
-	"vcassist-backend/services/auth/db"
 )
 
 type AuthSmtpConfig struct {
@@ -27,7 +26,7 @@ type AuthConfig struct {
 }
 
 func InitAuth(mux *http.ServeMux, cfg AuthConfig) error {
-	database, err := cfg.Database.OpenDB(db.Schema)
+	database, err := cfg.Database.OpenDB()
 	if err != nil {
 		return err
 	}

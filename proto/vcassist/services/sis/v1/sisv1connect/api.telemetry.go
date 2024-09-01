@@ -129,4 +129,3 @@ func (c InstrumentedSIServiceClient) GetData(ctx context.Context, req *connect.R
 
 	return res, nil
 }
-

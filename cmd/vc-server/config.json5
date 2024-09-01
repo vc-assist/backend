@@ -31,13 +31,12 @@
 		// this value (in the format of "<Basic/Bearer> <token>") when handling requests
 		access_token: "",
 	},
-	gradesnapshots: {
-		database: {
-			file: "<dev_state>/gradesnapshots_service.db"
-		},
-	},
 	vcsis: {
+		database: {
+			file: "<dev_state>/vcsis.db"
+		},
 		powerschool_base_url: "https://vcsnet.powerschool.com",
+		keychain_service_baseurl: "http://127.0.0.1:8333",
 		// this is the OAuth configuration for valley christian schools
 		// obtained by intercepting network requests from the powerschool
 		// android app
@@ -46,7 +45,6 @@
 			refresh_url: "https://oauth2.googleapis.com/token",
 			client_id: "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 		},
-		keychain_service_baseurl: "http://127.0.0.1:8333"
 	},
 	vcmoodle_scraper: {
 		database: {

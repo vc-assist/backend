@@ -6,7 +6,6 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/vcmoodle/v1/vcmoodlev1connect"
-	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/server"
 )
 
@@ -19,7 +18,7 @@ func InitVCMoodleServer(
 	cfg VCMoodleServerConfig,
 	keychain keychainv1connect.KeychainServiceClient,
 ) error {
-	database, err := cfg.Database.OpenDB(db.Schema)
+	database, err := cfg.Database.OpenDB()
 	if err != nil {
 		return err
 	}

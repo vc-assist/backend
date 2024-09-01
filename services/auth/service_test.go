@@ -2,12 +2,12 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"io"
 	"log"
-	"regexp"
+	"strings"
 	"testing"
 	"vcassist-backend/lib/telemetry"
-	"vcassist-backend/lib/testutil"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 
@@ -21,7 +21,6 @@ import (
 
 	_ "embed"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 
@@ -29,10 +28,15 @@ import (
 var schemaSql string
 
 func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
-	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
-		Name:     "services/auth",
-		DbSchema: schemaSql,
-	})
+	cleanup := telemetry.SetupForTesting("test:auth")
+	sqlite, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = sqlite.Exec(schemaSql)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// suppress logging
 	testcontainers.Logger = log.New(io.Discard, "", 0)
@@ -52,7 +56,7 @@ func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
 		t.Fatal(err)
 	}
 
-	service := NewService(res.DB, Options{
+	service := NewService(sqlite, Options{
 		Smtp: SmtpConfig{
 			Server:       "localhost",
 			Port:         1025,
@@ -72,8 +76,6 @@ func setup(t testing.TB) (authv1connect.AuthServiceClient, func()) {
 
 var globalClient = resty.New()
 
-var codeRegex = regexp.MustCompile(`^\w{8}$`)
-
 func getVerificationCodeFromEmail(t testing.TB) string {
 	res, err := globalClient.R().
 		Get("http://127.0.0.1:1090/messages/1.plain")
@@ -81,10 +83,7 @@ func getVerificationCodeFromEmail(t testing.TB) string {
 		t.Fatal(err)
 	}
 	contents := res.String()
-	code := codeRegex.FindString(contents)
-	t.Log("message contents", contents)
-	t.Log("verification code", code)
-	return code
+	return strings.Split(contents, "\n\n")[1]
 }
 
 func TestLoginFlow(t *testing.T) {
