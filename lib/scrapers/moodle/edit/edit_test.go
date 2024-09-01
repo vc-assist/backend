@@ -40,11 +40,11 @@ type TestConfig struct {
 func setup(t testing.TB, ctx context.Context) Course {
 	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("moodle/core.json5")
 	if err != nil {
-		t.Skip("skipping moodle/core test because there is no valid test config at .dev/state/moodle/core.json5")
+		t.Fatal("there is no valid test config at dev/.state/moodle/core.json5")
 	}
 	config, err := devenv.GetStateConfig[TestConfig]("moodle/edit.json5")
 	if err != nil {
-		t.Skip("skipping moodle/edit test because there is no valid test config at .dev/state/moodle/edit.json5")
+		t.Fatal("there is no valid test config at dev/.state/moodle/edit.json5")
 	}
 	coreClient, viewClient := setupClients(t, ctx, coreConfig)
 

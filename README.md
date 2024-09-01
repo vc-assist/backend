@@ -28,7 +28,6 @@
    - `configutil/` - additional utilities for reading and resolving configuration.
    - `htmlutil/` - additional utilities for working with HTML.
    - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
-   - `testutil/` - utilities for testing
    - `restyutil/` - utilities for the `resty` HTTP client
    - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
    - `telemetry/` - telemetry setup/teardown as well as misc. instrumentation utilities
@@ -83,7 +82,7 @@ Here are some commands relating to linting and code generation that will probabl
 
 ## Testing
 
-- `go test -v ./lib/... ./services/auth ./services/vcmoodle` - runs all tests that don't require manual interaction
+- `go test ./lib/... ./services/auth` - runs all tests that don't require manual interaction
 - `go test -v ./services/vcsis` - runs the tests for powerschool scraping, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 - `go clean -testcache` - cleans test cache, may be useful if telemetry isn't working
 

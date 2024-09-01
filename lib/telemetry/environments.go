@@ -14,11 +14,13 @@ func SetupForTesting(serviceName string) func() {
 	if setupAlready {
 		return func() {}
 	}
-	ctx := context.WithValue(context.Background(), "telemetry_test_env", struct{}{})
-	err := SetupFromEnv(ctx, serviceName)
+
+	InitSlog(true)
+	err := SetupFromEnv(context.Background(), serviceName)
 	if err != nil {
 		panic(err)
 	}
+
 	return func() {
 		err = Shutdown(context.Background())
 		if err != nil {

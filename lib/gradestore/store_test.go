@@ -2,27 +2,33 @@ package gradestore
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 	"vcassist-backend/lib/gradestore/db"
-	"vcassist-backend/lib/testutil"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 
 	"github.com/stretchr/testify/require"
 
 	_ "embed"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 
 func TestStore(t *testing.T) {
-	setup, cleanup := testutil.SetupService(t, testutil.ServiceParams{
-		Name:     "test/gradestore",
-		DbSchema: db.Schema,
-	})
+	cleanup := telemetry.SetupForTesting("test:gradestore")
 	defer cleanup()
-	store := NewStore(setup.DB)
+
+	sqlite, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = sqlite.Exec(db.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := NewStore(sqlite)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

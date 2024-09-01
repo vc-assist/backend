@@ -7,7 +7,6 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker"
-	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
 )
@@ -18,7 +17,7 @@ type LinkerConfig struct {
 }
 
 func InitLinker(mux *http.ServeMux, cfg LinkerConfig) error {
-	db, err := cfg.Database.OpenDB(db.Schema)
+	db, err := cfg.Database.OpenDB()
 	if err != nil {
 		return err
 	}

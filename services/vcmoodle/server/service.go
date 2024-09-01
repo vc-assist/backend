@@ -15,7 +15,6 @@ import (
 
 	"connectrpc.com/connect"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 

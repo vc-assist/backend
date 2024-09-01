@@ -95,4 +95,3 @@ func (c InstrumentedGradeSnapshotsServiceClient) Pull(ctx context.Context, req *
 
 	return res, nil
 }
-

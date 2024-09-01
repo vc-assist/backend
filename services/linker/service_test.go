@@ -2,10 +2,11 @@ package linker
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
-	"vcassist-backend/lib/testutil"
+	"vcassist-backend/lib/telemetry"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/services/linker/db"
 
@@ -181,12 +182,18 @@ var testWeightKeys = []string{
 }
 
 func TestService(t *testing.T) {
-	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
-		Name:     "services/linker",
-		DbSchema: db.Schema,
-	})
+	cleanup := telemetry.SetupForTesting("test:linker")
 	defer cleanup()
-	service := NewService(res.DB)
+
+	sqlite, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = sqlite.Exec(db.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(sqlite)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -223,7 +230,7 @@ func TestService(t *testing.T) {
 		require.Equal(t, len(res.Msg.GetRightKeys()), 0, "expected no explicit links to exist")
 	}
 
-	_, err := service.AddExplicitLink(ctx, &connect.Request[linkerv1.AddExplicitLinkRequest]{
+	_, err = service.AddExplicitLink(ctx, &connect.Request[linkerv1.AddExplicitLinkRequest]{
 		Msg: &linkerv1.AddExplicitLinkRequest{
 			Left: &linkerv1.ExplicitKey{
 				Set: "powerschool",

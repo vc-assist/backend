@@ -2,25 +2,25 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"os"
 	"time"
+	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/configutil"
-	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/services/vcmoodle/db"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/services/vcmoodle/scraper"
 
-	"github.com/lmittmann/tint"
+	_ "modernc.org/sqlite"
 )
 
 type Config struct {
-	Database configlibsql.Struct `json:"database"`
-	Username string              `json:"username"`
-	Password string              `json:"password"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func createClient(username, password string) view.Client {
@@ -48,20 +48,23 @@ func createClient(username, password string) view.Client {
 }
 
 func main() {
-	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
-		Level:      slog.LevelDebug,
-		TimeFormat: time.Kitchen,
-	}))
-	slog.SetDefault(logger)
+	telemetry.InitSlog(true)
 
 	cfg, err := configutil.ReadConfig[Config]("config.json5")
 	if err != nil {
 		serviceutil.Fatal("failed to read config", err)
 	}
-	out, err := cfg.Database.OpenDB(db.Schema)
+
+	path, err := devenv.ResolvePath("<dev_state>/vcsmoodle_test.db")
+	if err != nil {
+		serviceutil.Fatal("failed to resolve db path", err)
+	}
+	os.Remove(path)
+	out, err := sql.Open("sqlite", path)
 	if err != nil {
 		serviceutil.Fatal("failed to open db", err)
 	}
+	defer out.Close()
 
 	client := createClient(cfg.Username, cfg.Password)
 

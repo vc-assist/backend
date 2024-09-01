@@ -9,7 +9,6 @@ import (
 	"vcassist-backend/lib/gradestore/db"
 	"vcassist-backend/lib/timezone"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 

@@ -11,7 +11,7 @@ type Config struct {
 	Auth            AuthConfig            `json:"auth"`
 	Keychain        KeychainConfig        `json:"keychain"`
 	Linker          LinkerConfig          `json:"linker"`
-	Powerservice    VCSisConfig           `json:"powerservice"`
+	VCSis           VCSisConfig           `json:"vcsis"`
 	VCMoodleScraper VCMoodleScraperConfig `json:"vcmoodle_scraper"`
 	VCMoodleServer  VCMoodleServerConfig  `json:"vcmoodle_server"`
 }
@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		serviceutil.Fatal("init vcmoodle server", err)
 	}
-	InitVCSis(mux, cfg.Powerservice, keychain)
+	InitVCSis(mux, cfg.VCSis, keychain)
 
 	go serviceutil.StartHttpServer(8000, mux)
 	<-ctx.Done()

@@ -19,18 +19,11 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/lmittmann/tint"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
 )
 
 func init() {
-	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
-		Level:      slog.LevelDebug,
-		TimeFormat: time.Kitchen,
-	}))
-	slog.SetDefault(logger)
-
 	SetRestyInstrumentOutput(restyutil.NewFilesystemOutput(
 		"<dev_state>/tests/vcsis_scrape/resty",
 	))
