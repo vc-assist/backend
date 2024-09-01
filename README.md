@@ -5,25 +5,26 @@
 ## Project structure
 
 - `docs/` - additional documentation
+- `proto/` - protobuf definitions for services
 - `services/` - gRPC services
    - `auth/` - handles the authentication flow, issuing of tokens, and verification codes
       - `verifier/` - exposes utilities to verify authentication tokens
    - `keychain/` - handles storing, retrieving, and refreshing user credentials
-   - `powerservice/` - fetches a student's powerschool data given a valid key in keychain
-   - `gradesnapshots/` - stores and retrieves grade snapshots
    - `linker/` - does data linking
-   - `vcsmoodle/` - stuff that power quick moodle
+   - `vcsis/` - implementation of a SIS service for Valley Christian Schools
+   - `vcmoodle/` - stuff that power quick moodle
       - `server/` - the service that provides an API for reading moodle data
       - `scraper/` - a library that makes it easy to scrape moodle data
 - `cmd/` - all official entrypoints/build targets
-   - `vcs-server/` - a single binary monolith for Valley Christian Schools that strings together all the services under `services/`
-   - `vcsmoodle-test/` - a testing utility to scrape all the moodle courses
+   - `vc-server/` - a single binary monolith for Valley Christian Schools that strings together all the services under `services/`
+   - `vcmoodle-test/` - a testing utility to scrape all the moodle courses
    - `linker-cli/` - the CLI tool for viewing and editing data linker behavior
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms.
       - `moodle/` - [moodle](https://moodle.org/)
       - `powerschool/` - [powerschool](https://atlasgo.io/)
       - `vcsnet/` - [vcs.net](https://vcs.net)
+   - `gradestore/` - a simple time-series store for grade data.
    - `configutil/` - additional utilities for reading and resolving configuration.
    - `htmlutil/` - additional utilities for working with HTML.
    - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
@@ -82,7 +83,7 @@ Here are some commands relating to linting and code generation that will probabl
 
 ## Testing
 
-- `go test -v ./lib/... ./services/auth ./services/vcsmoodle` - runs all tests that don't require manual interaction
-- `go test -v ./services/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test -v ./lib/... ./services/auth ./services/vcmoodle` - runs all tests that don't require manual interaction
+- `go test -v ./services/vcsis` - runs the tests for powerschool scraping, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 - `go clean -testcache` - cleans test cache, may be useful if telemetry isn't working
 
