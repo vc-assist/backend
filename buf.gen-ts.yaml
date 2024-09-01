@@ -12,3 +12,4 @@ inputs:
       - ./proto/vcassist/services/auth
       - ./proto/vcassist/services/sis
       - ./proto/vcassist/services/vcmoodle
+      - ./proto/vcassist/services/keychain
