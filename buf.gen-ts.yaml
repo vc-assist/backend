@@ -9,5 +9,6 @@ plugins:
 inputs:
   - directory: proto
     paths:
-      - ./proto/vcassist/services/studentdata
       - ./proto/vcassist/services/auth
+      - ./proto/vcassist/services/sis
+      - ./proto/vcassist/services/vcmoodle

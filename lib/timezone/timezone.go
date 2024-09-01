@@ -18,3 +18,10 @@ func init() {
 func Now() time.Time {
 	return time.Now().In(Location)
 }
+
+// gets the start and end of the current week
+func GetCurrentWeek(now time.Time) (start time.Time, stop time.Time) {
+	start = now.Add(-time.Hour * 24 * time.Duration(now.Weekday()))
+	stop = now.Add(time.Hour * 24 * time.Duration(time.Saturday-now.Weekday()))
+	return start, stop
+}

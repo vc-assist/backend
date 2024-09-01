@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package vcassist.services.sis.v1;
+
+import "vcassist/services/sis/v1/data.proto";
+import "vcassist/services/keychain/v1/auth_flow.proto";
+
+// GetCredentialStatus
+message GetCredentialStatusRequest {}
+message GetCredentialStatusResponse {
+  vcassist.services.keychain.v1.CredentialStatus status = 1;
+}
+
+// ProvideCredential
+message ProvideCredentialRequest {
+  oneof credential {
+    vcassist.services.keychain.v1.OAuthTokenProvision token = 1;
+    vcassist.services.keychain.v1.UsernamePasswordProvision username_password = 2;
+  }
+}
+message ProvideCredentialResponse {}
+
+// GetData
+message GetDataRequest {}
+message GetDataResponse {
+  StudentProfile profile = 1;
+  repeated SchoolData schools = 2;
+  repeated Bulletin bulletins = 3;
+  repeated CourseData courses = 4;
+}
+
+// SIS stands for "school information service"
+service SIService {
+  rpc GetCredentialStatus(GetCredentialStatusRequest) returns (GetCredentialStatusResponse);
+  rpc ProvideCredential(ProvideCredentialRequest) returns (ProvideCredentialResponse);
+  rpc GetData(GetDataRequest) returns (GetDataResponse);
+}
