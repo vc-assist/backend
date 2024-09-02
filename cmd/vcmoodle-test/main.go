@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
-	"os"
+	"runtime"
 	"time"
 	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/configutil"
@@ -15,6 +15,10 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/services/vcmoodle/scraper"
 
+	"net/http"
+	_ "net/http/pprof"
+
+	"github.com/pkg/profile"
 	_ "modernc.org/sqlite"
 )
 
@@ -47,7 +51,28 @@ func createClient(username, password string) view.Client {
 	return client
 }
 
+func startProfiling() {
+	go func() {
+		var memStats runtime.MemStats
+		ticker := time.NewTicker(time.Second)
+		for {
+			<-ticker.C
+			runtime.ReadMemStats(&memStats)
+			memoryUsageMb := int64(memStats.Alloc / 1_000_000)
+			slog.Debug("memory usage", "megabytes", memoryUsageMb)
+		}
+	}()
+
+	defer profile.Start(profile.MemProfile).Stop()
+	go func() {
+		http.ListenAndServe(":8080", nil)
+	}()
+}
+
 func main() {
+	startProfiling()
+
+	telemetry.SetupFromEnv(context.Background(), "vcmoodle_test")
 	telemetry.InitSlog(true)
 
 	cfg, err := configutil.ReadConfig[Config]("config.json5")
@@ -59,7 +84,6 @@ func main() {
 	if err != nil {
 		serviceutil.Fatal("failed to resolve db path", err)
 	}
-	os.Remove(path)
 	out, err := sql.Open("sqlite", path)
 	if err != nil {
 		serviceutil.Fatal("failed to open db", err)

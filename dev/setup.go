@@ -80,6 +80,8 @@ func CreateDevDatabases() error {
 	errs = append(errs, err)
 	err = createDb("dev/.state/vcmoodle.db", vcmoodledb.Schema)
 	errs = append(errs, err)
+	err = createDb("dev/.state/vcmoodle_test.db", vcmoodledb.Schema)
+	errs = append(errs, err)
 
 	if len(errs) == 0 {
 		return nil

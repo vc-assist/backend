@@ -16,6 +16,8 @@ require (
 	github.com/lmittmann/tint v1.0.5
 	github.com/lqr471814/protocolreg v0.0.0-20240623001501-4610d908ae22
 	github.com/mazen160/go-random v0.0.0-20210308102632-d2b501c85c03
+	github.com/pkg/profile v1.7.0
+	github.com/remychantenay/slog-otel v1.3.2
 	github.com/shirou/gopsutil/v4 v4.24.7
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
@@ -53,11 +55,13 @@ require (
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/google/pprof v0.0.0-20240409012703-83162a5b38cd // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
@@ -79,7 +83,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/remychantenay/slog-otel v1.3.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
