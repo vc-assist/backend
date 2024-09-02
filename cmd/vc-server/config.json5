@@ -45,6 +45,7 @@
 			refresh_url: "https://oauth2.googleapis.com/token",
 			client_id: "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
 		},
+		weights_file: "weights.json"
 	},
 	vcmoodle_scraper: {
 		database: {

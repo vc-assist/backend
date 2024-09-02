@@ -59,7 +59,14 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[link
 }
 
 func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linkerv1.AddExplicitLinkRequest]) (*connect.Response[linkerv1.AddExplicitLinkResponse], error) {
-	err := s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	txqry := s.qry.WithTx(tx)
+
+	err = txqry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
 		Leftset:  req.Msg.GetLeft().GetSet(),
 		Leftkey:  req.Msg.GetLeft().GetKey(),
 		Rightset: req.Msg.GetRight().GetSet(),
@@ -68,12 +75,17 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 	if err != nil {
 		return nil, err
 	}
-	err = s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
+	err = txqry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
 		Rightset: req.Msg.GetLeft().GetSet(),
 		Rightkey: req.Msg.GetLeft().GetKey(),
 		Leftset:  req.Msg.GetRight().GetSet(),
 		Leftkey:  req.Msg.GetRight().GetKey(),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +94,14 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 }
 
 func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[linkerv1.DeleteExplicitLinkRequest]) (*connect.Response[linkerv1.DeleteExplicitLinkResponse], error) {
-	err := s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	txqry := s.qry.WithTx(tx)
+
+	err = txqry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
 		Leftset:  req.Msg.GetLeft().GetSet(),
 		Leftkey:  req.Msg.GetLeft().GetKey(),
 		Rightset: req.Msg.GetRight().GetSet(),
@@ -91,12 +110,17 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 	if err != nil {
 		return nil, err
 	}
-	err = s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
+	err = txqry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
 		Leftset:  req.Msg.GetRight().GetSet(),
 		Leftkey:  req.Msg.GetRight().GetKey(),
 		Rightset: req.Msg.GetLeft().GetSet(),
 		Rightkey: req.Msg.GetLeft().GetKey(),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -162,16 +186,16 @@ func (s Service) DeleteKnownKeys(ctx context.Context, req *connect.Request[linke
 }
 
 func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
+	left := req.Msg.GetSrc().GetName()
+	leftKeys := req.Msg.GetSrc().GetKeys()
+	right := req.Msg.GetDst().GetName()
+	rightKeys := req.Msg.GetDst().GetKeys()
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-
-	left := req.Msg.GetSrc().GetName()
-	leftKeys := req.Msg.GetSrc().GetKeys()
-	right := req.Msg.GetDst().GetName()
-	rightKeys := req.Msg.GetDst().GetKeys()
 
 	txqry := s.qry.WithTx(tx)
 	err = txqry.CreateKnownSet(ctx, left)
