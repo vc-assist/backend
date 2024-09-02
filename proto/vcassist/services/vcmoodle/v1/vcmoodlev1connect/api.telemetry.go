@@ -22,6 +22,7 @@ var (
 
 type InstrumentedMoodleServiceClient struct {
 	inner MoodleServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedMoodleServiceClient(inner MoodleServiceClient) InstrumentedMoodleServiceClient {
@@ -32,7 +33,7 @@ func (c InstrumentedMoodleServiceClient) GetAuthStatus(ctx context.Context, req 
 	ctx, span := MoodleServiceTracer.Start(ctx, "GetAuthStatus")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -49,7 +50,7 @@ func (c InstrumentedMoodleServiceClient) GetAuthStatus(ctx context.Context, req 
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -66,7 +67,7 @@ func (c InstrumentedMoodleServiceClient) ProvideUsernamePassword(ctx context.Con
 	ctx, span := MoodleServiceTracer.Start(ctx, "ProvideUsernamePassword")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -83,7 +84,7 @@ func (c InstrumentedMoodleServiceClient) ProvideUsernamePassword(ctx context.Con
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -100,7 +101,7 @@ func (c InstrumentedMoodleServiceClient) GetCourses(ctx context.Context, req *co
 	ctx, span := MoodleServiceTracer.Start(ctx, "GetCourses")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -117,7 +118,7 @@ func (c InstrumentedMoodleServiceClient) GetCourses(ctx context.Context, req *co
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -134,7 +135,7 @@ func (c InstrumentedMoodleServiceClient) GetChapterContent(ctx context.Context, 
 	ctx, span := MoodleServiceTracer.Start(ctx, "GetChapterContent")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -151,7 +152,7 @@ func (c InstrumentedMoodleServiceClient) GetChapterContent(ctx context.Context, 
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))

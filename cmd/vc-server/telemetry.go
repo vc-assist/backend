@@ -22,7 +22,10 @@ func InitTelemetry(ctx context.Context, verbose bool) {
 	if err != nil {
 		serviceutil.Fatal("setup telemetry", err)
 	}
-	defer telemetry.Shutdown(context.Background())
+	go func() {
+		<-ctx.Done()
+		telemetry.Shutdown(context.Background())
+	}()
 	telemetry.InstrumentPerfStats(ctx)
 
 	if !verbose {

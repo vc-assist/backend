@@ -142,7 +142,7 @@ type actionArgs interface {
 type actionList []action
 
 func (a actionList) do(ctx context.Context, course Course) (*resty.Response, error) {
-	ctx, span := tracer.Start(ctx, "action:do")
+	ctx, span := tracer.Start(ctx, "action.do")
 	defer span.End()
 
 	if len(a) == 0 {

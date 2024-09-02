@@ -22,6 +22,7 @@ var (
 
 type InstrumentedGradeSnapshotsServiceClient struct {
 	inner GradeSnapshotsServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedGradeSnapshotsServiceClient(inner GradeSnapshotsServiceClient) InstrumentedGradeSnapshotsServiceClient {
@@ -32,7 +33,7 @@ func (c InstrumentedGradeSnapshotsServiceClient) Push(ctx context.Context, req *
 	ctx, span := GradeSnapshotsServiceTracer.Start(ctx, "Push")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -49,7 +50,7 @@ func (c InstrumentedGradeSnapshotsServiceClient) Push(ctx context.Context, req *
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -66,7 +67,7 @@ func (c InstrumentedGradeSnapshotsServiceClient) Pull(ctx context.Context, req *
 	ctx, span := GradeSnapshotsServiceTracer.Start(ctx, "Pull")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -83,7 +84,7 @@ func (c InstrumentedGradeSnapshotsServiceClient) Pull(ctx context.Context, req *
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))

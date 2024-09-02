@@ -88,7 +88,7 @@ func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) erro
 		return err
 	}
 
-	slog.DebugContext(ctx, "new token", "token", string(newTokenJson))
+	slog.DebugContext(ctx, "refreshed oauth token", "new_token", string(newTokenJson))
 
 	err = s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
 		ID:         originalRow.ID,

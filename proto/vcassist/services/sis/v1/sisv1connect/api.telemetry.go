@@ -22,6 +22,7 @@ var (
 
 type InstrumentedSIServiceClient struct {
 	inner SIServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedSIServiceClient(inner SIServiceClient) InstrumentedSIServiceClient {
@@ -32,7 +33,7 @@ func (c InstrumentedSIServiceClient) GetCredentialStatus(ctx context.Context, re
 	ctx, span := SIServiceTracer.Start(ctx, "GetCredentialStatus")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -49,7 +50,7 @@ func (c InstrumentedSIServiceClient) GetCredentialStatus(ctx context.Context, re
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -66,7 +67,7 @@ func (c InstrumentedSIServiceClient) ProvideCredential(ctx context.Context, req 
 	ctx, span := SIServiceTracer.Start(ctx, "ProvideCredential")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -83,7 +84,7 @@ func (c InstrumentedSIServiceClient) ProvideCredential(ctx context.Context, req 
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -100,7 +101,7 @@ func (c InstrumentedSIServiceClient) GetData(ctx context.Context, req *connect.R
 	ctx, span := SIServiceTracer.Start(ctx, "GetData")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -117,7 +118,7 @@ func (c InstrumentedSIServiceClient) GetData(ctx context.Context, req *connect.R
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -134,7 +135,7 @@ func (c InstrumentedSIServiceClient) RefreshData(ctx context.Context, req *conne
 	ctx, span := SIServiceTracer.Start(ctx, "RefreshData")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -151,7 +152,7 @@ func (c InstrumentedSIServiceClient) RefreshData(ctx context.Context, req *conne
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
