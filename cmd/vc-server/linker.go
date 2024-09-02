@@ -16,19 +16,21 @@ type LinkerConfig struct {
 	AccessToken string              `json:"access_token"`
 }
 
-func InitLinker(mux *http.ServeMux, cfg LinkerConfig) error {
+func InitLinker(mux *http.ServeMux, cfg LinkerConfig) (linkerv1connect.InstrumentedLinkerServiceClient, error) {
 	db, err := cfg.Database.OpenDB()
 	if err != nil {
-		return err
+		return linkerv1connect.NewInstrumentedLinkerServiceClient(nil), err
 	}
 	linkerv1connect.LinkerServiceTracer = telemetry.Tracer("linker")
+
+	service := linkerv1connect.NewInstrumentedLinkerServiceClient(
+		linker.NewService(db),
+	)
 	mux.Handle(linkerv1connect.NewLinkerServiceHandler(
-		linkerv1connect.NewInstrumentedLinkerServiceClient(
-			linker.NewService(db),
-		),
+		service,
 		connect.WithInterceptors(
 			serviceutil.VerifyAccessTokenInterceptor(cfg.AccessToken),
 		),
 	))
-	return nil
+	return service, nil
 }

@@ -55,7 +55,7 @@ func main() {
 		serviceutil.Fatal("failed to read config", err)
 	}
 
-	path, err := devenv.ResolvePath("<dev_state>/vcsmoodle_test.db")
+	path, err := devenv.ResolvePath("<dev_state>/vcmoodle_test.db")
 	if err != nil {
 		serviceutil.Fatal("failed to resolve db path", err)
 	}

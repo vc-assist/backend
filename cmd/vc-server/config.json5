@@ -15,17 +15,17 @@
 			// you should specify "file" because libsql will make a local
 			// copy of the remote database and push updates to it
 			// (this is known as a "embedded replica")
-			file: "<dev_state>/auth_service.db"
+			file: "<dev_state>/auth.db"
 		}
 	},
 	keychain: {
 		database: {
-			file: "<dev_state>/keychain_service.db"
+			file: "<dev_state>/keychain.db"
 		},
 	},
 	linker: {
 		database: {
-			file: "<dev_state>/linker_service.db"
+			file: "<dev_state>/linker.db"
 		},
 		// specify this value to require the `Authorization` header to be specified with
 		// this value (in the format of "<Basic/Bearer> <token>") when handling requests

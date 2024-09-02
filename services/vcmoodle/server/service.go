@@ -34,7 +34,7 @@ func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) 
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcmoodlev1.GetAuthStatusResponse], error) {
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 
 	existing, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{
@@ -54,7 +54,7 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcmoodl
 }
 
 func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Request[vcmoodlev1.ProvideUsernamePasswordRequest]) (*connect.Response[vcmoodlev1.ProvideUsernamePasswordResponse], error) {
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 
 	_, err := s.keychain.SetUsernamePassword(ctx, &connect.Request[keychainv1.SetUsernamePasswordRequest]{
 		Msg: &keychainv1.SetUsernamePasswordRequest{
@@ -98,7 +98,7 @@ func pbResourceType(resourceType int) vcmoodlev1.ResourceType {
 }
 
 func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1.GetCoursesRequest]) (*connect.Response[vcmoodlev1.GetCoursesResponse], error) {
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 
 	res, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{

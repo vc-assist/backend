@@ -31,15 +31,15 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	err = InitAuth(mux, cfg.Auth)
+	verify, err := InitAuth(mux, cfg.Auth)
 	if err != nil {
 		serviceutil.Fatal("init auth", err)
 	}
-	err = InitLinker(mux, cfg.Linker)
+	linker, err := InitLinker(mux, cfg.Linker)
 	if err != nil {
 		serviceutil.Fatal("init linker", err)
 	}
-	keychain, err := InitKeychain(ctx, mux, cfg.Keychain)
+	keychain, err := InitKeychain(ctx, cfg.Keychain)
 	if err != nil {
 		serviceutil.Fatal("init keychain", err)
 	}
@@ -48,11 +48,14 @@ func main() {
 	if err != nil {
 		serviceutil.Fatal("init vcmoodle scraper", err)
 	}
-	err = InitVCMoodleServer(mux, cfg.VCMoodleServer, keychain)
+	err = InitVCMoodleServer(mux, verify, cfg.VCMoodleServer, keychain)
 	if err != nil {
 		serviceutil.Fatal("init vcmoodle server", err)
 	}
-	InitVCSis(mux, cfg.VCSis, keychain)
+	err = InitVCSis(mux, verify, cfg.VCSis, keychain, linker)
+	if err != nil {
+		serviceutil.Fatal("init vcsis", err)
+	}
 
 	go serviceutil.StartHttpServer(8000, mux)
 	<-ctx.Done()

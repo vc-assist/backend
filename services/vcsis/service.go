@@ -37,23 +37,44 @@ type Service struct {
 }
 
 type ServiceOptions struct {
-	Database *sql.DB
-	Keychain keychainv1connect.KeychainServiceClient
-	BaseUrl  string
-	OAuth    OAuthConfig
+	Database   *sql.DB
+	Keychain   keychainv1connect.KeychainServiceClient
+	Linker     linkerv1connect.LinkerServiceClient
+	BaseUrl    string
+	OAuth      OAuthConfig
+	WeightData WeightData
 }
 
 func NewService(opts ServiceOptions) Service {
 	if opts.OAuth.BaseLoginUrl == "" {
 		panic("empty base login url")
 	}
+	if opts.Database == nil {
+		panic("nil database")
+	}
+	if opts.Linker == nil {
+		panic("nil linker client")
+	}
+	if opts.Keychain == nil {
+		panic("nil keychain client")
+	}
+
+	weightCourseNames := make([]string, len(opts.WeightData))
+	i := 0
+	for course := range opts.WeightData {
+		weightCourseNames[i] = course
+		i++
+	}
 
 	s := Service{
-		qry:        db.New(opts.Database),
-		gradestore: gradestore.NewStore(opts.Database),
-		baseUrl:    opts.BaseUrl,
-		oauth:      opts.OAuth,
-		keychain:   opts.Keychain,
+		qry:               db.New(opts.Database),
+		gradestore:        gradestore.NewStore(opts.Database),
+		linker:            opts.Linker,
+		baseUrl:           opts.BaseUrl,
+		oauth:             opts.OAuth,
+		keychain:          opts.Keychain,
+		weightData:        opts.WeightData,
+		weightCourseNames: weightCourseNames,
 	}
 
 	go s.gradeSnapshotDaemon(context.Background())
@@ -64,7 +85,7 @@ func NewService(opts ServiceOptions) Service {
 
 func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[sisv1.GetCredentialStatusRequest]) (*connect.Response[sisv1.GetCredentialStatusResponse], error) {
 	span := trace.SpanFromContext(ctx)
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 
 	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
 		Msg: &keychainv1.GetOAuthRequest{
@@ -111,7 +132,7 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 }
 
 func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[sisv1.ProvideCredentialRequest]) (*connect.Response[sisv1.ProvideCredentialResponse], error) {
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 
 	client, err := scraper.NewClient(s.baseUrl)
 	if err != nil {
@@ -247,7 +268,7 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 }
 
 func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetDataRequest]) (*connect.Response[sisv1.GetDataResponse], error) {
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 	studentId := profile.Email
 
 	cached, err := s.getCachedData(ctx, studentId)
@@ -281,7 +302,7 @@ func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetData
 }
 
 func (s Service) RefreshData(ctx context.Context, req *connect.Request[sisv1.RefreshDataRequest]) (*connect.Response[sisv1.RefreshDataResponse], error) {
-	profile, _ := verifier.ProfileFromContext(ctx)
+	profile := verifier.ProfileFromContext(ctx)
 	studentId := profile.Email
 
 	data, err := s.scrape(ctx, studentId)
