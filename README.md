@@ -22,7 +22,7 @@
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms.
       - `moodle/` - [moodle](https://moodle.org/)
-      - `powerschool/` - [powerschool](https://atlasgo.io/)
+      - `powerschool/` - [powerschool](https://powerschool.com/)
       - `vcsnet/` - [vcs.net](https://vcs.net)
    - `gradestore/` - a simple time-series store for grade data.
    - `configutil/` - additional utilities for reading and resolving configuration.
