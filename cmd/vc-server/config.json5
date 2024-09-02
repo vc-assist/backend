@@ -35,7 +35,6 @@
 		database: {
 			file: "<dev_state>/vcsis.db"
 		},
-		keychain_service_baseurl: "http://127.0.0.1:8333",
 		powerschool_base_url: "https://vcsnet.powerschool.com",
 		// this is the OAuth configuration for valley christian schools
 		// obtained by intercepting network requests from the powerschool

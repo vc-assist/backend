@@ -66,10 +66,6 @@ func (config Struct) OpenDB() (*sql.DB, error) {
 
 	db := sql.OpenDB(connector)
 	db.SetMaxOpenConns(1)
-	_, err = db.Exec("PRAGMA journal_mode=WAL")
-	if err != nil {
-		return nil, err
-	}
 
 	return db, nil
 }
