@@ -42,6 +42,13 @@ func (config Struct) OpenDB() (*sql.DB, error) {
 		if err != nil {
 			return nil, err
 		}
+		// see this stackoverflow post for information on why the following
+		// lines exist: https://stackoverflow.com/questions/35804884/sqlite-concurrent-writing-performance
+		db.SetMaxOpenConns(1)
+		_, err = db.Exec("PRAGMA journal_mode=WAL")
+		if err != nil {
+			return nil, err
+		}
 
 		return db, nil
 	}
@@ -56,5 +63,13 @@ func (config Struct) OpenDB() (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create libsql connector: %w", err)
 	}
-	return sql.OpenDB(connector), nil
+
+	db := sql.OpenDB(connector)
+	db.SetMaxOpenConns(1)
+	_, err = db.Exec("PRAGMA journal_mode=WAL")
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
