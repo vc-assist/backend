@@ -34,9 +34,8 @@ func (s Service) addWeights(ctx context.Context, courseData []*sisv1.CourseData)
 		return err
 	}
 
-	weightData := make(WeightData)
 	for weightCourseName, powerschoolName := range res.Msg.GetSrcToDst() {
-		categories := weightData[weightCourseName]
+		categories := s.weightData[weightCourseName]
 
 		var target *sisv1.CourseData
 		for _, course := range courseData {
