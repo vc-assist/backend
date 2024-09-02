@@ -6,6 +6,7 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
+	"vcassist-backend/services/auth/verifier"
 )
 
 type AuthSmtpConfig struct {
@@ -25,10 +26,10 @@ type AuthConfig struct {
 	TestVerificationCode string `json:"test_verification_code"`
 }
 
-func InitAuth(mux *http.ServeMux, cfg AuthConfig) error {
+func InitAuth(mux *http.ServeMux, cfg AuthConfig) (verifier.Verifier, error) {
 	database, err := cfg.Database.OpenDB()
 	if err != nil {
-		return err
+		return verifier.Verifier{}, err
 	}
 
 	service := auth.NewService(database, auth.Options{
@@ -44,5 +45,6 @@ func InitAuth(mux *http.ServeMux, cfg AuthConfig) error {
 			service,
 		),
 	))
-	return nil
+
+	return verifier.NewVerifier(database), nil
 }

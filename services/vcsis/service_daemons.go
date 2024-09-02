@@ -109,10 +109,13 @@ func (s Service) preloadStudentDataDaemon(ctx context.Context) {
 			if !(now.Hour() == 4 || now.Hour() == 20) {
 				continue
 			}
+
+			ctx, cancel := context.WithTimeout(ctx, time.Hour)
 			err := s.preloadAllStudentData(ctx)
 			if err != nil {
 				slog.ErrorContext(ctx, "preload all student data", "err", err)
 			}
+			cancel()
 		}
 	}
 }

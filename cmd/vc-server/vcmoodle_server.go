@@ -6,7 +6,10 @@ import (
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/vcmoodle/v1/vcmoodlev1connect"
+	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/vcmoodle/server"
+
+	"connectrpc.com/connect"
 )
 
 type VCMoodleServerConfig struct {
@@ -15,6 +18,7 @@ type VCMoodleServerConfig struct {
 
 func InitVCMoodleServer(
 	mux *http.ServeMux,
+	verify verifier.Verifier,
 	cfg VCMoodleServerConfig,
 	keychain keychainv1connect.KeychainServiceClient,
 ) error {
@@ -27,6 +31,9 @@ func InitVCMoodleServer(
 	mux.Handle(vcmoodlev1connect.NewMoodleServiceHandler(
 		vcmoodlev1connect.NewInstrumentedMoodleServiceClient(
 			server.NewService(keychain, database),
+		),
+		connect.WithInterceptors(
+			verifier.NewAuthInterceptor(verify),
 		),
 	))
 

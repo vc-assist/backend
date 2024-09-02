@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	gradestoredb "vcassist-backend/lib/gradestore/db"
 	authdb "vcassist-backend/services/auth/db"
 	keychaindb "vcassist-backend/services/keychain/db"
 	linkerdb "vcassist-backend/services/linker/db"
@@ -69,15 +70,15 @@ func CreateDevDatabases() error {
 	var errs []error
 	var err error
 
-	err = createDb("dev/.state/auth_service.db", authdb.Schema)
+	err = createDb("dev/.state/auth.db", authdb.Schema)
 	errs = append(errs, err)
-	err = createDb("dev/.state/keychain_service.db", keychaindb.Schema)
+	err = createDb("dev/.state/keychain.db", keychaindb.Schema)
 	errs = append(errs, err)
-	err = createDb("dev/.state/linker_service.db", linkerdb.Schema)
+	err = createDb("dev/.state/linker.db", linkerdb.Schema)
 	errs = append(errs, err)
-	err = createDb("dev/.state/vcsis_service.db", vcsisdb.Schema)
+	err = createDb("dev/.state/vcsis.db", vcsisdb.Schema, gradestoredb.Schema)
 	errs = append(errs, err)
-	err = createDb("dev/.state/vcmoodle_service.db", vcmoodledb.Schema)
+	err = createDb("dev/.state/vcmoodle.db", vcmoodledb.Schema)
 	errs = append(errs, err)
 
 	if len(errs) == 0 {
