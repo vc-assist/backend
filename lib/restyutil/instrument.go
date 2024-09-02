@@ -50,7 +50,7 @@ func (i instrumentCtx) onBeforeRequest(tracer telemetry.TracerLike) resty.Reques
 		if slog.Default().Enabled(ctx, slog.LevelDebug) {
 			messageId := strconv.FormatUint(atomic.AddUint64(i.idcounter, 1), 10)
 			slog.DebugContext(
-				ctx, "start request",
+				ctx, "startin",
 				"method", req.Method,
 				"url", req.URL,
 				"message_id", messageId,
@@ -81,7 +81,7 @@ func (i instrumentCtx) onAfterResponse(_ *resty.Client, res *resty.Response) err
 		}
 		i.output.Write(messageId, formatHttpMessage(res))
 		slog.DebugContext(
-			ctx, "request succeeded",
+			ctx, "success",
 			"method", res.Request.Method,
 			"url", res.Request.URL,
 			"message_id", messageId,
@@ -105,7 +105,7 @@ func (i instrumentCtx) onError(req *resty.Request, err error) {
 			panic("failed to retrieve message_id from context")
 		}
 		slog.ErrorContext(
-			req.Context(), "request failed",
+			req.Context(), "failure",
 			"method", req.Method,
 			"url", req.URL,
 			"err", err,
@@ -113,7 +113,7 @@ func (i instrumentCtx) onError(req *resty.Request, err error) {
 		)
 	} else {
 		slog.ErrorContext(
-			req.Context(), "request failed",
+			req.Context(), "failure",
 			"method", req.Method,
 			"url", req.URL,
 			"err", err,
