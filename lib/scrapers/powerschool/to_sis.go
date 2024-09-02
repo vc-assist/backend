@@ -56,8 +56,8 @@ func toSisCourses(ctx context.Context, input []CourseData) []*sisv1.CourseData {
 		homeworkPasses := 0
 		var assignments []*sisv1.AssignmentData
 		for _, assign := range course.Assignments {
-			if textutil.MatchName(assign.Title, homeworkPassesKeywords) {
-				homeworkPasses = int(assign.PointsEarned)
+			if textutil.MatchName(assign.Title, homeworkPassesKeywords) && assign.PointsEarned != nil {
+				homeworkPasses = int(*assign.PointsEarned)
 				continue
 			}
 

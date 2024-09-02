@@ -7,8 +7,8 @@ message AssignmentData {
   string description = 2;
   string category = 3;
   int64 due_date = 4;
-  float points_earned = 5;
-  float points_possible = 6;
+  optional float points_earned = 5;
+  optional float points_possible = 6;
   bool is_missing = 7;
   bool is_late = 8;
   bool is_collected = 9;
