@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"time"
 	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/scrapers/moodle/core"
@@ -27,7 +28,6 @@ func createMoodleClient(username, password string) (view.Client, error) {
 	if err != nil {
 		return view.Client{}, err
 	}
-
 	err = coreClient.LoginUsernamePassword(ctx, username, password)
 	if err != nil {
 		return view.Client{}, err
@@ -40,7 +40,7 @@ func createMoodleClient(username, password string) (view.Client, error) {
 	return client, nil
 }
 
-func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, client view.Client) {
+func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, username, password string) {
 	ticker := time.NewTicker(time.Minute * 10)
 	defer ticker.Stop()
 	for {
@@ -50,6 +50,12 @@ func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, client view.Client) {
 		case <-ticker.C:
 			current := timezone.Now()
 			if current.Hour() != 3 {
+				continue
+			}
+
+			client, err := createMoodleClient(username, password)
+			if err != nil {
+				slog.ErrorContext(ctx, "create moodle client", "err", err)
 				continue
 			}
 			scraper.Scrape(ctx, db, client)
@@ -63,11 +69,11 @@ func InitVCMoodleScraper(ctx context.Context, cfg VCMoodleScraperConfig) error {
 		return err
 	}
 
-	client, err := createMoodleClient(cfg.Username, cfg.Password)
+	_, err = createMoodleClient(cfg.Username, cfg.Password)
 	if err != nil {
 		return err
 	}
-	go vcmoodleScrapeWorker(ctx, database, client)
+	go vcmoodleScrapeWorker(ctx, database, cfg.Username, cfg.Password)
 
 	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/serviceutil"
@@ -12,6 +13,10 @@ import (
 
 func InitTelemetry(ctx context.Context, verbose bool) {
 	telemetry.InitSlog(verbose)
+
+	if verbose {
+		slog.DebugContext(ctx, "verbose logging enabled")
+	}
 
 	err := telemetry.SetupFromEnv(ctx, "server")
 	if err != nil {
