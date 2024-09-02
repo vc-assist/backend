@@ -157,7 +157,7 @@ func (c *Client) LoginUsernamePassword(ctx context.Context, username, password s
 	}
 
 	if len(doc.Find("span.avatar.current").Nodes) == 0 {
-		slog.WarnContext(ctx, "login failed")
+		slog.WarnContext(ctx, "login failed, likely due to invalid credentials")
 		return LoginFailed
 	}
 
