@@ -20,20 +20,23 @@ var loginsPerHrGauge, _ = meter.Int64Gauge("auth_service.logins_per_hr")
 var loginTracker = map[string]struct{}{}
 var loginTrackerMutex = sync.Mutex{}
 
+func pushLoginsPerHr() {
+	defer loginTrackerMutex.Unlock()
+	loginTrackerMutex.Lock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	loginsPerHrGauge.Record(ctx, int64(len(loginTracker)))
+	cancel()
+
+	loginTracker = map[string]struct{}{}
+}
+
 func init() {
 	go func() {
 		ticker := time.NewTicker(time.Hour)
 		for {
 			<-ticker.C
-
-			defer loginTrackerMutex.Unlock()
-			loginTrackerMutex.Lock()
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			loginsPerHrGauge.Record(ctx, int64(len(loginTracker)))
-			cancel()
-
-			loginTracker = map[string]struct{}{}
+			pushLoginsPerHr()
 		}
 	}()
 }
