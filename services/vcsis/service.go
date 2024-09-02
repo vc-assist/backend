@@ -76,35 +76,35 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 		return nil, err
 	}
 	if res.Msg.GetKey() == nil || res.Msg.GetKey().GetExpiresAt() < timezone.Now().Unix() {
+		oauthFlow, err := s.oauth.GetOAuthFlow()
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to create oauth flow")
+			return nil, err
+		}
+
 		span.SetStatus(codes.Ok, "got expired token")
 		return &connect.Response[sisv1.GetCredentialStatusResponse]{
 			Msg: &sisv1.GetCredentialStatusResponse{
 				Status: &keychainv1.CredentialStatus{
-					Name:      "PowerSchool",
-					Picture:   "",
-					Provided:  false,
-					LoginFlow: &keychainv1.CredentialStatus_Oauth{},
+					Name:     "PowerSchool",
+					Picture:  "",
+					Provided: false,
+					LoginFlow: &keychainv1.CredentialStatus_Oauth{
+						Oauth: oauthFlow,
+					},
 				},
 			},
 		}, nil
 	}
 
-	oauthFlow, err := s.oauth.GetOAuthFlow()
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to create oauth flow")
-		return nil, err
-	}
-
 	return &connect.Response[sisv1.GetCredentialStatusResponse]{
 		Msg: &sisv1.GetCredentialStatusResponse{
 			Status: &keychainv1.CredentialStatus{
-				Name:     "PowerSchool",
-				Picture:  "",
-				Provided: true,
-				LoginFlow: &keychainv1.CredentialStatus_Oauth{
-					Oauth: oauthFlow,
-				},
+				Name:      "PowerSchool",
+				Picture:   "",
+				Provided:  true,
+				LoginFlow: nil,
 			},
 		},
 	}, nil

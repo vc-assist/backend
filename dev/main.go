@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"vcassist-backend/lib/telemetry"
 
 	_ "modernc.org/sqlite"
 )
@@ -41,6 +42,8 @@ func create(recreate bool) error {
 }
 
 func main() {
+	telemetry.InitSlog(true)
+
 	recreate := flag.Bool("recreate", false, "recreate the dev environment from scratch")
 	flag.Parse()
 
