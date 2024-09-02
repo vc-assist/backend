@@ -118,7 +118,14 @@ func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
 		go func(row db.OAuth) {
 			err := s.refreshOAuthKey(ctx, row)
 			if err != nil {
-				slog.WarnContext(ctx, "failed to refresh oauth key", "err", err)
+				slog.WarnContext(
+					ctx, "failed to refresh oauth key",
+					slog.Group("key",
+						"namespace", row.Namespace,
+						"id", row.ID,
+					),
+					"err", err,
+				)
 			}
 			wg.Done()
 		}(row)

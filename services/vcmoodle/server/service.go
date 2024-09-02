@@ -133,7 +133,7 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 	for _, c := range courses {
 		id, err := c.Id()
 		if err != nil {
-			slog.WarnContext(ctx, "failed to get course id", "url", c.Url.String())
+			slog.WarnContext(ctx, "get courses: get course id", "url", c.Url.String(), "err", err)
 			continue
 		}
 		courseIds = append(courseIds, int(id))

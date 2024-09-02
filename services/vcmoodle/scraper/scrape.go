@@ -22,7 +22,7 @@ func (s scraper) scrapeChapter(ctx context.Context, chapter view.Chapter, course
 
 	content, err := s.client.ChapterContent(ctx, chapter)
 	if err != nil || content == "" {
-		slog.WarnContext(ctx, "failed to get chapter content", "err", err)
+		slog.WarnContext(ctx, "failed to get chapter content", "url", chapter.Url, "err", err)
 		return
 	}
 
@@ -80,9 +80,9 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 
 	switch resource.Type {
 	case view.RESOURCE_GENERIC:
-		slog.DebugContext(ctx, "scraping through potential workaround link", "url", urlStr)
 		realLink, err := scrapeThroughWorkaroundLink(ctx, s.client, urlStr)
 		if err == nil {
+			slog.DebugContext(ctx, "scraped through workaround link", "workaround_url", urlStr, "real_url", realLink)
 			params.Url = realLink
 		} else {
 			slog.WarnContext(ctx, "failed to scrape through workaround link", "url", urlStr, "err", err)

@@ -119,7 +119,7 @@ func (s Store) Pull(ctx context.Context, user string) ([]CourseSnapshotSeries, e
 		var grades db.GetGradeSnapshotsRowGrades
 		err = json.Unmarshal([]byte(r.Grades.(string)), &grades)
 		if err != nil {
-			slog.WarnContext(ctx, "failed to unmarshal db grades", "err", err)
+			slog.WarnContext(ctx, "failed to unmarshal db grades", "user", user, "err", err)
 			continue
 		}
 
