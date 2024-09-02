@@ -63,17 +63,17 @@ type TermData struct {
 }
 
 type AssignmentData struct {
-	Title               string  `json:"title"`
-	Category            string  `json:"category"`
-	DueDate             string  `json:"dueDate"`
-	Description         string  `json:"description"`
-	PointsEarned        float32 `json:"pointsEarned"`
-	PointsPossible      float32 `json:"pointsPossible"`
-	AttributeMissing    bool    `json:"attributeMissing"`
-	AttributeLate       bool    `json:"attributeLate"`
-	AttributeCollected  bool    `json:"attributeCollected"`
-	AttributeExempt     bool    `json:"attributeExempt"`
-	AttributeIncomplete bool    `json:"attributeIncomplete"`
+	Title               string   `json:"title"`
+	Category            string   `json:"category"`
+	DueDate             string   `json:"dueDate"`
+	Description         string   `json:"description"`
+	PointsEarned        *float32 `json:"pointsEarned"`
+	PointsPossible      *float32 `json:"pointsPossible"`
+	AttributeMissing    bool     `json:"attributeMissing"`
+	AttributeLate       bool     `json:"attributeLate"`
+	AttributeCollected  bool     `json:"attributeCollected"`
+	AttributeExempt     bool     `json:"attributeExempt"`
+	AttributeIncomplete bool     `json:"attributeIncomplete"`
 }
 
 type CourseData struct {

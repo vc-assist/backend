@@ -31,14 +31,14 @@ export class AssignmentData extends Message<AssignmentData> {
   dueDate = protoInt64.zero;
 
   /**
-   * @generated from field: float points_earned = 5;
+   * @generated from field: optional float points_earned = 5;
    */
-  pointsEarned = 0;
+  pointsEarned?: number;
 
   /**
-   * @generated from field: float points_possible = 6;
+   * @generated from field: optional float points_possible = 6;
    */
-  pointsPossible = 0;
+  pointsPossible?: number;
 
   /**
    * @generated from field: bool is_missing = 7;
@@ -77,8 +77,8 @@ export class AssignmentData extends Message<AssignmentData> {
     { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "category", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "due_date", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-    { no: 5, name: "points_earned", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-    { no: 6, name: "points_possible", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 5, name: "points_earned", kind: "scalar", T: 2 /* ScalarType.FLOAT */, opt: true },
+    { no: 6, name: "points_possible", kind: "scalar", T: 2 /* ScalarType.FLOAT */, opt: true },
     { no: 7, name: "is_missing", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 8, name: "is_late", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 9, name: "is_collected", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
