@@ -22,6 +22,7 @@ var (
 
 type InstrumentedAuthServiceClient struct {
 	inner AuthServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedAuthServiceClient(inner AuthServiceClient) InstrumentedAuthServiceClient {
@@ -32,7 +33,7 @@ func (c InstrumentedAuthServiceClient) StartLogin(ctx context.Context, req *conn
 	ctx, span := AuthServiceTracer.Start(ctx, "StartLogin")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -49,7 +50,7 @@ func (c InstrumentedAuthServiceClient) StartLogin(ctx context.Context, req *conn
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -66,7 +67,7 @@ func (c InstrumentedAuthServiceClient) ConsumeVerificationCode(ctx context.Conte
 	ctx, span := AuthServiceTracer.Start(ctx, "ConsumeVerificationCode")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -83,7 +84,7 @@ func (c InstrumentedAuthServiceClient) ConsumeVerificationCode(ctx context.Conte
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -100,7 +101,7 @@ func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *con
 	ctx, span := AuthServiceTracer.Start(ctx, "VerifyToken")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -117,7 +118,7 @@ func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *con
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))

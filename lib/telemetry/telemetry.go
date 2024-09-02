@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lmittmann/tint"
+	slogotel "github.com/remychantenay/slog-otel"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -18,10 +19,16 @@ func InitSlog(verbose bool) {
 	if verbose {
 		level = slog.LevelDebug
 	}
-	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+
+	pretty := tint.NewHandler(os.Stderr, &tint.Options{
 		Level:      level,
 		TimeFormat: time.Kitchen,
-	}))
+	})
+	toOtel := slogotel.OtelHandler{
+		Next: pretty,
+	}
+
+	logger := slog.New(toOtel)
 	slog.SetDefault(logger)
 }
 

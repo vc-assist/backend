@@ -9,6 +9,7 @@ import (
 	"vcassist-backend/lib/telemetry"
 
 	"github.com/go-resty/resty/v2"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/semconv/v1.13.0/httpconv"
 	"go.opentelemetry.io/otel/trace"
@@ -79,6 +80,9 @@ func (i instrumentCtx) onAfterResponse(_ *resty.Client, res *resty.Response) err
 		if !ok {
 			panic("failed to retrieve message_id from context")
 		}
+
+		span.SetAttributes(attribute.String("message_id", messageId))
+
 		i.output.Write(messageId, formatHttpMessage(res))
 		slog.DebugContext(
 			ctx, "success",
@@ -104,6 +108,9 @@ func (i instrumentCtx) onError(req *resty.Request, err error) {
 		if ok {
 			panic("failed to retrieve message_id from context")
 		}
+
+		span.SetAttributes(attribute.String("message_id", messageId))
+
 		slog.ErrorContext(
 			req.Context(), "failure",
 			"method", req.Method,

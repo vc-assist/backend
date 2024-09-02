@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"slices"
 	"strconv"
@@ -69,33 +70,14 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 	ctx, span := tracer.Start(ctx, "FetchEvents")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "timezone",
-			Value: attribute.StringValue(tz.String()),
-		},
-	)
-
 	link, err := url.Parse("https://www.vcs.net/fs/elements/39337")
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse base url")
-
 		return nil, err
 	}
 
 	schoolYear := GetSchoolYear(timezone.Now(), tz)
 
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "start_year",
-			Value: attribute.Int64Value(int64(schoolYear.StartYear)),
-		},
-		attribute.KeyValue{
-			Key:   "stop_year",
-			Value: attribute.Int64Value(int64(schoolYear.EndYear)),
-		},
-	)
+	slog.DebugContext(ctx, "event bounds", "start_year", schoolYear.StartYear, "end_year", schoolYear.EndYear)
 
 	query := url.Values{}
 	query.Add("start_date", fmt.Sprintf("%04d-08-01", schoolYear.StartYear))
@@ -130,8 +112,7 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 
 			events, err := parseCalendar(ctx, link.String(), tz)
 			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, "failed to parse a calendar page, check error events...")
+				slog.ErrorContext(ctx, "failed to parse calendar page", "err", err)
 				errList = append(errList, err)
 				return
 			}

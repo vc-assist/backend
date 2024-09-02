@@ -188,8 +188,9 @@ func (s Service) cacheNewData(ctx context.Context, studentId string, data *sisv1
 		return err
 	}
 	err = s.qry.CacheStudentData(ctx, db.CacheStudentDataParams{
-		StudentID: studentId,
-		Data:      marshaled,
+		StudentID:   studentId,
+		Data:        marshaled,
+		LastUpdated: timezone.Now(),
 	})
 	return err
 }

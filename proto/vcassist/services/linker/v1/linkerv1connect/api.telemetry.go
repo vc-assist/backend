@@ -22,6 +22,7 @@ var (
 
 type InstrumentedLinkerServiceClient struct {
 	inner LinkerServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedLinkerServiceClient(inner LinkerServiceClient) InstrumentedLinkerServiceClient {
@@ -32,7 +33,7 @@ func (c InstrumentedLinkerServiceClient) GetExplicitLinks(ctx context.Context, r
 	ctx, span := LinkerServiceTracer.Start(ctx, "GetExplicitLinks")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -49,7 +50,7 @@ func (c InstrumentedLinkerServiceClient) GetExplicitLinks(ctx context.Context, r
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -66,7 +67,7 @@ func (c InstrumentedLinkerServiceClient) AddExplicitLink(ctx context.Context, re
 	ctx, span := LinkerServiceTracer.Start(ctx, "AddExplicitLink")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -83,7 +84,7 @@ func (c InstrumentedLinkerServiceClient) AddExplicitLink(ctx context.Context, re
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -100,7 +101,7 @@ func (c InstrumentedLinkerServiceClient) DeleteExplicitLink(ctx context.Context,
 	ctx, span := LinkerServiceTracer.Start(ctx, "DeleteExplicitLink")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -117,7 +118,7 @@ func (c InstrumentedLinkerServiceClient) DeleteExplicitLink(ctx context.Context,
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -134,7 +135,7 @@ func (c InstrumentedLinkerServiceClient) GetKnownSets(ctx context.Context, req *
 	ctx, span := LinkerServiceTracer.Start(ctx, "GetKnownSets")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -151,7 +152,7 @@ func (c InstrumentedLinkerServiceClient) GetKnownSets(ctx context.Context, req *
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -168,7 +169,7 @@ func (c InstrumentedLinkerServiceClient) GetKnownKeys(ctx context.Context, req *
 	ctx, span := LinkerServiceTracer.Start(ctx, "GetKnownKeys")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -185,7 +186,7 @@ func (c InstrumentedLinkerServiceClient) GetKnownKeys(ctx context.Context, req *
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -202,7 +203,7 @@ func (c InstrumentedLinkerServiceClient) DeleteKnownSets(ctx context.Context, re
 	ctx, span := LinkerServiceTracer.Start(ctx, "DeleteKnownSets")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -219,7 +220,7 @@ func (c InstrumentedLinkerServiceClient) DeleteKnownSets(ctx context.Context, re
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -236,7 +237,7 @@ func (c InstrumentedLinkerServiceClient) DeleteKnownKeys(ctx context.Context, re
 	ctx, span := LinkerServiceTracer.Start(ctx, "DeleteKnownKeys")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -253,7 +254,7 @@ func (c InstrumentedLinkerServiceClient) DeleteKnownKeys(ctx context.Context, re
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -270,7 +271,7 @@ func (c InstrumentedLinkerServiceClient) Link(ctx context.Context, req *connect.
 	ctx, span := LinkerServiceTracer.Start(ctx, "Link")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -287,7 +288,7 @@ func (c InstrumentedLinkerServiceClient) Link(ctx context.Context, req *connect.
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -304,7 +305,7 @@ func (c InstrumentedLinkerServiceClient) SuggestLinks(ctx context.Context, req *
 	ctx, span := LinkerServiceTracer.Start(ctx, "SuggestLinks")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -321,7 +322,7 @@ func (c InstrumentedLinkerServiceClient) SuggestLinks(ctx context.Context, req *
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))

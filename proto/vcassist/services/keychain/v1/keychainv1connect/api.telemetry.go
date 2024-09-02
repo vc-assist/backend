@@ -22,6 +22,7 @@ var (
 
 type InstrumentedKeychainServiceClient struct {
 	inner KeychainServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedKeychainServiceClient(inner KeychainServiceClient) InstrumentedKeychainServiceClient {
@@ -32,7 +33,7 @@ func (c InstrumentedKeychainServiceClient) SetOAuth(ctx context.Context, req *co
 	ctx, span := KeychainServiceTracer.Start(ctx, "SetOAuth")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -49,7 +50,7 @@ func (c InstrumentedKeychainServiceClient) SetOAuth(ctx context.Context, req *co
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -66,7 +67,7 @@ func (c InstrumentedKeychainServiceClient) GetOAuth(ctx context.Context, req *co
 	ctx, span := KeychainServiceTracer.Start(ctx, "GetOAuth")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -83,7 +84,7 @@ func (c InstrumentedKeychainServiceClient) GetOAuth(ctx context.Context, req *co
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -100,7 +101,7 @@ func (c InstrumentedKeychainServiceClient) SetUsernamePassword(ctx context.Conte
 	ctx, span := KeychainServiceTracer.Start(ctx, "SetUsernamePassword")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -117,7 +118,7 @@ func (c InstrumentedKeychainServiceClient) SetUsernamePassword(ctx context.Conte
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -134,7 +135,7 @@ func (c InstrumentedKeychainServiceClient) GetUsernamePassword(ctx context.Conte
 	ctx, span := KeychainServiceTracer.Start(ctx, "GetUsernamePassword")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -151,7 +152,7 @@ func (c InstrumentedKeychainServiceClient) GetUsernamePassword(ctx context.Conte
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
