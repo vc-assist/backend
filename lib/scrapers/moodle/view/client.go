@@ -257,7 +257,7 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 
 	tableOfContents := htmlutil.GetAnchors(resource.Url, doc.Find("div.columnleft li a"))
 
-	currentChapter := doc.Find("div.columnleft li").Text()
+	currentChapter := doc.Find("div.columnleft li strong").Text()
 
 	anchors := append(tableOfContents, htmlutil.Anchor{
 		Url:  resource.Url,
