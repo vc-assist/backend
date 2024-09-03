@@ -7,16 +7,16 @@ import (
 	"net/http/cookiejar"
 	"time"
 	"vcassist-backend/lib/oauth"
+	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/time/rate"
 )
 
-var tracer = otel.Tracer("vcassist.lib.scrapers.powerschool")
+var tracer = telemetry.Tracer("vcassist.lib.scrapers.powerschool")
 
 type Client struct {
 	http *resty.Client
@@ -44,9 +44,11 @@ func NewClient(baseUrl string) (*Client, error) {
 		return nil
 	})
 
-	telemetry.InstrumentResty(client, tracer)
-
 	return &Client{http: client}, nil
+}
+
+func (c *Client) SetRestyInstrumentOutput(out restyutil.InstrumentOutput) {
+	restyutil.InstrumentClient(c.http, tracer, out)
 }
 
 func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.Time, err error) {
@@ -79,17 +81,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 	return expiresAt, nil
 }
 
-func DecodeAssignmentTime(tstr string) (time.Time, error) {
-	// aka. parse by ISO timestamp
-	return time.Parse(time.RFC3339, tstr)
-}
-
-func DecodeCourseTermTime(tstr string) (time.Time, error) {
-	// aka. parse by ISO timestamp
-	return time.Parse(time.RFC3339, tstr)
-}
-
-func DecodeSectionMeetingTimestamp(tstr string) (time.Time, error) {
+func DecodeTimestamp(tstr string) (time.Time, error) {
 	// aka. parse by ISO timestamp
 	return time.Parse(time.RFC3339, tstr)
 }

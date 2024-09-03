@@ -2,6 +2,7 @@ package configutil
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -43,12 +44,11 @@ func ReadConfig[T any](name string) (T, error) {
 		allNotFound = false
 	}
 
-	localFile, err := os.ReadFile(
-		filepath.Join(
-			dirname,
-			fmt.Sprintf("%s.local.%s", prefixname, ext),
-		),
+	localFilepath := filepath.Join(
+		dirname,
+		fmt.Sprintf("%s.local.%s", prefixname, ext),
 	)
+	localFile, err := os.ReadFile(localFilepath)
 	if err != nil && !os.IsNotExist(err) {
 		return out, err
 	}
@@ -58,10 +58,11 @@ func ReadConfig[T any](name string) (T, error) {
 		if err != nil {
 			return out, err
 		}
-		err = mergo.Merge(&out, override)
+		err = mergo.Merge(&out, override, mergo.WithOverride)
 		if err != nil {
 			return out, err
 		}
+		slog.Info("merging config with local overrides", "local", localFilepath)
 		allNotFound = false
 	}
 

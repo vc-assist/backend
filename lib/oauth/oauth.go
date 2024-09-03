@@ -5,13 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/url"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
+	"vcassist-backend/lib/telemetry"
 )
 
-var tracer = otel.Tracer("vcassist.lib.oauth")
+var tracer = telemetry.Tracer("vcassist.lib.oauth")
 
 type AuthCodeRequest struct {
 	AccessType   string
@@ -22,13 +19,8 @@ type AuthCodeRequest struct {
 }
 
 func GetLoginUrl(ctx context.Context, req AuthCodeRequest, baseLoginUrl string) (string, error) {
-	ctx, span := tracer.Start(ctx, "GetLoginUrl")
-	defer span.End()
-
 	endpoint, err := url.Parse(baseLoginUrl)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse base login url")
 		return "", err
 	}
 
@@ -39,35 +31,9 @@ func GetLoginUrl(ctx context.Context, req AuthCodeRequest, baseLoginUrl string) 
 	values.Add("code_challenge", req.CodeVerifier)
 	values.Add("redirect_uri", req.RedirectUri)
 
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "client_id",
-			Value: attribute.StringValue(req.ClientId),
-		},
-		attribute.KeyValue{
-			Key:   "access_type",
-			Value: attribute.StringValue(req.AccessType),
-		},
-		attribute.KeyValue{
-			Key:   "scope",
-			Value: attribute.StringValue(req.Scope),
-		},
-		attribute.KeyValue{
-			Key:   "code_challenge",
-			Value: attribute.StringValue(req.CodeVerifier),
-		},
-		attribute.KeyValue{
-			Key:   "redirect_uri",
-			Value: attribute.StringValue(req.RedirectUri),
-		},
-	)
-
 	nonce := make([]byte, 16)
 	_, err = rand.Read(nonce)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to generate 16 random bytes")
-
 		return "", err
 	}
 
@@ -75,21 +41,6 @@ func GetLoginUrl(ctx context.Context, req AuthCodeRequest, baseLoginUrl string) 
 	values.Add("state", state)
 	values.Add("response_type", "code")
 	values.Add("prompt", "login")
-
-	span.SetAttributes(
-		attribute.KeyValue{
-			Key:   "state",
-			Value: attribute.StringValue(state),
-		},
-		attribute.KeyValue{
-			Key:   "response_type",
-			Value: attribute.StringValue("code"),
-		},
-		attribute.KeyValue{
-			Key:   "prompt",
-			Value: attribute.StringValue("login"),
-		},
-	)
 
 	endpoint.RawQuery = values.Encode()
 

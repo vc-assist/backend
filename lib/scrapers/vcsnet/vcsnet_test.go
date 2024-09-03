@@ -10,22 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTelemetry(t testing.TB) func(testing.TB) {
-	tel, err := telemetry.SetupFromEnv(context.Background(), "test:scrapers/vcsnet")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return func(t testing.TB) {
-		err := tel.Shutdown(context.Background())
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
 func TestFetchEvents(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:scrapers/vcsnet")
+	cleanup := telemetry.SetupForTesting("test:scrapers/vcsnet")
 	defer cleanup()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)

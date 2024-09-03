@@ -5,25 +5,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 	"vcassist-backend/lib/htmlutil"
-	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/restyutil"
 
 	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/time/rate"
 )
 
-var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.core")
-
-var LoginFailed = fmt.Errorf("Failed to login to your account.")
+var LoginFailed = fmt.Errorf("failed to login to your account")
 
 type Client struct {
 	BaseUrl *url.URL
@@ -66,7 +63,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 		return nil
 	})
 
-	telemetry.InstrumentResty(client, tracer)
+	restyutil.InstrumentClient(client, tracer, restyInstrumentOutput)
 
 	c := &Client{
 		BaseUrl: baseUrl,
@@ -78,9 +75,6 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 var moodleConfigRegex = regexp.MustCompile(`(?m)M\.cfg *= *(.+?);`)
 
 func getSesskey(ctx context.Context, doc *goquery.Document) string {
-	ctx, span := tracer.Start(ctx, "getMoodleConfig")
-	defer span.End()
-
 	for _, script := range doc.Find("script").Nodes {
 		text := htmlutil.GetText(script)
 		if !strings.HasPrefix(strings.Trim(text, " \t\n"), "//<![CDATA") {
@@ -96,8 +90,7 @@ func getSesskey(ctx context.Context, doc *goquery.Document) string {
 		}
 		err := json.Unmarshal([]byte(groups[1]), &cfg)
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "failed to unmarshal moodle config")
+			slog.ErrorContext(ctx, "getSesskey: failed to unmarshal moodle config", "err", err)
 			return ""
 		}
 		return cfg.Sesskey
@@ -110,6 +103,10 @@ func (c *Client) DefaultRedirectPolicy() resty.RedirectPolicy {
 	return resty.DomainCheckRedirectPolicy(c.BaseUrl.Hostname())
 }
 
+func wrapLoginError(err error) error {
+	return fmt.Errorf("moodle login failed: %v", err)
+}
+
 func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
 	ctx, span := tracer.Start(ctx, "LoginUsernamePassword")
 	defer span.End()
@@ -118,19 +115,19 @@ func (c *Client) LoginUsernamePassword(ctx context.Context, username, password s
 		SetContext(ctx).
 		Get("/login/index.php")
 	if err != nil {
-		span.SetStatus(codes.Error, "failed to fetch (1)")
-		return err
+		slog.ErrorContext(ctx, "failed to fetch login page", "err", err)
+		return wrapLoginError(err)
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.SetStatus(codes.Error, "failed to parse html (1)")
-		return err
+		slog.ErrorContext(ctx, "failed to parse login page html", "err", err)
+		return wrapLoginError(err)
 	}
 
 	logintoken := doc.Find("input[name=logintoken]").AttrOr("value", "")
 	if logintoken == "" {
-		span.SetStatus(codes.Error, "failed to find login token")
-		return fmt.Errorf("could not find login token")
+		slog.ErrorContext(ctx, "could not find login token")
+		return wrapLoginError(fmt.Errorf("could not find login token"))
 	}
 
 	res, err = c.Http.R().
@@ -142,28 +139,25 @@ func (c *Client) LoginUsernamePassword(ctx context.Context, username, password s
 		}).
 		Post("/login/index.php")
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to make login request")
-		return err
+		slog.ErrorContext(ctx, "failed to make login request", "err", err)
+		return wrapLoginError(err)
 	}
 
 	res, err = c.Http.R().
 		SetContext(ctx).
 		Get("/")
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to request dashboard after login")
-		return err
+		slog.ErrorContext(ctx, "failed to request dashboard after login", "err", err)
+		return wrapLoginError(err)
 	}
 	doc, err = goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse login page html")
-		return err
+		slog.ErrorContext(ctx, "failed to parse post-login html", "err", err)
+		return wrapLoginError(err)
 	}
 
-	if len(doc.Find("div.usermenu span.login").Nodes) > 0 {
-		span.SetStatus(codes.Error, LoginFailed.Error())
+	if len(doc.Find("span.avatar.current").Nodes) == 0 {
+		slog.WarnContext(ctx, "login failed, likely due to invalid credentials")
 		return LoginFailed
 	}
 

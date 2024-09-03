@@ -2,9 +2,10 @@ package keychain
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
-	"vcassist-backend/lib/testutil"
+	"vcassist-backend/lib/telemetry"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/services/keychain/db"
 
@@ -13,16 +14,22 @@ import (
 )
 
 func TestService(t *testing.T) {
-	res, cleanup := testutil.SetupService(t, testutil.ServiceParams{
-		Name:     "services/keychain",
-		DbSchema: db.Schema,
-	})
+	cleanup := telemetry.SetupForTesting("test:keychain")
 	defer cleanup()
+
+	sqlite, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = sqlite.Exec(db.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	service := NewService(ctx, res.DB)
+	service := NewService(ctx, sqlite)
 
 	{
 		res, err := service.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{

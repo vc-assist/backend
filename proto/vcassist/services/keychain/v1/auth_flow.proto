@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package vcassist.services.keychain.v1;
+
+message UsernamePasswordFlow {}
+message OAuthFlow {
+  string base_login_url = 1;
+  string access_type = 2;
+  string scope = 3;
+  string redirect_uri = 4;
+  string code_verifier = 5;
+  string client_id = 6;
+  string token_request_url = 7;
+}
+message CredentialStatus {
+  string name = 1;
+  string picture = 2;
+  bool provided = 3;
+  oneof login_flow {
+    UsernamePasswordFlow username_password = 4;
+    OAuthFlow oauth = 5;
+  }
+}
+
+message UsernamePasswordProvision {
+  string username = 1;
+  string password = 2;
+}
+message OAuthTokenProvision {
+  string token = 1;
+}
+

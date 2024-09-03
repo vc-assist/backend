@@ -2,10 +2,14 @@
 *.tmp
 *.db
 *.db-*
+*.log
 atlas.hcl
 
 dev/.state
 
 *.local.json5
 *.local.json
+
+cmd/vcmoodle-test/vcmoodle-test
+cmd/vcmoodle-test/*.pdf
 

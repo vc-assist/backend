@@ -7,28 +7,29 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"vcassist-backend/lib/scrapers/moodle/core"
+	"vcassist-backend/lib/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 )
 
-var tracer = otel.Tracer("vcassist.lib.scrapers.moodle.edit")
+var tracer = telemetry.Tracer("vcassist.lib.scrapers.moodle.edit")
 
 type Course struct {
-	Id   string
+	Id   int
 	Core *core.Client
 
 	href      *url.URL
 	isEditing bool
 }
 
-func NewCourse(ctx context.Context, id string, core *core.Client) (Course, error) {
+func NewCourse(ctx context.Context, id int, core *core.Client) (Course, error) {
 	query := url.Values{}
-	query.Add("id", id)
+	query.Add("id", strconv.Itoa(id))
 	href := &url.URL{
 		Path:     "/course/view.php",
 		RawQuery: query.Encode(),
@@ -62,7 +63,7 @@ func (c Course) ensureEditing(ctx context.Context) error {
 		SetContext(ctx).
 		SetFormData(map[string]string{
 			"sesskey": c.Core.Sesskey,
-			"id":      c.Id,
+			"id":      strconv.Itoa(c.Id),
 			"edit":    "on",
 		}).
 		Post("/course/view.php")
@@ -141,7 +142,7 @@ type actionArgs interface {
 type actionList []action
 
 func (a actionList) do(ctx context.Context, course Course) (*resty.Response, error) {
-	ctx, span := tracer.Start(ctx, "action:do")
+	ctx, span := tracer.Start(ctx, "action.do")
 	defer span.End()
 
 	if len(a) == 0 {
@@ -215,7 +216,7 @@ func (c Course) CreateSections(ctx context.Context, lastSectionId string, count 
 		Args: cdActionArgs{
 			Action:          "section_add",
 			Ids:             []string{},
-			CourseId:        c.Id,
+			CourseId:        strconv.Itoa(c.Id),
 			TargetSectionId: lastSectionId,
 		},
 		Index:      0,
@@ -329,7 +330,7 @@ func (c Course) DeleteSections(ctx context.Context, sectionIds []string) error {
 		actList[i] = action{
 			Args: cdActionArgs{
 				Action:   "section_delete",
-				CourseId: c.Id,
+				CourseId: strconv.Itoa(c.Id),
 				Ids:      []string{id},
 			},
 			Index:      0,

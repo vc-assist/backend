@@ -1,0 +1,63 @@
+{
+	auth: {
+		// you should use your own gmail account to fill
+		// in the email config following this guide:
+		//
+		// https://mailtrap.io/blog/gmail-smtp/
+		smtp: {
+			email_address: "",
+			password: "",
+			server: "smtp.gmail.com",
+			port: 587,
+		},
+		database: {
+			// NOTE: even when using the "url" field in production
+			// you should specify "file" because libsql will make a local
+			// copy of the remote database and push updates to it
+			// (this is known as a "embedded replica")
+			file: "<dev_state>/auth.db"
+		}
+	},
+	keychain: {
+		database: {
+			file: "<dev_state>/keychain.db"
+		},
+	},
+	linker: {
+		database: {
+			file: "<dev_state>/linker.db"
+		},
+		// specify this value to require the `Authorization` header to be specified with
+		// this value (in the format of "<Basic/Bearer> <token>") when handling requests
+		access_token: "",
+	},
+	vcsis: {
+		database: {
+			file: "<dev_state>/vcsis.db"
+		},
+		powerschool_base_url: "https://vcsnet.powerschool.com",
+		// this is the OAuth configuration for valley christian schools
+		// obtained by intercepting network requests from the powerschool
+		// android app
+		powerschool_oauth: {
+			base_login_url: "https://accounts.google.com/o/oauth2/v2/auth",
+			refresh_url: "https://oauth2.googleapis.com/token",
+			client_id: "162669419438-egansm7coo8n7h301o7042kad9t9uao9.apps.googleusercontent.com",
+		},
+		weights_file: "weights.json"
+	},
+	vcmoodle_scraper: {
+		database: {
+			file: "<dev_state>/vcmoodle.db"
+		},
+		// you should specify the moodle account with all the courses in production
+		// if you're just testing you can just any moodle account
+		username: "",
+		password: "",
+	},
+	vcmoodle_server: {
+		database: {
+			file: "<dev_state>/vcmoodle.db"
+		},
+	}
+}

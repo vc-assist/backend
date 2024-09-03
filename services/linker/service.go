@@ -3,20 +3,17 @@ package linker
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"vcassist-backend/lib/timezone"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
-
-var tracer = otel.Tracer("vcassist.services.linker")
 
 type Service struct {
 	qry *db.Queries
@@ -42,16 +39,11 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[link
 		return nil, err
 	}
 
-	var leftKeys []string
-	var rightKeys []string
-	for _, l := range links {
-		if l.Rightset == req.Msg.GetLeftSet() {
-			leftKeys = append(leftKeys, l.Rightkey)
-			rightKeys = append(rightKeys, l.Leftkey)
-			continue
-		}
-		leftKeys = append(leftKeys, l.Leftkey)
-		rightKeys = append(rightKeys, l.Rightkey)
+	leftKeys := make([]string, len(links))
+	rightKeys := make([]string, len(links))
+	for i, l := range links {
+		leftKeys[i] = l.Leftkey
+		rightKeys[i] = l.Rightkey
 	}
 
 	return &connect.Response[linkerv1.GetExplicitLinksResponse]{
@@ -63,7 +55,14 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[link
 }
 
 func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linkerv1.AddExplicitLinkRequest]) (*connect.Response[linkerv1.AddExplicitLinkResponse], error) {
-	err := s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	txqry := s.qry.WithTx(tx)
+
+	err = txqry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
 		Leftset:  req.Msg.GetLeft().GetSet(),
 		Leftkey:  req.Msg.GetLeft().GetKey(),
 		Rightset: req.Msg.GetRight().GetSet(),
@@ -72,12 +71,17 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 	if err != nil {
 		return nil, err
 	}
-	err = s.qry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
+	err = txqry.CreateExplicitLink(ctx, db.CreateExplicitLinkParams{
 		Rightset: req.Msg.GetLeft().GetSet(),
 		Rightkey: req.Msg.GetLeft().GetKey(),
 		Leftset:  req.Msg.GetRight().GetSet(),
 		Leftkey:  req.Msg.GetRight().GetKey(),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +90,14 @@ func (s Service) AddExplicitLink(ctx context.Context, req *connect.Request[linke
 }
 
 func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[linkerv1.DeleteExplicitLinkRequest]) (*connect.Response[linkerv1.DeleteExplicitLinkResponse], error) {
-	err := s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	txqry := s.qry.WithTx(tx)
+
+	err = txqry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
 		Leftset:  req.Msg.GetLeft().GetSet(),
 		Leftkey:  req.Msg.GetLeft().GetKey(),
 		Rightset: req.Msg.GetRight().GetSet(),
@@ -95,12 +106,17 @@ func (s Service) DeleteExplicitLink(ctx context.Context, req *connect.Request[li
 	if err != nil {
 		return nil, err
 	}
-	err = s.qry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
+	err = txqry.DeleteExplicitLink(ctx, db.DeleteExplicitLinkParams{
 		Leftset:  req.Msg.GetRight().GetSet(),
 		Leftkey:  req.Msg.GetRight().GetKey(),
 		Rightset: req.Msg.GetLeft().GetSet(),
 		Rightkey: req.Msg.GetLeft().GetKey(),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -166,18 +182,21 @@ func (s Service) DeleteKnownKeys(ctx context.Context, req *connect.Request[linke
 }
 
 func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkRequest]) (*connect.Response[linkerv1.LinkResponse], error) {
+	left := req.Msg.GetSrc().GetName()
+	leftKeys := req.Msg.GetSrc().GetKeys()
+	right := req.Msg.GetDst().GetName()
+	rightKeys := req.Msg.GetDst().GetKeys()
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	left := req.Msg.GetSrc().GetName()
-	leftKeys := req.Msg.GetSrc().GetKeys()
-	right := req.Msg.GetDst().GetName()
-	rightKeys := req.Msg.GetDst().GetKeys()
-
 	txqry := s.qry.WithTx(tx)
+
+	slog.DebugContext(ctx, "create known sets")
+
 	err = txqry.CreateKnownSet(ctx, left)
 	if err != nil {
 		return nil, err
@@ -214,20 +233,17 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 		return nil, err
 	}
 
-	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
-		Msg: &linkerv1.GetExplicitLinksRequest{
-			LeftSet:  left,
-			RightSet: right,
-		},
+	links, err := s.qry.GetExplicitLinks(ctx, db.GetExplicitLinksParams{
+		Leftset:  left,
+		Rightset: right,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	mapping := make(map[string]string)
-	for i, left := range explicit.Msg.GetLeftKeys() {
-		right := explicit.Msg.GetRightKeys()[i]
-		mapping[left] = right
+	for _, l := range links {
+		mapping[left] = l.Rightkey
 	}
 
 	var exactMatches []string

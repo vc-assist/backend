@@ -2,21 +2,15 @@ package htmlutil
 
 import (
 	"bytes"
-	"context"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
 	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/html"
 )
-
-var tracer = otel.Tracer("vcassist.lib.htmlutil")
 
 func GetText(node *html.Node) string {
 	var buffer bytes.Buffer
@@ -41,7 +35,7 @@ func getTextRecursive(node *html.Node, buffer *bytes.Buffer) {
 
 type Anchor struct {
 	Name string
-	Href string
+	Url  *url.URL
 }
 
 var innerWhitespace = regexp.MustCompile(`\s\s+`)
@@ -56,10 +50,7 @@ func removeNonPrintable(s string) string {
 	return newStr.String()
 }
 
-func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
-	ctx, span := tracer.Start(ctx, "GetAnchors")
-	defer span.End()
-
+func GetAnchors(baseUrl *url.URL, sel *goquery.Selection) []Anchor {
 	anchors := []Anchor{}
 	for _, n := range sel.Nodes {
 		href := ""
@@ -70,10 +61,14 @@ func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 			}
 		}
 
-		link, err := url.Parse(href)
+		link, err := baseUrl.Parse(href)
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "got error while parsing url")
+			slog.Warn(
+				"failed to resolve anchor href",
+				"href", href,
+				"base_url", baseUrl,
+				"err", err,
+			)
 			continue
 		}
 
@@ -82,15 +77,10 @@ func GetAnchors(ctx context.Context, sel *goquery.Selection) []Anchor {
 		name = strings.Trim(name, " \t\n")
 		name = innerWhitespace.ReplaceAllString(name, " ")
 
-		linkStr := link.String()
 		anchors = append(anchors, Anchor{
 			Name: name,
-			Href: linkStr,
+			Url:  link,
 		})
-		span.AddEvent("anchor", trace.WithAttributes(
-			attribute.String("name", name),
-			attribute.String("url", linkStr),
-		))
 	}
 
 	return anchors

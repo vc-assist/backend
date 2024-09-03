@@ -17,7 +17,7 @@ type TestConfig struct {
 }
 
 func TestClient(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/view")
+	cleanup := telemetry.SetupForTesting("test:scrapers/moodle/view")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestClient")
@@ -25,11 +25,11 @@ func TestClient(t *testing.T) {
 
 	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("moodle/core.json5")
 	if err != nil {
-		t.Skip("skipping because failed to read test config at .dev/state/moodle/core.json5")
+		t.Fatal("failed to read test config at dev/.state/moodle/core.json5")
 	}
 	config, err := devenv.GetStateConfig[TestConfig]("moodle/view.json5")
 	if err != nil {
-		t.Skip("skipping because there is no test config at .dev/state/moodle/view.json5")
+		t.Fatal("there is no test config at dev/.state/moodle/view.json5")
 	}
 
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{
@@ -43,9 +43,7 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := NewClient(ctx, coreClient, ClientOptions{
-		ClientId: coreConfig.Username,
-	})
+	client, err := NewClient(ctx, coreClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +74,11 @@ func TestClient(t *testing.T) {
 	}
 
 	t.Run("TestSections", func(t *testing.T) {
-		t.Log("Target Course", targetCourse.Name, targetCourse.Id())
+		id, err := targetCourse.Id()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log("Target Course", targetCourse.Name, id)
 
 		sections, err := client.Sections(ctx, targetCourse)
 		if err != nil {
@@ -119,9 +121,5 @@ func TestClient(t *testing.T) {
 		if !hasResources {
 			t.Fatal("no section has at least one resource, this may be a bug or the course in question may just not have any resources.")
 		}
-	})
-
-	t.Run("TestChapters", func(t *testing.T) {
-		t.Skip("currently unimplemented")
 	})
 }

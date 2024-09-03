@@ -38,12 +38,15 @@ func NewAuthInterceptor(verifier Verifier) connect.UnaryInterceptorFunc {
 	return connect.UnaryInterceptorFunc(interceptor)
 }
 
-func ProfileFromContext(ctx context.Context) (db.User, bool) {
+func ProfileFromContext(ctx context.Context) db.User {
 	span := trace.SpanFromContext(ctx)
 	profile, ok := ctx.Value(profileCtxKey).(db.User)
+	if !ok || profile.Email == "" {
+		panic("failed to get user from context")
+	}
 	span.SetAttributes(attribute.KeyValue{
 		Key:   "profile:email",
 		Value: attribute.StringValue(profile.Email),
 	})
-	return profile, ok
+	return profile
 }
