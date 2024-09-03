@@ -3,6 +3,7 @@ package linker
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"vcassist-backend/lib/timezone"
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/services/linker/db"
@@ -38,16 +39,11 @@ func (s Service) GetExplicitLinks(ctx context.Context, req *connect.Request[link
 		return nil, err
 	}
 
-	var leftKeys []string
-	var rightKeys []string
-	for _, l := range links {
-		if l.Rightset == req.Msg.GetLeftSet() {
-			leftKeys = append(leftKeys, l.Rightkey)
-			rightKeys = append(rightKeys, l.Leftkey)
-			continue
-		}
-		leftKeys = append(leftKeys, l.Leftkey)
-		rightKeys = append(rightKeys, l.Rightkey)
+	leftKeys := make([]string, len(links))
+	rightKeys := make([]string, len(links))
+	for i, l := range links {
+		leftKeys[i] = l.Leftkey
+		rightKeys[i] = l.Rightkey
 	}
 
 	return &connect.Response[linkerv1.GetExplicitLinksResponse]{
@@ -198,6 +194,9 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	defer tx.Rollback()
 
 	txqry := s.qry.WithTx(tx)
+
+	slog.DebugContext(ctx, "create known sets")
+
 	err = txqry.CreateKnownSet(ctx, left)
 	if err != nil {
 		return nil, err
@@ -234,20 +233,17 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 		return nil, err
 	}
 
-	explicit, err := s.GetExplicitLinks(ctx, &connect.Request[linkerv1.GetExplicitLinksRequest]{
-		Msg: &linkerv1.GetExplicitLinksRequest{
-			LeftSet:  left,
-			RightSet: right,
-		},
+	links, err := s.qry.GetExplicitLinks(ctx, db.GetExplicitLinksParams{
+		Leftset:  left,
+		Rightset: right,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	mapping := make(map[string]string)
-	for i, left := range explicit.Msg.GetLeftKeys() {
-		right := explicit.Msg.GetRightKeys()[i]
-		mapping[left] = right
+	for _, l := range links {
+		mapping[left] = l.Rightkey
 	}
 
 	var exactMatches []string
