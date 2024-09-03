@@ -2,7 +2,6 @@ package powerschool
 
 import (
 	"context"
-	powerschoolv1 "vcassist-backend/proto/vcassist/scrapers/powerschool/v1"
 )
 
 const allStudentsQuery = `query AllStudentsFirstLevel {
@@ -40,8 +39,43 @@ fragment bulletinData on BulletinType {
   body
 }`
 
-func (c *Client) GetAllStudents(ctx context.Context) (*powerschoolv1.AllStudents, error) {
-	res := &powerschoolv1.AllStudents{}
-	err := graphqlQuery(ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery, &powerschoolv1.GetAllStudentsInput{}, res)
+type SchoolData struct {
+	Name          string `json:"name"`
+	Phone         string `json:"phone"`
+	Fax           string `json:"fax"`
+	Email         string `json:"email"`
+	StreetAddress string `json:"streetAddress"`
+	City          string `json:"city"`
+	State         string `json:"state"`
+	Zip           string `json:"zip"`
+	Country       string `json:"country"`
+}
+
+type Bulletin struct {
+	Title     string `json:"title"`
+	StartDate string `json:"startDate"`
+	EndDate   string `json:"endDate"`
+	Body      string `json:"body"`
+}
+
+type StudentProfile struct {
+	Guid       string       `json:"guid"`
+	CurrentGpa string       `json:"currentGPA"`
+	FirstName  string       `json:"firstName"`
+	LastName   string       `json:"lastName"`
+	Schools    []SchoolData `json:"schools"`
+	Bulletins  []Bulletin   `json:"bulletins"`
+}
+
+type GetAllStudentsResponse struct {
+	Profiles []StudentProfile `json:"students"`
+}
+
+func (c *Client) GetAllStudents(ctx context.Context) (*GetAllStudentsResponse, error) {
+	res := &GetAllStudentsResponse{}
+	err := graphqlQuery(
+		ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery,
+		struct{}{}, res,
+	)
 	return res, err
 }

@@ -5,31 +5,32 @@
 ## Project structure
 
 - `docs/` - additional documentation
+- `proto/` - protobuf definitions for services
 - `services/` - gRPC services
-   - `auth/` - the service that handles the authentication flow, issuing of tokens and verification codes.
-      - `verifier/` - a package that exposes utilities to verify authentication tokens.
-   - `keychain/` - the service that handles storing, retrieving, and keeping fresh user credentials
-   - `powerservice/` - the service that fetches a student's powerschool data given a valid key in keychain.
-   - `gradesnapshots/` - a service that can store and retrieve grade snapshots.
-   - `linker/` - a service that does hybrid automatic and manual data linking
-   - `studentdata/` - the interface all student data providers must fulfill to talk to the frontend
-   - `vcsmoodle/` - the service for getting student data specific to vcs flavored moodle
-   - `vcs/` - the student data provider for vcs
+   - `auth/` - handles the authentication flow, issuing of tokens, and verification codes
+      - `verifier/` - exposes utilities to verify authentication tokens
+   - `keychain/` - handles storing, retrieving, and refreshing user credentials
+   - `linker/` - does data linking
+   - `vcsis/` - implementation of a SIS service for Valley Christian Schools
+   - `vcmoodle/` - stuff that power quick moodle
+      - `server/` - the service that provides an API for reading moodle data
+      - `scraper/` - a library that makes it easy to scrape moodle data
 - `cmd/` - all official entrypoints/build targets
-   - `auth/` - the entrypoint to the `auth` service
-   - `vcs/` - the entrypoint to the `vcs` service
+   - `vc-server/` - a single binary monolith for Valley Christian Schools that strings together all the services under `services/`
+   - `vcmoodle-test/` - a testing utility to scrape all the moodle courses
    - `linker-cli/` - the CLI tool for viewing and editing data linker behavior
 - `lib/` - shared libraries
    - `scrapers/` - scrapers for various platforms.
       - `moodle/` - [moodle](https://moodle.org/)
-      - `powerschool/` - [powerschool](https://atlasgo.io/)
+      - `powerschool/` - [powerschool](https://powerschool.com/)
       - `vcsnet/` - [vcs.net](https://vcs.net)
+   - `gradestore/` - a simple time-series store for grade data.
    - `configutil/` - additional utilities for reading and resolving configuration.
    - `htmlutil/` - additional utilities for working with HTML.
    - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
-   - `testutil/` - utilities for testing
+   - `restyutil/` - utilities for the `resty` HTTP client
    - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
-   - `telemetry/` - telemetry setup/teardown as well as instrumentation for libraries like `resty`.
+   - `telemetry/` - telemetry setup/teardown as well as misc. instrumentation utilities
 - `dev/` - code for setting up the development environment
    - `local_stack/` - docker compose stuff for setting up grafana and other things locally
    - `.state/ (gitignore'd)` - internal state (like secrets, usernames, passwords, etc...) that are used by tests and other dev/local-only processes
@@ -76,11 +77,12 @@ Here are some commands relating to linting and code generation that will probabl
 - `go install github.com/bufbuild/buf/cmd/buf@v1.33.0`
 - `go install github.com/ghostiam/protogetter/cmd/protogetter@latest`
 - `go install github.com/LQR471814/connectrpc-otel-gen@latest`
+- `go install github.com/lqr471814/sqlc-joins-gen@latest`
 - [atlas](https://atlasgo.io/)
 
 ## Testing
 
-- `go test -v ./lib/... ./services/auth ./services/vcsmoodle` - runs all tests that don't require manual interaction
-- `go test -v ./services/powerservice` - runs the tests for the powerschool service, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
+- `go test ./lib/... ./services/auth` - runs all tests that don't require manual interaction
+- `go test -v ./services/vcsis` - runs the tests for powerschool scraping, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 - `go clean -testcache` - cleans test cache, may be useful if telemetry isn't working
 

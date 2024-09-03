@@ -8,58 +8,25 @@ import (
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func serializeGraphqlQueryObject(name, query string, variables protoreflect.ProtoMessage) (string, error) {
-	escapedName, err := json.Marshal(name)
-	if err != nil {
-		return "", err
-	}
-	escapedQuery, err := json.Marshal(query)
-	if err != nil {
-		return "", err
-	}
-	jsonVariables, err := protojson.Marshal(variables)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf(
-		`{"operationName": %s, "query": %s, "variables": %s}`,
-		escapedName,
-		escapedQuery,
-		jsonVariables,
-	), nil
+type graphqlRequest struct {
+	Name     string `json:"operationName"`
+	Query    string `json:"query"`
+	Variable any    `json:"variables"`
 }
 
-func deserializeGraphqlResponseObject(response []byte, out protoreflect.ProtoMessage) error {
-	var result struct {
-		Data any `json:"data"`
-	}
-
-	err := json.Unmarshal(response, &result)
-	if err != nil {
-		return err
-	}
-
-	// this is extremely inefficient, please fix this later
-	dataResult, err := json.Marshal(result.Data)
-	if err != nil {
-		return err
-	}
-
-	return protojson.Unmarshal(dataResult, out)
+type graphqlResponse[T any] struct {
+	Data T `json:"data"`
 }
 
-func graphqlQuery(
+func graphqlQuery[O any](
 	ctx context.Context,
 	client *resty.Client,
 	name,
 	query string,
-	variables protoreflect.ProtoMessage,
-	output protoreflect.ProtoMessage,
+	variables any,
+	output *O,
 ) error {
 	ctx, span := tracer.Start(ctx, fmt.Sprintf("graphql:%s", name))
 	defer span.End()
@@ -81,7 +48,11 @@ func graphqlQuery(
 		})
 	}
 
-	body, err := serializeGraphqlQueryObject(name, query, variables)
+	body, err := json.Marshal(graphqlRequest{
+		Name:     name,
+		Query:    query,
+		Variable: variables,
+	})
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to serialize json query")
@@ -99,15 +70,19 @@ func graphqlQuery(
 		return err
 	}
 
-	err = deserializeGraphqlResponseObject(res.Body(), output)
+	parsed := graphqlResponse[O]{}
+	err = json.Unmarshal(res.Body(), &parsed)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to parse json response")
 		return err
 	}
 
+	*output = parsed.Data
+
 	if span.IsRecording() {
-		span.SetAttributes(attribute.String("output", protojson.Format(output)))
+		debugInfo, _ := json.Marshal(output)
+		span.SetAttributes(attribute.String("output", string(debugInfo)))
 	}
 
 	return nil

@@ -25,9 +25,7 @@ func setupClients(t testing.TB, ctx context.Context, config core.TestConfig) (*c
 		t.Fatal(err)
 	}
 
-	client, err := view.NewClient(ctx, coreClient, view.ClientOptions{
-		ClientId: config.Username,
-	})
+	client, err := view.NewClient(ctx, coreClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,11 +40,11 @@ type TestConfig struct {
 func setup(t testing.TB, ctx context.Context) Course {
 	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("moodle/core.json5")
 	if err != nil {
-		t.Skip("skipping moodle/core test because there is no valid test config at .dev/state/moodle/core.json5")
+		t.Fatal("there is no valid test config at dev/.state/moodle/core.json5")
 	}
 	config, err := devenv.GetStateConfig[TestConfig]("moodle/edit.json5")
 	if err != nil {
-		t.Skip("skipping moodle/edit test because there is no valid test config at .dev/state/moodle/edit.json5")
+		t.Fatal("there is no valid test config at dev/.state/moodle/edit.json5")
 	}
 	coreClient, viewClient := setupClients(t, ctx, coreConfig)
 
@@ -59,7 +57,11 @@ func setup(t testing.TB, ctx context.Context) Course {
 
 	for _, c := range courses {
 		if c.Name == config.TargetCourse {
-			course, err := NewCourse(ctx, c.Id(), coreClient)
+			id, err := c.Id()
+			if err != nil {
+				t.Fatal(err)
+			}
+			course, err := NewCourse(ctx, int(id), coreClient)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -72,7 +74,7 @@ func setup(t testing.TB, ctx context.Context) Course {
 }
 
 func TestSections(t *testing.T) {
-	cleanup := telemetry.SetupForTesting(t, "test:scrapers/moodle/edit")
+	cleanup := telemetry.SetupForTesting("test:scrapers/moodle/edit")
 	defer cleanup()
 
 	ctx, span := tracer.Start(context.Background(), "TestCourse")

@@ -7,16 +7,22 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "vcassist-backend/proto/vcassist/services/auth/v1"
 )
 
+type TracerLike interface {
+	Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+}
+
 var (
-	authServiceTracer = otel.Tracer("vcassist.services.auth.v1.AuthService")
+	AuthServiceTracer TracerLike = otel.Tracer("vcassist.services.auth.v1.AuthService")
 )
 
 type InstrumentedAuthServiceClient struct {
 	inner AuthServiceClient
+	WithInputOutput bool
 }
 
 func NewInstrumentedAuthServiceClient(inner AuthServiceClient) InstrumentedAuthServiceClient {
@@ -24,10 +30,10 @@ func NewInstrumentedAuthServiceClient(inner AuthServiceClient) InstrumentedAuthS
 }
 
 func (c InstrumentedAuthServiceClient) StartLogin(ctx context.Context, req *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error) {
-	ctx, span := authServiceTracer.Start(ctx, "StartLogin")
+	ctx, span := AuthServiceTracer.Start(ctx, "StartLogin")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -44,7 +50,7 @@ func (c InstrumentedAuthServiceClient) StartLogin(ctx context.Context, req *conn
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -58,10 +64,10 @@ func (c InstrumentedAuthServiceClient) StartLogin(ctx context.Context, req *conn
 }
 
 func (c InstrumentedAuthServiceClient) ConsumeVerificationCode(ctx context.Context, req *connect.Request[v1.ConsumeVerificationCodeRequest]) (*connect.Response[v1.ConsumeVerificationCodeResponse], error) {
-	ctx, span := authServiceTracer.Start(ctx, "ConsumeVerificationCode")
+	ctx, span := AuthServiceTracer.Start(ctx, "ConsumeVerificationCode")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -78,7 +84,7 @@ func (c InstrumentedAuthServiceClient) ConsumeVerificationCode(ctx context.Conte
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))
@@ -92,10 +98,10 @@ func (c InstrumentedAuthServiceClient) ConsumeVerificationCode(ctx context.Conte
 }
 
 func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *connect.Request[v1.VerifyTokenRequest]) (*connect.Response[v1.VerifyTokenResponse], error) {
-	ctx, span := authServiceTracer.Start(ctx, "VerifyToken")
+	ctx, span := AuthServiceTracer.Start(ctx, "VerifyToken")
 	defer span.End()
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		input, err := protojson.Marshal(req.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("input", string(input)))
@@ -112,7 +118,7 @@ func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *con
 		return nil, err
 	}
 
-	if span.IsRecording() {
+	if span.IsRecording() && c.WithInputOutput {
 		output, err := protojson.Marshal(res.Msg)
 		if err == nil {
 			span.SetAttributes(attribute.String("output", string(output)))

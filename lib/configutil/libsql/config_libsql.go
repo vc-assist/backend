@@ -3,64 +3,46 @@ package configlibsql
 import (
 	"database/sql"
 	"fmt"
-	"net/url"
 	"os"
 	devenv "vcassist-backend/dev/env"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 
 type Struct struct {
-	File      string `json:"file"`
-	Url       string `json:"url"`
-	AuthToken string `json:"auth_token"`
+	File string `json:"file"`
 }
 
-func (config Struct) OpenDB(schema string) (*sql.DB, error) {
-	if config.Url == "" {
-		if config.File == "" {
-			return nil, fmt.Errorf("a subpath was not specified")
-		}
-		dbpath, statErr := devenv.ResolvePath(config.File)
-		if statErr != nil {
-			return nil, statErr
-		}
+func (config Struct) OpenDB() (*sql.DB, error) {
+	if config.File == "" {
+		return nil, fmt.Errorf("a path was not specified")
+	}
+	dbpath, statErr := devenv.ResolvePath(config.File)
+	if statErr != nil {
+		return nil, statErr
+	}
 
-		_, statErr = os.Stat(dbpath)
-		isNewDb := os.IsNotExist(statErr)
-		if isNewDb {
-			f, err := os.Create(dbpath)
-			if err != nil {
-				return nil, err
-			}
-			f.Close()
-		}
-
-		db, err := sql.Open("libsql", fmt.Sprintf("file:%s", dbpath))
+	_, statErr = os.Stat(dbpath)
+	isNewDb := os.IsNotExist(statErr)
+	if isNewDb {
+		f, err := os.Create(dbpath)
 		if err != nil {
 			return nil, err
 		}
-
-		if isNewDb && schema != "" {
-			_, err := db.Exec(schema)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return db, nil
+		f.Close()
 	}
 
-	urlQuery := ""
-	if config.AuthToken != "" {
-		values := url.Values{"authToken": []string{config.AuthToken}}
-		urlQuery = "?" + values.Encode()
-	}
-
-	db, err := sql.Open("libsql", config.Url+urlQuery)
+	db, err := sql.Open("sqlite", dbpath)
 	if err != nil {
 		return nil, err
 	}
+	// see this stackoverflow post for information on why the following
+	// lines exist: https://stackoverflow.com/questions/35804884/sqlite-concurrent-writing-performance
+	db.SetMaxOpenConns(1)
+	_, err = db.Exec("PRAGMA journal_mode=WAL")
+	if err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }

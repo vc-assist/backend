@@ -9,6 +9,7 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
 	authv1 "vcassist-backend/proto/vcassist/services/auth/v1"
 	"vcassist-backend/services/auth/db"
@@ -17,14 +18,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/jordan-wright/email"
 	"github.com/mazen160/go-random"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 
-var tracer = otel.Tracer("vcassist.services.auth")
+var tracer = telemetry.Tracer("vcassist.services.auth")
 
 type SmtpConfig struct {
 	Server       string

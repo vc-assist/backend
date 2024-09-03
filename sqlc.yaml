@@ -8,12 +8,12 @@ sql:
         package: "db"
         out: "services/auth/db"
   - engine: "sqlite"
-    queries: "services/gradesnapshots/db/query.sql"
-    schema: "services/gradesnapshots/db/schema.sql"
+    queries: "lib/gradestore/db/query.sql"
+    schema: "lib/gradestore/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "services/gradesnapshots/db"
+        out: "lib/gradestore/db"
   - engine: "sqlite"
     queries: "services/linker/db/query.sql"
     schema: "services/linker/db/schema.sql"
@@ -22,16 +22,23 @@ sql:
         package: "db"
         out: "services/linker/db"
   - engine: "sqlite"
-    queries: "services/vcs/db/query.sql"
-    schema: "services/vcs/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/vcs/db"
-  - engine: "sqlite"
     queries: "services/keychain/db/query.sql"
     schema: "services/keychain/db/schema.sql"
     gen:
       go:
         package: "db"
         out: "services/keychain/db"
+  - engine: "sqlite"
+    queries: "services/vcsis/db/query.sql"
+    schema: "services/vcsis/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "services/vcsis/db"
+  - engine: "sqlite"
+    queries: "services/vcmoodle/db/query.sql"
+    schema: "services/vcmoodle/db/schema.sql"
+    gen:
+      go:
+        package: "db"
+        out: "services/vcmoodle/db"

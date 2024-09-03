@@ -2,208 +2,91 @@ package telemetry
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log/slog"
-	"testing"
+	"os"
 	"time"
-	"vcassist-backend/lib/configutil"
 
+	"github.com/lmittmann/tint"
+	slogotel "github.com/remychantenay/slog-otel"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-type Telemetry struct {
-	TracerProvider *trace.TracerProvider
-	MeterProvider  *metric.MeterProvider
-}
-
-func (t Telemetry) Shutdown(ctx context.Context) error {
-	errlist := []error{}
-	err := t.TracerProvider.Shutdown(ctx)
-	if err != nil {
-		errlist = append(errlist, err)
+func InitSlog(verbose bool) {
+	level := slog.LevelInfo
+	if verbose {
+		level = slog.LevelDebug
 	}
-	return errors.Join(errlist...)
-}
 
-type OtlpConnConfig struct {
-	GrpcEndpoint string            `json:"grpc_endpoint"`
-	HttpEndpoint string            `json:"http_endpoint"`
-	Headers      map[string]string `json:"headers"`
-}
-
-type OtlpConfig struct {
-	Traces  OtlpConnConfig `json:"traces"`
-	Metrics OtlpConnConfig `json:"metrics"`
-}
-
-type Config struct {
-	Otlp OtlpConfig `json:"otlp"`
-}
-
-var setupTestEnvironments = map[string]bool{}
-
-// sets up telemetry in a testing environment, ensuring that it isn't
-// set up more than once
-func SetupForTesting(t testing.TB, serviceName string) func() {
-	_, setupAlready := setupTestEnvironments[serviceName]
-	if setupAlready {
-		return func() {}
+	pretty := tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      level,
+		TimeFormat: time.Kitchen,
+	})
+	toOtel := slogotel.OtelHandler{
+		Next: pretty,
 	}
-	ctx := context.WithValue(context.Background(), "telemetry_test_env", struct{}{})
-	tel, err := SetupFromEnv(ctx, serviceName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return func() {
-		err := tel.Shutdown(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
+
+	logger := slog.New(toOtel)
+	slog.SetDefault(logger)
 }
 
-// searches up the filesystem from the cwd to find a file
-// called telemetry.json5, once found it will then use it
-// as a config to setup telemetry
-func SetupFromEnv(ctx context.Context, serviceName string) (Telemetry, error) {
-	config, err := configutil.ReadRecursively[Config]("telemetry.json5")
-	if err != nil {
-		return Telemetry{}, err
-	}
-	return Setup(ctx, serviceName, config)
+var globalTracerProvider *trace.TracerProvider
+
+func Shutdown(ctx context.Context) error {
+	return globalTracerProvider.Shutdown(ctx)
 }
 
-func Setup(ctx context.Context, serviceName string, config Config) (Telemetry, error) {
+type TracerLike interface {
+	Start(ctx context.Context, spanName string, opts ...oteltrace.SpanStartOption) (context.Context, oteltrace.Span)
+}
+
+// A wrapper around `trace.Tracer` from `go.opentelemetry.io/otel/trace`
+// that formats methods like `service.<span>`
+type wrappedTracer struct {
+	libraryName string
+	tracer      oteltrace.Tracer
+}
+
+func (w *wrappedTracer) getTracer() oteltrace.Tracer {
+	if w.tracer != nil {
+		return w.tracer
+	}
+	w.tracer = globalTracerProvider.Tracer(w.libraryName)
+	return w.tracer
+}
+
+func (w *wrappedTracer) Start(ctx context.Context, spanName string, opts ...oteltrace.SpanStartOption) (context.Context, oteltrace.Span) {
+	return w.getTracer().Start(ctx, fmt.Sprintf("%s.%s", w.libraryName, spanName), opts...)
+}
+
+func Tracer(libraryName string) TracerLike {
+	return &wrappedTracer{libraryName: libraryName}
+}
+
+func Setup(ctx context.Context, serviceName string, config config) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*15)
 	defer cancel()
 
 	r, err := newResource(serviceName)
 	if err != nil {
-		return Telemetry{}, err
+		return err
 	}
 
 	tracerProvider, err := newTraceProvider(ctx, r, config)
 	if err != nil {
-		return Telemetry{}, err
+		return err
 	}
 	otel.SetTracerProvider(tracerProvider)
 
 	meterProvider, err := newMetricProvider(ctx, r, config)
 	if err != nil {
-		return Telemetry{}, err
+		return err
 	}
 	otel.SetMeterProvider(meterProvider)
 
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	globalTracerProvider = tracerProvider
 
-	return Telemetry{
-		TracerProvider: tracerProvider,
-		MeterProvider:  meterProvider,
-	}, nil
-}
-
-func newResource(serviceName string) (*resource.Resource, error) {
-	return resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName(serviceName),
-		),
-	)
-}
-
-func newTraceProvider(ctx context.Context, r *resource.Resource, config Config) (*trace.TracerProvider, error) {
-	exporter, err := otlpTracerExportFromConfig(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-
-	traceProvider := trace.NewTracerProvider(
-		trace.WithBatcher(exporter),
-		trace.WithResource(r),
-	)
-	return traceProvider, nil
-}
-
-func otlpTracerExportFromConfig(ctx context.Context, c Config) (trace.SpanExporter, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
-	defer cancel()
-
-	if c.Otlp.Traces.GrpcEndpoint != "" {
-		slog.Info(
-			"tracer export initialized",
-			"type", "grpc",
-			"endpoint", c.Otlp.Traces.GrpcEndpoint,
-			"headers", len(c.Otlp.Traces.Headers) > 0,
-		)
-		return otlptracegrpc.New(
-			ctx,
-			otlptracegrpc.WithEndpointURL(c.Otlp.Traces.GrpcEndpoint),
-			otlptracegrpc.WithHeaders(c.Otlp.Traces.Headers),
-		)
-	}
-
-	slog.Info(
-		"tracer export initialized",
-		"type", "http",
-		"endpoint", c.Otlp.Traces.HttpEndpoint,
-		"headers", len(c.Otlp.Traces.Headers) > 0,
-	)
-	return otlptracehttp.New(
-		ctx,
-		otlptracehttp.WithEndpointURL(c.Otlp.Traces.HttpEndpoint),
-		otlptracehttp.WithHeaders(c.Otlp.Traces.Headers),
-	)
-}
-
-func newMetricProvider(ctx context.Context, r *resource.Resource, config Config) (*metric.MeterProvider, error) {
-	exporter, err := otlpMetricExportFromConfig(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-
-	provider := metric.NewMeterProvider(
-		metric.WithReader(metric.NewPeriodicReader(exporter, metric.WithInterval(time.Second*5))),
-		metric.WithResource(r),
-	)
-	return provider, nil
-}
-
-func otlpMetricExportFromConfig(ctx context.Context, c Config) (metric.Exporter, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
-	defer cancel()
-
-	if c.Otlp.Metrics.GrpcEndpoint != "" {
-		slog.Info(
-			"metric exporter initialized",
-			"type", "grpc",
-			"endpoint", c.Otlp.Metrics.GrpcEndpoint,
-			"headers", len(c.Otlp.Metrics.Headers) > 0,
-		)
-		return otlpmetricgrpc.New(
-			ctx,
-			otlpmetricgrpc.WithEndpointURL(c.Otlp.Metrics.GrpcEndpoint),
-			otlpmetricgrpc.WithHeaders(c.Otlp.Metrics.Headers),
-		)
-	}
-	slog.Info(
-		"metric exporter initialized",
-		"type", "http",
-		"endpoint", c.Otlp.Metrics.HttpEndpoint,
-		"headers", len(c.Otlp.Metrics.Headers) > 0,
-	)
-	return otlpmetrichttp.New(
-		ctx,
-		otlpmetrichttp.WithEndpointURL(c.Otlp.Metrics.HttpEndpoint),
-		otlpmetrichttp.WithHeaders(c.Otlp.Metrics.Headers),
-	)
+	return nil
 }
