@@ -10,7 +10,7 @@ import (
 
 type queryMap[T any] struct {
 	dict map[string]*T
-	list []T
+	list []*T
 }
 
 func newQueryMap[T any]() queryMap[T] {
@@ -23,7 +23,7 @@ func newQueryMap[T any]() queryMap[T] {
 type GetCourses struct {
 	Id      int
 	Name    string
-	Section []GetCourses0
+	Section []*GetCourses0
 }
 
 // Table: Section
@@ -31,7 +31,7 @@ type GetCourses0 struct {
 	Idx      int
 	Name     string
 	Courseid int
-	Resource []GetCourses00
+	Resource []*GetCourses00
 }
 
 // Table: Resource
@@ -42,7 +42,7 @@ type GetCourses00 struct {
 	Displaycontent string
 	Courseid       int
 	Sectionidx     int
-	Chapter        []GetCourses000
+	Chapter        []*GetCourses000
 }
 
 // Table: Chapter
@@ -73,7 +73,7 @@ where Course.id in ($0)
 
 `
 
-func (q *Queries) GetCourses(ctx context.Context, id []int) ([]GetCourses, error) {
+func (q *Queries) GetCourses(ctx context.Context, id []int) ([]*GetCourses, error) {
 	queryStr := getCoursesQuery
 
 	idJoined := ""
@@ -125,32 +125,36 @@ func (q *Queries) GetCourses(ctx context.Context, id []int) ([]GetCourses, error
 		getCoursesPkey := fmt.Sprint(getCourses.Id)
 		getCoursesExisting, ok := getCoursesMap.dict[getCoursesPkey]
 		if !ok {
-			getCoursesMap.list = append(getCoursesMap.list, getCourses)
-			getCoursesMap.dict[getCoursesPkey] = &getCoursesMap.list[len(getCoursesMap.list)-1]
+			getCoursesExisting = &getCourses
+			getCoursesMap.list = append(getCoursesMap.list, getCoursesExisting)
+			getCoursesMap.dict[getCoursesPkey] = getCoursesExisting
 		}
 
 		getCourses0Pkey := fmt.Sprint(getCourses0.Idx, getCourses0.Courseid)
 		getCourses0Existing, ok := getCourses0Map.dict[getCourses0Pkey]
 		if !ok {
-			getCourses0Map.list = append(getCourses0Map.list, getCourses0)
-			getCourses0Map.dict[getCourses0Pkey] = &getCourses0Map.list[len(getCourses0Map.list)-1]
-			getCoursesExisting.Section = append(getCoursesExisting.Section, *getCourses0Existing)
+			getCourses0Existing = &getCourses0
+			getCourses0Map.list = append(getCourses0Map.list, getCourses0Existing)
+			getCourses0Map.dict[getCourses0Pkey] = getCourses0Existing
+			getCoursesExisting.Section = append(getCoursesExisting.Section, getCourses0Existing)
 		}
 
 		getCourses00Pkey := fmt.Sprint(getCourses00.Idx, getCourses00.Courseid, getCourses00.Sectionidx)
 		getCourses00Existing, ok := getCourses00Map.dict[getCourses00Pkey]
 		if !ok {
-			getCourses00Map.list = append(getCourses00Map.list, getCourses00)
-			getCourses00Map.dict[getCourses00Pkey] = &getCourses00Map.list[len(getCourses00Map.list)-1]
-			getCourses0Existing.Resource = append(getCourses0Existing.Resource, *getCourses00Existing)
+			getCourses00Existing = &getCourses00
+			getCourses00Map.list = append(getCourses00Map.list, getCourses00Existing)
+			getCourses00Map.dict[getCourses00Pkey] = getCourses00Existing
+			getCourses0Existing.Resource = append(getCourses0Existing.Resource, getCourses00Existing)
 		}
 
 		getCourses000Pkey := fmt.Sprint(getCourses000.Id)
 		getCourses000Existing, ok := getCourses000Map.dict[getCourses000Pkey]
 		if !ok {
-			getCourses000Map.list = append(getCourses000Map.list, getCourses000)
-			getCourses000Map.dict[getCourses000Pkey] = &getCourses000Map.list[len(getCourses000Map.list)-1]
-			getCourses00Existing.Chapter = append(getCourses00Existing.Chapter, *getCourses000Existing)
+			getCourses000Existing = &getCourses000
+			getCourses000Map.list = append(getCourses000Map.list, getCourses000Existing)
+			getCourses000Map.dict[getCourses000Pkey] = getCourses000Existing
+			getCourses00Existing.Chapter = append(getCourses00Existing.Chapter, getCourses000Existing)
 		}
 	}
 
