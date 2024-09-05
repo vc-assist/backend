@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"log/slog"
 	"runtime"
 	"time"
@@ -70,7 +71,11 @@ func startProfiling() {
 }
 
 func main() {
-	startProfiling()
+	profile := flag.Bool("profile", false, "enable memory profiling")
+
+	if *profile {
+		startProfiling()
+	}
 
 	telemetry.SetupFromEnv(context.Background(), "vcmoodle_test")
 	telemetry.InitSlog(true)
@@ -80,7 +85,7 @@ func main() {
 		serviceutil.Fatal("failed to read config", err)
 	}
 
-	path, err := devenv.ResolvePath("<dev_state>/vcmoodle_test.db")
+	path, err := devenv.ResolvePath("<dev_state>/vcmoodle.db")
 	if err != nil {
 		serviceutil.Fatal("failed to resolve db path", err)
 	}

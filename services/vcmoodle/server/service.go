@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
@@ -14,6 +15,7 @@ import (
 	"vcassist-backend/services/vcmoodle/db"
 
 	"connectrpc.com/connect"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 
 	_ "modernc.org/sqlite"
 )
@@ -22,14 +24,20 @@ const baseUrl = "https://learn.vcs.net"
 const keychainNamespace = "vcmoodle"
 
 type Service struct {
-	keychain keychainv1connect.KeychainServiceClient
-	qry      *db.Queries
+	keychain        keychainv1connect.KeychainServiceClient
+	qry             *db.Queries
+	userCourseCache *expirable.LRU[string, []db.Course]
+	coursesCache    *expirable.LRU[string, []*vcmoodlev1.Course]
 }
 
 func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) Service {
 	return Service{
 		keychain: keychain,
 		qry:      db.New(data),
+		// reevaluate course list every day
+		userCourseCache: expirable.NewLRU[string, []db.Course](2048, nil, time.Hour*24),
+		// reevaluate course data every 12 hours
+		coursesCache: expirable.NewLRU[string, []*vcmoodlev1.Course](2048, nil, time.Hour*12),
 	}
 }
 
@@ -84,7 +92,7 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 	return &connect.Response[vcmoodlev1.ProvideUsernamePasswordResponse]{Msg: &vcmoodlev1.ProvideUsernamePasswordResponse{}}, nil
 }
 
-func pbResourceType(resourceType int) vcmoodlev1.ResourceType {
+func pbResourceType(resourceType int64) vcmoodlev1.ResourceType {
 	switch resourceType {
 	case 0:
 		return vcmoodlev1.ResourceType_GENERIC_URL
@@ -97,13 +105,16 @@ func pbResourceType(resourceType int) vcmoodlev1.ResourceType {
 	}
 }
 
-func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1.GetCoursesRequest]) (*connect.Response[vcmoodlev1.GetCoursesResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
+func (s Service) getUserCourses(ctx context.Context, email string) ([]db.Course, error) {
+	cached, hit := s.userCourseCache.Get(email)
+	if hit {
+		return cached, nil
+	}
 
 	res, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{
 			Namespace: keychainNamespace,
-			Id:        profile.Email,
+			Id:        email,
 		},
 	})
 	if err != nil {
@@ -129,30 +140,77 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 		return nil, err
 	}
 
-	var courseIds []int
+	var courseIds []int64
 	for _, c := range courses {
 		id, err := c.Id()
 		if err != nil {
 			slog.WarnContext(ctx, "get courses: get course id", "url", c.Url.String(), "err", err)
 			continue
 		}
-		courseIds = append(courseIds, int(id))
+		courseIds = append(courseIds, int64(id))
 	}
 	dbCourses, err := s.qry.GetCourses(ctx, courseIds)
 	if err != nil {
 		return nil, err
 	}
 
+	evicted := s.userCourseCache.Add(email, dbCourses)
+	if evicted {
+		slog.WarnContext(ctx, "userCourse cache could not be added: evicted", "email", email)
+	}
+
+	return dbCourses, nil
+}
+
+func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1.GetCoursesRequest]) (*connect.Response[vcmoodlev1.GetCoursesResponse], error) {
+	profile := verifier.ProfileFromContext(ctx)
+
+	cached, hit := s.coursesCache.Get(profile.Email)
+	if hit {
+		return &connect.Response[vcmoodlev1.GetCoursesResponse]{
+			Msg: &vcmoodlev1.GetCoursesResponse{
+				Courses: cached,
+			},
+		}, nil
+	}
+
+	dbCourses, err := s.getUserCourses(ctx, profile.Email)
+	if err != nil {
+		return nil, fmt.Errorf("getUserCourses: %w", err)
+	}
+
 	outCourses := make([]*vcmoodlev1.Course, len(dbCourses))
 	for i, course := range dbCourses {
-		outSections := make([]*vcmoodlev1.Section, len(course.Section))
-		for i, section := range course.Section {
-			outResources := make([]*vcmoodlev1.Resource, len(section.Resource))
-			for i, resource := range section.Resource {
-				outChapters := make([]*vcmoodlev1.Chapter, len(resource.Chapter))
-				for i, chapter := range resource.Chapter {
+		dbSections, err := s.qry.GetCourseSections(ctx, course.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		outSections := make([]*vcmoodlev1.Section, len(dbSections))
+		for i, section := range dbSections {
+			dbResources, err := s.qry.GetSectionResources(ctx, db.GetSectionResourcesParams{
+				CourseID:   course.ID,
+				SectionIdx: section.Idx,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			outResources := make([]*vcmoodlev1.Resource, len(dbResources))
+			for i, resource := range dbResources {
+				dbChapters, err := s.qry.GetResourceChapters(ctx, db.GetResourceChaptersParams{
+					CourseID:    course.ID,
+					SectionIdx:  section.Idx,
+					ResourceIdx: resource.Idx,
+				})
+				if err != nil {
+					return nil, err
+				}
+
+				outChapters := make([]*vcmoodlev1.Chapter, len(dbChapters))
+				for i, chapter := range dbChapters {
 					outChapters[i] = &vcmoodlev1.Chapter{
-						Id:   int64(chapter.Id),
+						Id:   int64(chapter.ID),
 						Name: chapter.Name,
 					}
 				}
@@ -167,7 +225,7 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 					Idx:            int64(resource.Idx),
 					Type:           resourceType,
 					Url:            resource.Url,
-					DisplayContent: resource.Displaycontent,
+					DisplayContent: resource.DisplayContent,
 					Chapters:       outChapters,
 				}
 			}
@@ -175,29 +233,33 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 			outSections[i] = &vcmoodlev1.Section{
 				Name:      section.Name,
 				Idx:       int64(section.Idx),
-				Url:       fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d&section=%d", course.Id, section.Idx),
+				Url:       fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d&section=%d", course.ID, section.Idx),
 				Resources: outResources,
 			}
 		}
+
 		outCourses[i] = &vcmoodlev1.Course{
-			Id:       int64(course.Id),
+			Id:       int64(course.ID),
 			Name:     course.Name,
-			Url:      fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d", course.Id),
+			Url:      fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d", course.ID),
 			Sections: outSections,
 		}
 	}
 
-	response := &connect.Response[vcmoodlev1.GetCoursesResponse]{
+	evicted := s.coursesCache.Add(profile.Email, outCourses)
+	if evicted {
+		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", profile.Email)
+	}
+
+	return &connect.Response[vcmoodlev1.GetCoursesResponse]{
 		Msg: &vcmoodlev1.GetCoursesResponse{
 			Courses: outCourses,
 		},
-	}
-	response.Header().Add("cache-control", "max-age=10800")
-	return response, nil
+	}, nil
 }
 
 func (s Service) GetChapterContent(ctx context.Context, req *connect.Request[vcmoodlev1.GetChapterContentRequest]) (*connect.Response[vcmoodlev1.GetChapterContentResponse], error) {
-	content, err := s.qry.GetCourseContent(ctx, req.Msg.GetId())
+	content, err := s.qry.GetChapterContent(ctx, req.Msg.GetId())
 	if err != nil {
 		return nil, err
 	}
