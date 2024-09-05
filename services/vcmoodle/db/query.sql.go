@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const deleteAllChapters = `-- name: DeleteAllChapters :exec
@@ -45,15 +46,161 @@ func (q *Queries) DeleteAllSections(ctx context.Context) error {
 	return err
 }
 
-const getCourseContent = `-- name: GetCourseContent :one
+const getChapterContent = `-- name: GetChapterContent :one
 select content_html from Chapter where id = ?
 `
 
-func (q *Queries) GetCourseContent(ctx context.Context, id int64) (string, error) {
-	row := q.db.QueryRowContext(ctx, getCourseContent, id)
+func (q *Queries) GetChapterContent(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getChapterContent, id)
 	var content_html string
 	err := row.Scan(&content_html)
 	return content_html, err
+}
+
+const getCourseSections = `-- name: GetCourseSections :many
+select course_id, idx, name from Section where course_id = ?
+`
+
+func (q *Queries) GetCourseSections(ctx context.Context, courseID int64) ([]Section, error) {
+	rows, err := q.db.QueryContext(ctx, getCourseSections, courseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Section
+	for rows.Next() {
+		var i Section
+		if err := rows.Scan(&i.CourseID, &i.Idx, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCourses = `-- name: GetCourses :many
+select id, name from Course where id in (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetCourses(ctx context.Context, ids []int64) ([]Course, error) {
+	query := getCourses
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Course
+	for rows.Next() {
+		var i Course
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getResourceChapters = `-- name: GetResourceChapters :many
+select course_id, section_idx, resource_idx, id, name, content_html from Chapter where
+    course_id = ? and
+    section_idx = ? and
+    resource_idx = ?
+`
+
+type GetResourceChaptersParams struct {
+	CourseID    int64
+	SectionIdx  int64
+	ResourceIdx int64
+}
+
+func (q *Queries) GetResourceChapters(ctx context.Context, arg GetResourceChaptersParams) ([]Chapter, error) {
+	rows, err := q.db.QueryContext(ctx, getResourceChapters, arg.CourseID, arg.SectionIdx, arg.ResourceIdx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Chapter
+	for rows.Next() {
+		var i Chapter
+		if err := rows.Scan(
+			&i.CourseID,
+			&i.SectionIdx,
+			&i.ResourceIdx,
+			&i.ID,
+			&i.Name,
+			&i.ContentHtml,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSectionResources = `-- name: GetSectionResources :many
+select course_id, section_idx, idx, type, url, display_content from Resource where course_id = ? and section_idx = ?
+`
+
+type GetSectionResourcesParams struct {
+	CourseID   int64
+	SectionIdx int64
+}
+
+func (q *Queries) GetSectionResources(ctx context.Context, arg GetSectionResourcesParams) ([]Resource, error) {
+	rows, err := q.db.QueryContext(ctx, getSectionResources, arg.CourseID, arg.SectionIdx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Resource
+	for rows.Next() {
+		var i Resource
+		if err := rows.Scan(
+			&i.CourseID,
+			&i.SectionIdx,
+			&i.Idx,
+			&i.Type,
+			&i.Url,
+			&i.DisplayContent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const noteChapter = `-- name: NoteChapter :exec

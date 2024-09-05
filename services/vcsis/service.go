@@ -226,8 +226,6 @@ func (s Service) addGradeSnapshots(ctx context.Context, studentId string, data *
 	return nil
 }
 
-const dataResponseCacheControl = "max-age=10800"
-
 func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, error) {
 	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
 		Msg: &keychainv1.GetOAuthRequest{
@@ -275,11 +273,9 @@ func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetData
 	cached, err := s.getCachedData(ctx, studentId)
 	if err == nil {
 		slog.DebugContext(ctx, "student data cache hit", "student_id", studentId)
-		res := &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
+		return &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
 			Data: cached,
-		}}
-		res.Header().Add("cache-control", dataResponseCacheControl)
-		return res, nil
+		}}, nil
 	} else {
 		slog.WarnContext(ctx, "get cached data", "err", err)
 	}
@@ -295,11 +291,9 @@ func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetData
 		slog.WarnContext(ctx, "cache student data response", "err", err)
 	}
 
-	res := &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
+	return &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
 		Data: data,
-	}}
-	res.Header().Add("cache-control", dataResponseCacheControl)
-	return res, nil
+	}}, nil
 }
 
 func (s Service) RefreshData(ctx context.Context, req *connect.Request[sisv1.RefreshDataRequest]) (*connect.Response[sisv1.RefreshDataResponse], error) {
@@ -316,9 +310,7 @@ func (s Service) RefreshData(ctx context.Context, req *connect.Request[sisv1.Ref
 		slog.WarnContext(ctx, "cache student data response", "err", err)
 	}
 
-	res := &connect.Response[sisv1.RefreshDataResponse]{Msg: &sisv1.RefreshDataResponse{
+	return &connect.Response[sisv1.RefreshDataResponse]{Msg: &sisv1.RefreshDataResponse{
 		Data: data,
-	}}
-	res.Header().Add("cache-control", dataResponseCacheControl)
-	return res, nil
+	}}, nil
 }

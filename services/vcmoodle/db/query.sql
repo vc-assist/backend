@@ -36,5 +36,21 @@ on conflict (id) do update
         name = excluded.name,
         content_html = excluded.content_html;
 
--- name: GetCourseContent :one
+-- name: GetCourses :many
+select * from Course where id in (sqlc.slice(ids));
+
+-- name: GetCourseSections :many
+select * from Section where course_id = ?;
+
+-- name: GetSectionResources :many
+select * from Resource where course_id = ? and section_idx = ?;
+
+-- name: GetResourceChapters :many
+select * from Chapter where
+    course_id = ? and
+    section_idx = ? and
+    resource_idx = ?;
+
+-- name: GetChapterContent :one
 select content_html from Chapter where id = ?;
+
