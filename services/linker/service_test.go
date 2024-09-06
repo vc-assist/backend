@@ -303,8 +303,9 @@ func TestService(t *testing.T) {
 
 	suggestRes, err := service.SuggestLinks(ctx, &connect.Request[linkerv1.SuggestLinksRequest]{
 		Msg: &linkerv1.SuggestLinksRequest{
-			SetLeft:  "weights",
-			SetRight: "powerschool",
+			SetLeft:   "weights",
+			SetRight:  "powerschool",
+			Threshold: 0.9,
 		},
 	})
 	if err != nil {
@@ -323,6 +324,7 @@ func TestService(t *testing.T) {
 		},
 		suggestRes.Msg.GetSuggestions(),
 		cmpopts.IgnoreUnexported(linkerv1.LinkSuggestion{}),
+		cmpopts.IgnoreFields(linkerv1.LinkSuggestion{}, "Correlation"),
 	)
 	if diff != "" {
 		t.Fatal(diff)
