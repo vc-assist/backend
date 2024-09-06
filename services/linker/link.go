@@ -1,6 +1,8 @@
 package linker
 
 import (
+	"slices"
+
 	"github.com/antzucaro/matchr"
 )
 
@@ -11,33 +13,29 @@ type ImplicitLink struct {
 }
 
 func CreateImplicitLinks(leftList, rightList []string) []ImplicitLink {
-	swapped := false
-	if len(rightList) < len(leftList) {
-		originalLeftList := leftList
-		leftList = rightList
-		rightList = originalLeftList
-		swapped = true
-	}
-
 	var result []ImplicitLink
+	var possible []ImplicitLink
+
 	matchedLeft := make(map[string]struct{})
 	matchedRight := make(map[string]struct{})
 
 	for _, left := range leftList {
+		_, matched := matchedLeft[left]
+		if matched {
+			continue
+		}
+
 		for _, right := range rightList {
-			_, isMatchedRight := matchedRight[right]
-			if isMatchedRight {
+			_, matched := matchedRight[right]
+			if matched {
 				continue
 			}
+
 			if left == right {
 				link := ImplicitLink{
 					Left:        left,
 					Right:       right,
 					Correlation: 1,
-				}
-				if swapped {
-					link.Right = left
-					link.Left = right
 				}
 
 				result = append(result, link)
@@ -45,46 +43,38 @@ func CreateImplicitLinks(leftList, rightList []string) []ImplicitLink {
 				matchedRight[right] = struct{}{}
 				break
 			}
+
+			similarity := matchr.JaroWinkler(left, right, false)
+			possible = append(possible, ImplicitLink{
+				Left:        left,
+				Right:       right,
+				Correlation: similarity,
+			})
 		}
 	}
 
-	for _, left := range leftList {
-		_, isMatchedLeft := matchedLeft[left]
-		if isMatchedLeft {
+	slices.SortFunc(possible, func(a, b ImplicitLink) int {
+		if a.Correlation < b.Correlation {
+			return 1
+		}
+		if a.Correlation > b.Correlation {
+			return -1
+		}
+		return 0
+	})
+
+	for _, link := range possible {
+		_, matched := matchedLeft[link.Left]
+		if matched {
 			continue
 		}
-
-		var mostSimilarity float64
-		var mostSimilarRight string
-
-		for _, right := range rightList {
-			_, isMatchedRight := matchedRight[right]
-			if isMatchedRight {
-				continue
-			}
-
-			similarity := matchr.JaroWinkler(left, right, false)
-			if similarity > mostSimilarity {
-				mostSimilarity = similarity
-				mostSimilarRight = right
-			}
+		_, matched = matchedRight[link.Right]
+		if matched {
+			continue
 		}
-
-		if mostSimilarity > 0 {
-			link := ImplicitLink{
-				Left:        left,
-				Right:       mostSimilarRight,
-				Correlation: mostSimilarity,
-			}
-			if swapped {
-				link.Right = left
-				link.Left = mostSimilarRight
-			}
-
-			result = append(result, link)
-			matchedLeft[left] = struct{}{}
-			matchedRight[mostSimilarRight] = struct{}{}
-		}
+		matchedLeft[link.Left] = struct{}{}
+		matchedRight[link.Right] = struct{}{}
+		result = append(result, link)
 	}
 
 	return result
