@@ -21,13 +21,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/lqr471814/protocolreg"
 	"github.com/stretchr/testify/require"
-)
 
-func init() {
-	SetRestyInstrumentOutput(restyutil.NewFilesystemOutput(
-		"<dev_state>/tests/vcsis_scrape/resty",
-	))
-}
+	_ "embed"
+)
 
 func createPSProtocolHandler(t testing.TB, tokenpath string) func(t testing.TB) {
 	switch runtime.GOOS {
@@ -165,6 +161,9 @@ func getToken(t testing.TB, ctx context.Context, oauthConfig OAuthConfig) string
 	return newToken
 }
 
+//go:embed weights.json
+var weightsFile []byte
+
 func TestScrape(t *testing.T) {
 	cleanup := telemetry.SetupForTesting("test:vcsis")
 	defer cleanup()
@@ -184,14 +183,16 @@ func TestScrape(t *testing.T) {
 		slog.ErrorContext(ctx, "failed to create powerschool client", "err", err)
 		t.Fatal(err)
 	}
-	client.SetRestyInstrumentOutput(restyInstrumentOutput)
+	client.SetRestyInstrumentOutput(restyutil.NewFilesystemOutput(
+		"<dev_state>/tests/vcsis_scrape/resty",
+	))
 
 	_, err = client.LoginOAuth(ctx, token)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to login to powerschool", "err", err)
 		t.Fatal(err)
 	}
-	res, err := Scrape(ctx, client)
+	res, err := ScrapePowerschool(ctx, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,6 +214,16 @@ func TestScrape(t *testing.T) {
 		require.NotEmpty(t, course.GetTeacherEmail())
 		require.NotEmpty(t, course.GetTeacher())
 
+		slog.Debug(
+			"course",
+			"guid", course.GetGuid(),
+			"name", course.GetName(),
+			"period", course.GetPeriod(),
+			"teacher", course.GetTeacher(),
+			"teacher_email", course.GetTeacherEmail(),
+			"room", course.GetRoom(),
+		)
+
 		if course.GetRoom() == "" {
 			slog.Warn("no room found", "course", course.GetName())
 		}
@@ -221,6 +232,11 @@ func TestScrape(t *testing.T) {
 			slog.Warn("no meetings present", "course", course.GetName())
 		}
 		for _, meeting := range course.Meetings {
+			slog.Debug(
+				"meeting",
+				"start", time.Unix(meeting.GetStart(), 0).Format(time.RFC850),
+				"stop", time.Unix(meeting.GetStop(), 0).Format(time.RFC850),
+			)
 			require.NotEmpty(t, meeting.GetStart())
 			require.NotEmpty(t, meeting.GetStop())
 		}
@@ -232,6 +248,29 @@ func TestScrape(t *testing.T) {
 			require.NotEmpty(t, assign.GetTitle())
 			require.NotEmpty(t, assign.GetCategory())
 			require.NotEmpty(t, assign.GetDueDate())
+		}
+	}
+
+	var weightData WeightData
+	err = json.Unmarshal(weightsFile, &weightData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mapping := map[string]string{}
+	for _, course := range courses {
+		for weightCourse := range weightData {
+			if course.Name == weightCourse {
+				mapping[weightCourse] = course.Name
+				break
+			}
+		}
+	}
+	AddWeights(ctx, courses, weightData, mapping)
+
+	for _, course := range courses {
+		if len(course.GetAssignmentCategories()) == 0 {
+			slog.Warn("no assignment categories", "course", course.GetName())
 		}
 	}
 }

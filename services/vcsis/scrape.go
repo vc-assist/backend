@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+	"vcassist-backend/lib/gradestore"
 	"vcassist-backend/lib/scrapers/powerschool"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
+
+	_ "embed"
 )
 
-func Scrape(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error) {
+func ScrapePowerschool(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error) {
 	allStudents, err := client.GetAllStudents(ctx)
 	if err != nil {
 		return nil, err
@@ -35,6 +38,8 @@ func Scrape(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error
 		guids[i] = c.Guid
 	}
 	start, stop := timezone.GetCurrentWeek(timezone.Now())
+
+	slog.Debug("powerschool CourseMeeting range", "start", start, "stop", stop)
 	res, err := client.GetCourseMeetingList(ctx, scraper.GetCourseMeetingListRequest{
 		CourseGuids: guids,
 		Start:       start.Format(time.RFC3339),
@@ -58,4 +63,71 @@ func Scrape(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error
 	// }
 
 	return powerschool.ToSISData(ctx, psStudent, studentData, res.Meetings), nil
+}
+
+func AddGradeSnapshots(ctx context.Context, courseData []*sisv1.CourseData, series []gradestore.CourseSnapshotSeries) {
+	for _, course := range series {
+		var target *sisv1.CourseData
+		for _, tc := range courseData {
+			if tc.Guid == course.Course {
+				target = tc
+				break
+			}
+		}
+		if target == nil {
+			slog.WarnContext(ctx, "failed to find saved grade snapshot course in powerschool data", "course", course.Course)
+			continue
+		}
+
+		snapshots := make([]*sisv1.GradeSnapshot, len(course.Snapshots))
+		for i, s := range course.Snapshots {
+			snapshots[i] = &sisv1.GradeSnapshot{
+				Time:  s.Time.Unix(),
+				Value: s.Value,
+			}
+		}
+		target.Snapshots = snapshots
+	}
+}
+
+// map[CourseName]map[CategoryName]<weight value: 0-1>
+type WeightData = map[string]map[string]float32
+
+func AddWeights(
+	ctx context.Context,
+	courseData []*sisv1.CourseData,
+	weightData WeightData,
+	weightToPowerschoolMap map[string]string,
+) {
+	for weightCourseName, powerschoolName := range weightToPowerschoolMap {
+		categories := weightData[weightCourseName]
+
+		var target *sisv1.CourseData
+		for _, course := range courseData {
+			if course.GetName() == powerschoolName {
+				target = course
+				break
+			}
+		}
+		if target == nil {
+			slog.ErrorContext(
+				ctx,
+				"failed to find a powerschool course, this should never happen?",
+				"weight_name", weightCourseName,
+				"powerschool_name", powerschoolName,
+			)
+			continue
+		}
+
+		out := make([]*sisv1.AssignmentCategory, len(categories))
+		i := 0
+		for category, weight := range categories {
+			out[i] = &sisv1.AssignmentCategory{
+				Name:   category,
+				Weight: weight,
+			}
+			i++
+		}
+		target.AssignmentCategories = out
+	}
 }

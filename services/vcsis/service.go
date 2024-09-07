@@ -10,6 +10,7 @@ import (
 	"vcassist-backend/lib/timezone"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
+	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
 	"vcassist-backend/services/auth/verifier"
@@ -195,37 +196,6 @@ func (s Service) cacheNewData(ctx context.Context, studentId string, data *sisv1
 	return err
 }
 
-func (s Service) addGradeSnapshots(ctx context.Context, studentId string, data *sisv1.Data) error {
-	series, err := s.gradestore.Pull(ctx, studentId)
-	if err != nil {
-		return err
-	}
-
-	for _, course := range series {
-		var target *sisv1.CourseData
-		for _, tc := range data.Courses {
-			if tc.Guid == course.Course {
-				target = tc
-				break
-			}
-		}
-		if target == nil {
-			slog.WarnContext(ctx, "failed to find saved grade snapshot course in powerschool data", "course", course.Course)
-			continue
-		}
-
-		snapshots := make([]*sisv1.GradeSnapshot, len(course.Snapshots))
-		for i, s := range course.Snapshots {
-			snapshots[i] = &sisv1.GradeSnapshot{
-				Time:  s.Time.Unix(),
-				Value: s.Value,
-			}
-		}
-		target.Snapshots = snapshots
-	}
-	return nil
-}
-
 func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, error) {
 	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
 		Msg: &keychainv1.GetOAuthRequest{
@@ -249,18 +219,39 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 		return nil, fmt.Errorf("oauth login: %w", err)
 	}
 
-	data, err := Scrape(ctx, client)
+	data, err := ScrapePowerschool(ctx, client)
 	if err != nil {
 		return nil, fmt.Errorf("scraping: %w", err)
 	}
 
-	err = s.addGradeSnapshots(ctx, studentId, data)
+	series, err := s.gradestore.Pull(ctx, studentId)
 	if err != nil {
-		slog.WarnContext(ctx, "add grade snapshots", "err", err)
+		slog.WarnContext(ctx, "pull grade snapshots", "err", err)
 	}
-	err = s.addWeights(ctx, data.Courses)
+	if len(series) > 0 {
+		AddGradeSnapshots(ctx, data.Courses, series)
+	}
+
+	courseNames := make([]string, len(data.Courses))
+	for i, c := range data.Courses {
+		courseNames[i] = c.GetName()
+	}
+	linkRes, err := s.linker.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
+		Msg: &linkerv1.LinkRequest{
+			Src: &linkerv1.Set{
+				Name: "weights",
+				Keys: s.weightCourseNames,
+			},
+			Dst: &linkerv1.Set{
+				Name: "powerschool",
+				Keys: courseNames,
+			},
+		},
+	})
 	if err != nil {
 		slog.WarnContext(ctx, "add weights", "err", err)
+	} else {
+		AddWeights(ctx, data.Courses, s.weightData, linkRes.Msg.SrcToDst)
 	}
 
 	return data, nil
