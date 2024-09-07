@@ -194,6 +194,14 @@ export class Chapter extends Message<Chapter> {
    */
   name = "";
 
+  /**
+   * if this field is not null, the html in this field will be displayed
+   * on the home page as "today's lesson plan" for the course it belongs to
+   *
+   * @generated from field: string homepage_content = 3;
+   */
+  homepageContent = "";
+
   constructor(data?: PartialMessage<Chapter>) {
     super();
     proto3.util.initPartial(data, this);
@@ -204,6 +212,7 @@ export class Chapter extends Message<Chapter> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "id", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "homepage_content", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Chapter {
@@ -356,12 +365,17 @@ export class Course extends Message<Course> {
   name = "";
 
   /**
-   * @generated from field: string url = 3;
+   * @generated from field: string teacher = 3;
+   */
+  teacher = "";
+
+  /**
+   * @generated from field: string url = 4;
    */
   url = "";
 
   /**
-   * @generated from field: repeated vcassist.services.vcmoodle.v1.Section sections = 4;
+   * @generated from field: repeated vcassist.services.vcmoodle.v1.Section sections = 5;
    */
   sections: Section[] = [];
 
@@ -375,8 +389,9 @@ export class Course extends Message<Course> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "id", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "sections", kind: "message", T: Section, repeated: true },
+    { no: 3, name: "teacher", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "sections", kind: "message", T: Section, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Course {
@@ -537,6 +552,76 @@ export class GetChapterContentResponse extends Message<GetChapterContentResponse
 
   static equals(a: GetChapterContentResponse | PlainMessage<GetChapterContentResponse> | undefined, b: GetChapterContentResponse | PlainMessage<GetChapterContentResponse> | undefined): boolean {
     return proto3.util.equals(GetChapterContentResponse, a, b);
+  }
+}
+
+/**
+ * RefreshCourses
+ *
+ * @generated from message vcassist.services.vcmoodle.v1.RefreshCoursesRequest
+ */
+export class RefreshCoursesRequest extends Message<RefreshCoursesRequest> {
+  constructor(data?: PartialMessage<RefreshCoursesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.vcmoodle.v1.RefreshCoursesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshCoursesRequest {
+    return new RefreshCoursesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshCoursesRequest {
+    return new RefreshCoursesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshCoursesRequest {
+    return new RefreshCoursesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefreshCoursesRequest | PlainMessage<RefreshCoursesRequest> | undefined, b: RefreshCoursesRequest | PlainMessage<RefreshCoursesRequest> | undefined): boolean {
+    return proto3.util.equals(RefreshCoursesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message vcassist.services.vcmoodle.v1.RefreshCoursesResponse
+ */
+export class RefreshCoursesResponse extends Message<RefreshCoursesResponse> {
+  /**
+   * @generated from field: repeated vcassist.services.vcmoodle.v1.Course courses = 1;
+   */
+  courses: Course[] = [];
+
+  constructor(data?: PartialMessage<RefreshCoursesResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.vcmoodle.v1.RefreshCoursesResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "courses", kind: "message", T: Course, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshCoursesResponse {
+    return new RefreshCoursesResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshCoursesResponse {
+    return new RefreshCoursesResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshCoursesResponse {
+    return new RefreshCoursesResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefreshCoursesResponse | PlainMessage<RefreshCoursesResponse> | undefined, b: RefreshCoursesResponse | PlainMessage<RefreshCoursesResponse> | undefined): boolean {
+    return proto3.util.equals(RefreshCoursesResponse, a, b);
   }
 }
 
