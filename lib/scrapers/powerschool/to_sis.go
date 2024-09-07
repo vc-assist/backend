@@ -138,7 +138,6 @@ func patchSisCourseMeetings(out []*sisv1.CourseData, input []CourseMeeting) {
 				Start: start.Unix(),
 				Stop:  stop.Unix(),
 			})
-			break
 		}
 	}
 }
