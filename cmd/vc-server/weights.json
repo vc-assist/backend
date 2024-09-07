@@ -935,5 +935,11 @@
     "Progress Assessments": 0.2,
     "Final Exam": 0.15,
     "Presentational Assessments": 0.2
+  },
+  "Data Structures and Algorithms (H)": {
+    "Classwork/Homework": 0.35,
+    "Major Assignments": 0.2,
+    "Mastery Assignments": 0.3,
+    "Final Exam": 0.15
   }
 }
