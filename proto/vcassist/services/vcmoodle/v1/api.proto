@@ -24,6 +24,9 @@ enum ResourceType {
 message Chapter {
   int64 id = 1;
   string name = 2;
+  // if this field is not null, the html in this field will be displayed
+  // on the home page as "today's lesson plan" for the course it belongs to
+  string homepage_content = 3;
 }
 message Resource {
   int64 idx = 1;
@@ -42,8 +45,9 @@ message Section {
 message Course {
   int64 id = 1;
   string name = 2;
-  string url = 3;
-  repeated Section sections = 4;
+  string teacher = 3;
+  string url = 4;
+  repeated Section sections = 5;
 }
 message GetCoursesRequest {}
 message GetCoursesResponse {
@@ -56,6 +60,12 @@ message GetChapterContentRequest {
 }
 message GetChapterContentResponse {
   string html = 1;
+}
+
+// RefreshCourses
+message RefreshCoursesRequest {}
+message RefreshCoursesResponse {
+  repeated Course courses = 1;
 }
 
 service MoodleService {
