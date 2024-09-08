@@ -195,17 +195,22 @@ export class Chapter extends Message<Chapter> {
   name = "";
 
   /**
+   * @generated from field: string url = 3;
+   */
+  url = "";
+
+  /**
    * if this field is not null, the html in this field will be displayed
    * on the home page as "today's lesson plan" for the course it belongs to
    *
-   * @generated from field: string homepage_content = 3;
+   * @generated from field: string homepage_content = 4;
    */
   homepageContent = "";
 
   /**
    * the dates the chapter likely belongs to
    *
-   * @generated from field: repeated int64 dates = 4;
+   * @generated from field: repeated int64 dates = 5;
    */
   dates: bigint[] = [];
 
@@ -219,8 +224,9 @@ export class Chapter extends Message<Chapter> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "id", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "homepage_content", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "dates", kind: "scalar", T: 3 /* ScalarType.INT64 */, repeated: true },
+    { no: 3, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "homepage_content", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "dates", kind: "scalar", T: 3 /* ScalarType.INT64 */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Chapter {
