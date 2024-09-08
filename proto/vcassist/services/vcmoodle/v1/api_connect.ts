@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetAuthStatusRequest, GetAuthStatusResponse, GetChapterContentRequest, GetChapterContentResponse, GetCoursesRequest, GetCoursesResponse, ProvideUsernamePasswordRequest, ProvideUsernamePasswordResponse } from "./api_pb.js";
+import { GetAuthStatusRequest, GetAuthStatusResponse, GetChapterContentRequest, GetChapterContentResponse, GetCoursesRequest, GetCoursesResponse, ProvideUsernamePasswordRequest, ProvideUsernamePasswordResponse, RefreshCoursesRequest, RefreshCoursesResponse } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -37,6 +37,15 @@ export const MoodleService = {
       name: "GetCourses",
       I: GetCoursesRequest,
       O: GetCoursesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc vcassist.services.vcmoodle.v1.MoodleService.RefreshCourses
+     */
+    refreshCourses: {
+      name: "RefreshCourses",
+      I: RefreshCoursesRequest,
+      O: RefreshCoursesResponse,
       kind: MethodKind.Unary,
     },
     /**
