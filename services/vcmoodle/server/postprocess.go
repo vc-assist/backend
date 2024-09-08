@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"vcassist-backend/lib/timezone"
 	vcmoodlev1 "vcassist-backend/proto/vcassist/services/vcmoodle/v1"
 	"vcassist-backend/services/vcmoodle/db"
@@ -100,10 +101,18 @@ func GetCourseData(ctx context.Context, qry *db.Queries, dbCourses []db.Course) 
 						unixTimes[i] = t.Unix()
 					}
 
+					urlStr := ""
+					if resource.ID.Valid {
+						urlStr = fmt.Sprintf(
+							"https://learn.vcs.net/mod/book/view.php?id=%d&chapterid=%d",
+							resource.ID.Int64, chapter.ID,
+						)
+					}
 					pbChapter := &vcmoodlev1.Chapter{
 						Id:    int64(chapter.ID),
 						Name:  chapter.Name,
 						Dates: unixTimes,
+						Url:   urlStr,
 					}
 					outChapters[i] = pbChapter
 
@@ -134,9 +143,17 @@ func GetCourseData(ctx context.Context, qry *db.Queries, dbCourses []db.Course) 
 
 		setLessonPlanChapter(datedChapters)
 
+		segments := strings.Split(course.Name, " - ")
+		name := segments[0]
+		teacher := ""
+		if len(segments) > 1 {
+			teacher = segments[1]
+		}
+
 		outCourses[i] = &vcmoodlev1.Course{
 			Id:       int64(course.ID),
-			Name:     course.Name,
+			Name:     name,
+			Teacher:  teacher,
 			Url:      fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d", course.ID),
 			Sections: outSections,
 		}

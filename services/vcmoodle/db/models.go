@@ -4,6 +4,10 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
 type Chapter struct {
 	CourseID    int64
 	SectionIdx  int64
@@ -22,6 +26,7 @@ type Resource struct {
 	CourseID       int64
 	SectionIdx     int64
 	Idx            int64
+	ID             sql.NullInt64
 	Type           int64
 	Url            string
 	DisplayContent string

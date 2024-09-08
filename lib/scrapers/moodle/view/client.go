@@ -30,8 +30,8 @@ func NewClient(ctx context.Context, coreClient *core.Client) (Client, error) {
 	return c, nil
 }
 
-func parseIdFromUrl(link *url.URL) (int64, error) {
-	str := link.Query().Get("id")
+func parseIdFromUrl(link *url.URL, key string) (int64, error) {
+	str := link.Query().Get(key)
 	id, err := strconv.ParseInt(str, 10, 64)
 	if err != nil {
 		return -1, err
@@ -42,7 +42,7 @@ func parseIdFromUrl(link *url.URL) (int64, error) {
 type Course htmlutil.Anchor
 
 func (c Course) Id() (int64, error) {
-	return parseIdFromUrl(c.Url)
+	return parseIdFromUrl(c.Url, "id")
 }
 
 func coursesFromAnchors(anchors []htmlutil.Anchor) []Course {
@@ -212,7 +212,7 @@ func (c Client) Resources(ctx context.Context, section Section) ([]Resource, err
 type Chapter htmlutil.Anchor
 
 func (c Chapter) Id() (int64, error) {
-	return parseIdFromUrl(c.Url)
+	return parseIdFromUrl(c.Url, "chapterid")
 }
 
 func chaptersFromAnchors(anchors []htmlutil.Anchor) []Chapter {
@@ -258,6 +258,20 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 	tableOfContents := htmlutil.GetAnchors(resource.Url, doc.Find("div.columnleft li a"))
 
 	currentChapter := doc.Find("div.columnleft li strong").Text()
+
+	// the first chapter you click on doesn't give you its chapter id so you have to
+	// rummage for it in this weird corner
+	printUrl, exists := doc.Find("li[data-key=printchapter] a").First().Attr("href")
+	if exists {
+		parsed, err := url.Parse(printUrl)
+		if err != nil {
+			slog.WarnContext(ctx, "parse printchapter url", "err", err)
+		} else {
+			values := resource.Url.Query()
+			values.Add("chapterid", parsed.Query().Get("chapterid"))
+			resource.Url.RawQuery = values.Encode()
+		}
+	}
 
 	anchors := append(tableOfContents, htmlutil.Anchor{
 		Url:  resource.Url,

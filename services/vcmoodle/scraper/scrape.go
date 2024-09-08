@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
+	"strconv"
 	"sync"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/services/vcmoodle/db"
@@ -65,14 +66,22 @@ func (s scraper) scrapeBook(ctx context.Context, resource view.Resource, courseI
 func (s scraper) handleResource(ctx context.Context, resource view.Resource, resourceIdx, sectionIdx, courseId int64) {
 	defer s.wg.Done()
 
-	urlStr := ""
+	var id int64
+	var urlStr string
+	var err error
 	if resource.Url != nil {
 		urlStr = resource.Url.String()
+		idStr := resource.Url.Query().Get("id")
+		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
 	params := db.NoteResourceParams{
-		CourseID:       courseId,
-		SectionIdx:     sectionIdx,
+		CourseID:   courseId,
+		SectionIdx: sectionIdx,
+		ID: sql.NullInt64{
+			Int64: id,
+			Valid: err == nil,
+		},
 		Idx:            resourceIdx,
 		DisplayContent: resource.Name,
 		Url:            urlStr,
@@ -103,7 +112,7 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 		return
 	}
 
-	err := s.qry.NoteResource(ctx, params)
+	err = s.qry.NoteResource(ctx, params)
 	if err != nil {
 		slog.WarnContext(ctx, "failed to note resource", "err", err)
 	}
