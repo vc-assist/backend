@@ -1,4 +1,4 @@
-package scraper
+package server
 
 import (
 	"log/slog"
@@ -34,9 +34,20 @@ func parseMonth(text string) time.Month {
 	return -1
 }
 
-func resolveMonthDay(month time.Month, day int) time.Time {
+func resolveTOCMonthDay(month time.Month, day int) time.Time {
 	now := timezone.Now()
-	return time.Date(now.Year(), month, day, 0, 0, 0, 0, timezone.Location)
+	year := now.Year()
+
+	if (month >= time.August && month <= time.December) &&
+		(now.Month() < time.June && now.Month() >= time.January) {
+		year--
+	}
+	if (month >= time.January && month < time.June) &&
+		(now.Month() >= time.August && now.Month() <= time.December) {
+		year++
+	}
+
+	return time.Date(year, month, day, 0, 0, 0, 0, timezone.Location)
 }
 
 var monthDayRegex = regexp.MustCompile(`([A-Za-z]{3,9}) *(\d{1,2})`)
@@ -56,8 +67,8 @@ func parseTOCDate(text string) ([]time.Time, error) {
 		}
 
 		return []time.Time{
-			resolveMonthDay(month, int(day1)),
-			resolveMonthDay(month, int(day2)),
+			resolveTOCMonthDay(month, int(day1)),
+			resolveTOCMonthDay(month, int(day2)),
 		}, nil
 	}
 
@@ -73,7 +84,7 @@ func parseTOCDate(text string) ([]time.Time, error) {
 			slog.Warn("failed to parse day", "matches", match, "err", err)
 			continue
 		}
-		dates = append(dates, resolveMonthDay(month, int(day)))
+		dates = append(dates, resolveTOCMonthDay(month, int(day)))
 	}
 	return dates, nil
 }

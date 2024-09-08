@@ -178,72 +178,9 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 	if err != nil {
 		return nil, fmt.Errorf("getUserCourses: %w", err)
 	}
-
-	outCourses := make([]*vcmoodlev1.Course, len(dbCourses))
-	for i, course := range dbCourses {
-		dbSections, err := s.qry.GetCourseSections(ctx, course.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		outSections := make([]*vcmoodlev1.Section, len(dbSections))
-		for i, section := range dbSections {
-			dbResources, err := s.qry.GetSectionResources(ctx, db.GetSectionResourcesParams{
-				CourseID:   course.ID,
-				SectionIdx: section.Idx,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			outResources := make([]*vcmoodlev1.Resource, len(dbResources))
-			for i, resource := range dbResources {
-				dbChapters, err := s.qry.GetResourceChapters(ctx, db.GetResourceChaptersParams{
-					CourseID:    course.ID,
-					SectionIdx:  section.Idx,
-					ResourceIdx: resource.Idx,
-				})
-				if err != nil {
-					return nil, err
-				}
-
-				outChapters := make([]*vcmoodlev1.Chapter, len(dbChapters))
-				for i, chapter := range dbChapters {
-					outChapters[i] = &vcmoodlev1.Chapter{
-						Id:   int64(chapter.ID),
-						Name: chapter.Name,
-					}
-				}
-
-				resourceType := pbResourceType(resource.Type)
-				if resourceType < 0 {
-					slog.WarnContext(ctx, "unknown resource type", "type", resource.Type)
-					continue
-				}
-
-				outResources[i] = &vcmoodlev1.Resource{
-					Idx:            int64(resource.Idx),
-					Type:           resourceType,
-					Url:            resource.Url,
-					DisplayContent: resource.DisplayContent,
-					Chapters:       outChapters,
-				}
-			}
-
-			outSections[i] = &vcmoodlev1.Section{
-				Name:      section.Name,
-				Idx:       int64(section.Idx),
-				Url:       fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d&section=%d", course.ID, section.Idx),
-				Resources: outResources,
-			}
-		}
-
-		outCourses[i] = &vcmoodlev1.Course{
-			Id:       int64(course.ID),
-			Name:     course.Name,
-			Url:      fmt.Sprintf("https://learn.vcs.net/course/view.php?id=%d", course.ID),
-			Sections: outSections,
-		}
+	outCourses, err := GetCourseData(ctx, s.qry, dbCourses)
+	if err != nil {
+		return nil, err
 	}
 
 	evicted := s.coursesCache.Add(profile.Email, outCourses)
@@ -253,6 +190,30 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 
 	return &connect.Response[vcmoodlev1.GetCoursesResponse]{
 		Msg: &vcmoodlev1.GetCoursesResponse{
+			Courses: outCourses,
+		},
+	}, nil
+}
+
+func (s Service) RefreshCourses(ctx context.Context, req *connect.Request[vcmoodlev1.RefreshCoursesRequest]) (*connect.Response[vcmoodlev1.RefreshCoursesResponse], error) {
+	profile := verifier.ProfileFromContext(ctx)
+
+	dbCourses, err := s.getUserCourses(ctx, profile.Email)
+	if err != nil {
+		return nil, fmt.Errorf("getUserCourses: %w", err)
+	}
+	outCourses, err := GetCourseData(ctx, s.qry, dbCourses)
+	if err != nil {
+		return nil, err
+	}
+
+	evicted := s.coursesCache.Add(profile.Email, outCourses)
+	if evicted {
+		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", profile.Email)
+	}
+
+	return &connect.Response[vcmoodlev1.RefreshCoursesResponse]{
+		Msg: &vcmoodlev1.RefreshCoursesResponse{
 			Courses: outCourses,
 		},
 	}, nil

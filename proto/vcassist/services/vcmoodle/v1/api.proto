@@ -75,5 +75,6 @@ service MoodleService {
   rpc ProvideUsernamePassword(ProvideUsernamePasswordRequest) returns (ProvideUsernamePasswordResponse);
 
   rpc GetCourses(GetCoursesRequest) returns (GetCoursesResponse);
+  rpc RefreshCourses(RefreshCoursesRequest) returns (RefreshCoursesResponse);
   rpc GetChapterContent(GetChapterContentRequest) returns (GetChapterContentResponse);
 }

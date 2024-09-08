@@ -42,6 +42,9 @@ const (
 	// MoodleServiceGetCoursesProcedure is the fully-qualified name of the MoodleService's GetCourses
 	// RPC.
 	MoodleServiceGetCoursesProcedure = "/vcassist.services.vcmoodle.v1.MoodleService/GetCourses"
+	// MoodleServiceRefreshCoursesProcedure is the fully-qualified name of the MoodleService's
+	// RefreshCourses RPC.
+	MoodleServiceRefreshCoursesProcedure = "/vcassist.services.vcmoodle.v1.MoodleService/RefreshCourses"
 	// MoodleServiceGetChapterContentProcedure is the fully-qualified name of the MoodleService's
 	// GetChapterContent RPC.
 	MoodleServiceGetChapterContentProcedure = "/vcassist.services.vcmoodle.v1.MoodleService/GetChapterContent"
@@ -53,6 +56,7 @@ var (
 	moodleServiceGetAuthStatusMethodDescriptor           = moodleServiceServiceDescriptor.Methods().ByName("GetAuthStatus")
 	moodleServiceProvideUsernamePasswordMethodDescriptor = moodleServiceServiceDescriptor.Methods().ByName("ProvideUsernamePassword")
 	moodleServiceGetCoursesMethodDescriptor              = moodleServiceServiceDescriptor.Methods().ByName("GetCourses")
+	moodleServiceRefreshCoursesMethodDescriptor          = moodleServiceServiceDescriptor.Methods().ByName("RefreshCourses")
 	moodleServiceGetChapterContentMethodDescriptor       = moodleServiceServiceDescriptor.Methods().ByName("GetChapterContent")
 )
 
@@ -61,6 +65,7 @@ type MoodleServiceClient interface {
 	GetAuthStatus(context.Context, *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error)
 	ProvideUsernamePassword(context.Context, *connect.Request[v1.ProvideUsernamePasswordRequest]) (*connect.Response[v1.ProvideUsernamePasswordResponse], error)
 	GetCourses(context.Context, *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error)
+	RefreshCourses(context.Context, *connect.Request[v1.RefreshCoursesRequest]) (*connect.Response[v1.RefreshCoursesResponse], error)
 	GetChapterContent(context.Context, *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error)
 }
 
@@ -92,6 +97,12 @@ func NewMoodleServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(moodleServiceGetCoursesMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		refreshCourses: connect.NewClient[v1.RefreshCoursesRequest, v1.RefreshCoursesResponse](
+			httpClient,
+			baseURL+MoodleServiceRefreshCoursesProcedure,
+			connect.WithSchema(moodleServiceRefreshCoursesMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		getChapterContent: connect.NewClient[v1.GetChapterContentRequest, v1.GetChapterContentResponse](
 			httpClient,
 			baseURL+MoodleServiceGetChapterContentProcedure,
@@ -106,6 +117,7 @@ type moodleServiceClient struct {
 	getAuthStatus           *connect.Client[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse]
 	provideUsernamePassword *connect.Client[v1.ProvideUsernamePasswordRequest, v1.ProvideUsernamePasswordResponse]
 	getCourses              *connect.Client[v1.GetCoursesRequest, v1.GetCoursesResponse]
+	refreshCourses          *connect.Client[v1.RefreshCoursesRequest, v1.RefreshCoursesResponse]
 	getChapterContent       *connect.Client[v1.GetChapterContentRequest, v1.GetChapterContentResponse]
 }
 
@@ -125,6 +137,11 @@ func (c *moodleServiceClient) GetCourses(ctx context.Context, req *connect.Reque
 	return c.getCourses.CallUnary(ctx, req)
 }
 
+// RefreshCourses calls vcassist.services.vcmoodle.v1.MoodleService.RefreshCourses.
+func (c *moodleServiceClient) RefreshCourses(ctx context.Context, req *connect.Request[v1.RefreshCoursesRequest]) (*connect.Response[v1.RefreshCoursesResponse], error) {
+	return c.refreshCourses.CallUnary(ctx, req)
+}
+
 // GetChapterContent calls vcassist.services.vcmoodle.v1.MoodleService.GetChapterContent.
 func (c *moodleServiceClient) GetChapterContent(ctx context.Context, req *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error) {
 	return c.getChapterContent.CallUnary(ctx, req)
@@ -136,6 +153,7 @@ type MoodleServiceHandler interface {
 	GetAuthStatus(context.Context, *connect.Request[v1.GetAuthStatusRequest]) (*connect.Response[v1.GetAuthStatusResponse], error)
 	ProvideUsernamePassword(context.Context, *connect.Request[v1.ProvideUsernamePasswordRequest]) (*connect.Response[v1.ProvideUsernamePasswordResponse], error)
 	GetCourses(context.Context, *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error)
+	RefreshCourses(context.Context, *connect.Request[v1.RefreshCoursesRequest]) (*connect.Response[v1.RefreshCoursesResponse], error)
 	GetChapterContent(context.Context, *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error)
 }
 
@@ -163,6 +181,12 @@ func NewMoodleServiceHandler(svc MoodleServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(moodleServiceGetCoursesMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	moodleServiceRefreshCoursesHandler := connect.NewUnaryHandler(
+		MoodleServiceRefreshCoursesProcedure,
+		svc.RefreshCourses,
+		connect.WithSchema(moodleServiceRefreshCoursesMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	moodleServiceGetChapterContentHandler := connect.NewUnaryHandler(
 		MoodleServiceGetChapterContentProcedure,
 		svc.GetChapterContent,
@@ -177,6 +201,8 @@ func NewMoodleServiceHandler(svc MoodleServiceHandler, opts ...connect.HandlerOp
 			moodleServiceProvideUsernamePasswordHandler.ServeHTTP(w, r)
 		case MoodleServiceGetCoursesProcedure:
 			moodleServiceGetCoursesHandler.ServeHTTP(w, r)
+		case MoodleServiceRefreshCoursesProcedure:
+			moodleServiceRefreshCoursesHandler.ServeHTTP(w, r)
 		case MoodleServiceGetChapterContentProcedure:
 			moodleServiceGetChapterContentHandler.ServeHTTP(w, r)
 		default:
@@ -198,6 +224,10 @@ func (UnimplementedMoodleServiceHandler) ProvideUsernamePassword(context.Context
 
 func (UnimplementedMoodleServiceHandler) GetCourses(context.Context, *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.vcmoodle.v1.MoodleService.GetCourses is not implemented"))
+}
+
+func (UnimplementedMoodleServiceHandler) RefreshCourses(context.Context, *connect.Request[v1.RefreshCoursesRequest]) (*connect.Response[v1.RefreshCoursesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.vcmoodle.v1.MoodleService.RefreshCourses is not implemented"))
 }
 
 func (UnimplementedMoodleServiceHandler) GetChapterContent(context.Context, *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error) {
