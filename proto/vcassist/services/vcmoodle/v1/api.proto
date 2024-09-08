@@ -27,6 +27,8 @@ message Chapter {
   // if this field is not null, the html in this field will be displayed
   // on the home page as "today's lesson plan" for the course it belongs to
   string homepage_content = 3;
+  // the dates the chapter likely belongs to
+  repeated int64 dates = 4;
 }
 message Resource {
   int64 idx = 1;
