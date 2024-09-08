@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
 
@@ -85,9 +86,17 @@ func (q *Queries) GetCourseSections(ctx context.Context, courseID int64) ([]Sect
 }
 
 const getCourses = `-- name: GetCourses :many
+
 select id, name from Course where id in (/*SLICE:ids*/?)
 `
 
+// on conflict (id) do update
+//
+//	set course_id = excluded.course_id,
+//	    section_idx = excluded.section_idx,
+//	    resource_idx = excluded.resource_idx,
+//	    name = excluded.name,
+//	    content_html = excluded.content_html;
 func (q *Queries) GetCourses(ctx context.Context, ids []int64) ([]Course, error) {
 	query := getCourses
 	var queryParams []interface{}
@@ -165,7 +174,7 @@ func (q *Queries) GetResourceChapters(ctx context.Context, arg GetResourceChapte
 }
 
 const getSectionResources = `-- name: GetSectionResources :many
-select course_id, section_idx, idx, type, url, display_content from Resource where course_id = ? and section_idx = ?
+select course_id, section_idx, idx, id, type, url, display_content from Resource where course_id = ? and section_idx = ?
 `
 
 type GetSectionResourcesParams struct {
@@ -186,6 +195,7 @@ func (q *Queries) GetSectionResources(ctx context.Context, arg GetSectionResourc
 			&i.CourseID,
 			&i.SectionIdx,
 			&i.Idx,
+			&i.ID,
 			&i.Type,
 			&i.Url,
 			&i.DisplayContent,
@@ -204,13 +214,8 @@ func (q *Queries) GetSectionResources(ctx context.Context, arg GetSectionResourc
 }
 
 const noteChapter = `-- name: NoteChapter :exec
+
 insert into Chapter(course_id, section_idx, resource_idx, id, name, content_html) values (?, ?, ?, ?, ?, ?)
-on conflict (id) do update
-    set course_id = excluded.course_id,
-        section_idx = excluded.section_idx,
-        resource_idx = excluded.resource_idx,
-        name = excluded.name,
-        content_html = excluded.content_html
 `
 
 type NoteChapterParams struct {
@@ -222,6 +227,11 @@ type NoteChapterParams struct {
 	ContentHtml string
 }
 
+// on conflict (course_id, section_idx, idx) do update
+//
+//	set type = excluded.type,
+//	    url = excluded.url,
+//	    display_content = excluded.display_content;
 func (q *Queries) NoteChapter(ctx context.Context, arg NoteChapterParams) error {
 	_, err := q.db.ExecContext(ctx, noteChapter,
 		arg.CourseID,
@@ -236,8 +246,6 @@ func (q *Queries) NoteChapter(ctx context.Context, arg NoteChapterParams) error 
 
 const noteCourse = `-- name: NoteCourse :exec
 insert into Course(id, name) values (?, ?)
-on conflict (id) do update
-    set name = excluded.name
 `
 
 type NoteCourseParams struct {
@@ -251,27 +259,29 @@ func (q *Queries) NoteCourse(ctx context.Context, arg NoteCourseParams) error {
 }
 
 const noteResource = `-- name: NoteResource :exec
-insert into Resource(course_id, section_idx, idx, type, url, display_content) values (?, ?, ?, ?, ?, ?)
-on conflict (course_id, section_idx, idx) do update
-    set type = excluded.type,
-        url = excluded.url,
-        display_content = excluded.display_content
+
+insert into Resource(course_id, section_idx, idx, id, type, url, display_content) values (?, ?, ?, ?, ?, ?, ?)
 `
 
 type NoteResourceParams struct {
 	CourseID       int64
 	SectionIdx     int64
 	Idx            int64
+	ID             sql.NullInt64
 	Type           int64
 	Url            string
 	DisplayContent string
 }
 
+// on conflict (course_id, idx) do update
+//
+//	set name = excluded.name;
 func (q *Queries) NoteResource(ctx context.Context, arg NoteResourceParams) error {
 	_, err := q.db.ExecContext(ctx, noteResource,
 		arg.CourseID,
 		arg.SectionIdx,
 		arg.Idx,
+		arg.ID,
 		arg.Type,
 		arg.Url,
 		arg.DisplayContent,
@@ -280,9 +290,8 @@ func (q *Queries) NoteResource(ctx context.Context, arg NoteResourceParams) erro
 }
 
 const noteSection = `-- name: NoteSection :exec
+
 insert into Section(course_id, idx, name) values (?, ?, ?)
-on conflict (course_id, idx) do update
-    set name = excluded.name
 `
 
 type NoteSectionParams struct {
@@ -291,6 +300,9 @@ type NoteSectionParams struct {
 	Name     string
 }
 
+// on conflict (id) do update
+//
+//	set name = excluded.name;
 func (q *Queries) NoteSection(ctx context.Context, arg NoteSectionParams) error {
 	_, err := q.db.ExecContext(ctx, noteSection, arg.CourseID, arg.Idx, arg.Name)
 	return err

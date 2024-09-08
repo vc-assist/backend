@@ -22,6 +22,8 @@ create table Resource (
     -- - Quarter 2 (Book, idx 1)
     -- - Some URL (URL, idx 2)
     idx integer not null,
+    -- this may or may not also have an actual id depending on what is stored
+    id integer,
     -- 0: generic url
     -- 1: book
     -- 2: html area
