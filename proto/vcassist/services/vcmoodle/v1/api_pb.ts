@@ -202,6 +202,13 @@ export class Chapter extends Message<Chapter> {
    */
   homepageContent = "";
 
+  /**
+   * the dates the chapter likely belongs to
+   *
+   * @generated from field: repeated int64 dates = 4;
+   */
+  dates: bigint[] = [];
+
   constructor(data?: PartialMessage<Chapter>) {
     super();
     proto3.util.initPartial(data, this);
@@ -213,6 +220,7 @@ export class Chapter extends Message<Chapter> {
     { no: 1, name: "id", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "homepage_content", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "dates", kind: "scalar", T: 3 /* ScalarType.INT64 */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Chapter {
