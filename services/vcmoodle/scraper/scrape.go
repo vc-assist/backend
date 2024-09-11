@@ -17,8 +17,6 @@ type scraper struct {
 }
 
 func (s scraper) scrapeChapter(ctx context.Context, chapter view.Chapter, courseId, sectionIdx, resourceIdx int64) {
-	defer s.wg.Done()
-
 	slog.DebugContext(ctx, "scraping chapter", "name", chapter.Name, "url", chapter.Url)
 
 	content, err := s.client.ChapterContent(ctx, chapter)
@@ -47,8 +45,6 @@ func (s scraper) scrapeChapter(ctx context.Context, chapter view.Chapter, course
 }
 
 func (s scraper) scrapeBook(ctx context.Context, resource view.Resource, courseId, sectionIdx, resourceIdx int64) {
-	defer s.wg.Done()
-
 	slog.DebugContext(ctx, "scraping book", "name", resource.Name, "url", resource.Url)
 
 	chapterList, err := s.client.Chapters(ctx, resource)
@@ -59,13 +55,14 @@ func (s scraper) scrapeBook(ctx context.Context, resource view.Resource, courseI
 
 	for _, chapter := range chapterList {
 		s.wg.Add(1)
-		go s.scrapeChapter(ctx, chapter, courseId, sectionIdx, resourceIdx)
+		go func() {
+			defer s.wg.Done()
+			s.scrapeChapter(ctx, chapter, courseId, sectionIdx, resourceIdx)
+		}()
 	}
 }
 
 func (s scraper) handleResource(ctx context.Context, resource view.Resource, resourceIdx, sectionIdx, courseId int64) {
-	defer s.wg.Done()
-
 	var id int64
 	var urlStr string
 	var err error
@@ -103,7 +100,11 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 		slog.DebugContext(ctx, "noting book resource", "idx", sectionIdx, "course_id", courseId, "name", resource.Name)
 		params.Type = 1
 
-		go s.scrapeBook(ctx, resource, courseId, sectionIdx, resourceIdx)
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			s.scrapeBook(ctx, resource, courseId, sectionIdx, resourceIdx)
+		}()
 	case view.RESOURCE_HTML_AREA:
 		slog.DebugContext(ctx, "noting html area resource", "idx", sectionIdx, "course_id", courseId, "length", len(resource.Name))
 		params.Type = 2
@@ -119,8 +120,6 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 }
 
 func (s scraper) scrapeSection(ctx context.Context, section view.Section, sectionIdx, courseId int64) error {
-	defer s.wg.Done()
-
 	slog.DebugContext(ctx, "scraping section", "idx", sectionIdx, "course_id", courseId)
 
 	err := s.qry.NoteSection(ctx, db.NoteSectionParams{
@@ -138,15 +137,16 @@ func (s scraper) scrapeSection(ctx context.Context, section view.Section, sectio
 	}
 	for i, resource := range resourceList {
 		s.wg.Add(1)
-		go s.handleResource(ctx, resource, int64(i), sectionIdx, courseId)
+		go func() {
+			defer s.wg.Done()
+			s.handleResource(ctx, resource, int64(i), sectionIdx, courseId)
+		}()
 	}
 
 	return nil
 }
 
 func (s scraper) scrapeCourse(ctx context.Context, course view.Course) {
-	defer s.wg.Done()
-
 	id, err := course.Id()
 	if err != nil {
 		slog.WarnContext(ctx, "failed to parse course id", "id", id, "name", course.Name)
@@ -170,7 +170,10 @@ func (s scraper) scrapeCourse(ctx context.Context, course view.Course) {
 	}
 	for i, section := range sectionList {
 		s.wg.Add(1)
-		go s.scrapeSection(ctx, section, int64(i), id)
+		go func() {
+			defer s.wg.Done()
+			s.scrapeSection(ctx, section, int64(i), id)
+		}()
 	}
 }
 
@@ -184,7 +187,10 @@ func (s scraper) scrapeDashboard(ctx context.Context) {
 	}
 	for _, course := range courseList {
 		s.wg.Add(1)
-		go s.scrapeCourse(ctx, course)
+		go func() {
+			defer s.wg.Done()
+			s.scrapeCourse(ctx, course)
+		}()
 	}
 }
 
