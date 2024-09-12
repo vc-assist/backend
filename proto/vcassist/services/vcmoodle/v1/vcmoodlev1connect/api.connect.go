@@ -48,6 +48,9 @@ const (
 	// MoodleServiceGetChapterContentProcedure is the fully-qualified name of the MoodleService's
 	// GetChapterContent RPC.
 	MoodleServiceGetChapterContentProcedure = "/vcassist.services.vcmoodle.v1.MoodleService/GetChapterContent"
+	// MoodleServiceGetFileContentProcedure is the fully-qualified name of the MoodleService's
+	// GetFileContent RPC.
+	MoodleServiceGetFileContentProcedure = "/vcassist.services.vcmoodle.v1.MoodleService/GetFileContent"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -58,6 +61,7 @@ var (
 	moodleServiceGetCoursesMethodDescriptor              = moodleServiceServiceDescriptor.Methods().ByName("GetCourses")
 	moodleServiceRefreshCoursesMethodDescriptor          = moodleServiceServiceDescriptor.Methods().ByName("RefreshCourses")
 	moodleServiceGetChapterContentMethodDescriptor       = moodleServiceServiceDescriptor.Methods().ByName("GetChapterContent")
+	moodleServiceGetFileContentMethodDescriptor          = moodleServiceServiceDescriptor.Methods().ByName("GetFileContent")
 )
 
 // MoodleServiceClient is a client for the vcassist.services.vcmoodle.v1.MoodleService service.
@@ -67,6 +71,7 @@ type MoodleServiceClient interface {
 	GetCourses(context.Context, *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error)
 	RefreshCourses(context.Context, *connect.Request[v1.RefreshCoursesRequest]) (*connect.Response[v1.RefreshCoursesResponse], error)
 	GetChapterContent(context.Context, *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error)
+	GetFileContent(context.Context, *connect.Request[v1.GetFileContentRequest]) (*connect.ServerStreamForClient[v1.GetFileContentResponse], error)
 }
 
 // NewMoodleServiceClient constructs a client for the vcassist.services.vcmoodle.v1.MoodleService
@@ -109,6 +114,12 @@ func NewMoodleServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(moodleServiceGetChapterContentMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		getFileContent: connect.NewClient[v1.GetFileContentRequest, v1.GetFileContentResponse](
+			httpClient,
+			baseURL+MoodleServiceGetFileContentProcedure,
+			connect.WithSchema(moodleServiceGetFileContentMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -119,6 +130,7 @@ type moodleServiceClient struct {
 	getCourses              *connect.Client[v1.GetCoursesRequest, v1.GetCoursesResponse]
 	refreshCourses          *connect.Client[v1.RefreshCoursesRequest, v1.RefreshCoursesResponse]
 	getChapterContent       *connect.Client[v1.GetChapterContentRequest, v1.GetChapterContentResponse]
+	getFileContent          *connect.Client[v1.GetFileContentRequest, v1.GetFileContentResponse]
 }
 
 // GetAuthStatus calls vcassist.services.vcmoodle.v1.MoodleService.GetAuthStatus.
@@ -147,6 +159,11 @@ func (c *moodleServiceClient) GetChapterContent(ctx context.Context, req *connec
 	return c.getChapterContent.CallUnary(ctx, req)
 }
 
+// GetFileContent calls vcassist.services.vcmoodle.v1.MoodleService.GetFileContent.
+func (c *moodleServiceClient) GetFileContent(ctx context.Context, req *connect.Request[v1.GetFileContentRequest]) (*connect.ServerStreamForClient[v1.GetFileContentResponse], error) {
+	return c.getFileContent.CallServerStream(ctx, req)
+}
+
 // MoodleServiceHandler is an implementation of the vcassist.services.vcmoodle.v1.MoodleService
 // service.
 type MoodleServiceHandler interface {
@@ -155,6 +172,7 @@ type MoodleServiceHandler interface {
 	GetCourses(context.Context, *connect.Request[v1.GetCoursesRequest]) (*connect.Response[v1.GetCoursesResponse], error)
 	RefreshCourses(context.Context, *connect.Request[v1.RefreshCoursesRequest]) (*connect.Response[v1.RefreshCoursesResponse], error)
 	GetChapterContent(context.Context, *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error)
+	GetFileContent(context.Context, *connect.Request[v1.GetFileContentRequest], *connect.ServerStream[v1.GetFileContentResponse]) error
 }
 
 // NewMoodleServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -193,6 +211,12 @@ func NewMoodleServiceHandler(svc MoodleServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(moodleServiceGetChapterContentMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	moodleServiceGetFileContentHandler := connect.NewServerStreamHandler(
+		MoodleServiceGetFileContentProcedure,
+		svc.GetFileContent,
+		connect.WithSchema(moodleServiceGetFileContentMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/vcassist.services.vcmoodle.v1.MoodleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MoodleServiceGetAuthStatusProcedure:
@@ -205,6 +229,8 @@ func NewMoodleServiceHandler(svc MoodleServiceHandler, opts ...connect.HandlerOp
 			moodleServiceRefreshCoursesHandler.ServeHTTP(w, r)
 		case MoodleServiceGetChapterContentProcedure:
 			moodleServiceGetChapterContentHandler.ServeHTTP(w, r)
+		case MoodleServiceGetFileContentProcedure:
+			moodleServiceGetFileContentHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -232,4 +258,8 @@ func (UnimplementedMoodleServiceHandler) RefreshCourses(context.Context, *connec
 
 func (UnimplementedMoodleServiceHandler) GetChapterContent(context.Context, *connect.Request[v1.GetChapterContentRequest]) (*connect.Response[v1.GetChapterContentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.vcmoodle.v1.MoodleService.GetChapterContent is not implemented"))
+}
+
+func (UnimplementedMoodleServiceHandler) GetFileContent(context.Context, *connect.Request[v1.GetFileContentRequest], *connect.ServerStream[v1.GetFileContentResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.vcmoodle.v1.MoodleService.GetFileContent is not implemented"))
 }
