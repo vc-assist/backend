@@ -18,20 +18,26 @@ export enum ResourceType {
   GENERIC_URL = 0,
 
   /**
-   * @generated from enum value: BOOK = 1;
+   * @generated from enum value: FILE = 1;
    */
-  BOOK = 1,
+  FILE = 1,
 
   /**
-   * @generated from enum value: HTML_AREA = 2;
+   * @generated from enum value: BOOK = 2;
    */
-  HTML_AREA = 2,
+  BOOK = 2,
+
+  /**
+   * @generated from enum value: HTML_AREA = 3;
+   */
+  HTML_AREA = 3,
 }
 // Retrieve enum metadata with: proto3.getEnumType(ResourceType)
 proto3.util.setEnumType(ResourceType, "vcassist.services.vcmoodle.v1.ResourceType", [
   { no: 0, name: "GENERIC_URL" },
-  { no: 1, name: "BOOK" },
-  { no: 2, name: "HTML_AREA" },
+  { no: 1, name: "FILE" },
+  { no: 2, name: "BOOK" },
+  { no: 3, name: "HTML_AREA" },
 ]);
 
 /**
@@ -566,6 +572,82 @@ export class GetChapterContentResponse extends Message<GetChapterContentResponse
 
   static equals(a: GetChapterContentResponse | PlainMessage<GetChapterContentResponse> | undefined, b: GetChapterContentResponse | PlainMessage<GetChapterContentResponse> | undefined): boolean {
     return proto3.util.equals(GetChapterContentResponse, a, b);
+  }
+}
+
+/**
+ * GetFileContent
+ *
+ * @generated from message vcassist.services.vcmoodle.v1.GetFileContentRequest
+ */
+export class GetFileContentRequest extends Message<GetFileContentRequest> {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id = protoInt64.zero;
+
+  constructor(data?: PartialMessage<GetFileContentRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.vcmoodle.v1.GetFileContentRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetFileContentRequest {
+    return new GetFileContentRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetFileContentRequest {
+    return new GetFileContentRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetFileContentRequest {
+    return new GetFileContentRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetFileContentRequest | PlainMessage<GetFileContentRequest> | undefined, b: GetFileContentRequest | PlainMessage<GetFileContentRequest> | undefined): boolean {
+    return proto3.util.equals(GetFileContentRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message vcassist.services.vcmoodle.v1.GetFileContentResponse
+ */
+export class GetFileContentResponse extends Message<GetFileContentResponse> {
+  /**
+   * @generated from field: bytes chunk = 1;
+   */
+  chunk = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<GetFileContentResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.vcmoodle.v1.GetFileContentResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "chunk", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetFileContentResponse {
+    return new GetFileContentResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetFileContentResponse {
+    return new GetFileContentResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetFileContentResponse {
+    return new GetFileContentResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetFileContentResponse | PlainMessage<GetFileContentResponse> | undefined, b: GetFileContentResponse | PlainMessage<GetFileContentResponse> | undefined): boolean {
+    return proto3.util.equals(GetFileContentResponse, a, b);
   }
 }
 
