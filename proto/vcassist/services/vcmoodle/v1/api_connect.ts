@@ -64,7 +64,7 @@ export const MoodleService = {
       name: "GetFileContent",
       I: GetFileContentRequest,
       O: GetFileContentResponse,
-      kind: MethodKind.ServerStreaming,
+      kind: MethodKind.Unary,
     },
   }
 } as const;
