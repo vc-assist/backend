@@ -619,14 +619,9 @@ export class GetFileContentRequest extends Message<GetFileContentRequest> {
  */
 export class GetFileContentResponse extends Message<GetFileContentResponse> {
   /**
-   * @generated from field: bool last = 1;
+   * @generated from field: bytes file = 1;
    */
-  last = false;
-
-  /**
-   * @generated from field: bytes chunk = 2;
-   */
-  chunk = new Uint8Array(0);
+  file = new Uint8Array(0);
 
   constructor(data?: PartialMessage<GetFileContentResponse>) {
     super();
@@ -636,8 +631,7 @@ export class GetFileContentResponse extends Message<GetFileContentResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "vcassist.services.vcmoodle.v1.GetFileContentResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "last", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: "chunk", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: "file", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetFileContentResponse {

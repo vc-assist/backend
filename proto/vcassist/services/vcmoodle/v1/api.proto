@@ -71,8 +71,7 @@ message GetFileContentRequest {
   string url = 1;
 }
 message GetFileContentResponse {
-  bool last = 1;
-  bytes chunk = 2;
+  bytes file = 1;
 }
 
 // RefreshCourses
@@ -88,5 +87,5 @@ service MoodleService {
   rpc GetCourses(GetCoursesRequest) returns (GetCoursesResponse);
   rpc RefreshCourses(RefreshCoursesRequest) returns (RefreshCoursesResponse);
   rpc GetChapterContent(GetChapterContentRequest) returns (GetChapterContentResponse);
-  rpc GetFileContent(GetFileContentRequest) returns (stream GetFileContentResponse);
+  rpc GetFileContent(GetFileContentRequest) returns (GetFileContentResponse);
 }
