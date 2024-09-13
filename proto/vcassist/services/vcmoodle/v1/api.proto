@@ -68,7 +68,7 @@ message GetChapterContentResponse {
 
 // GetFileContent
 message GetFileContentRequest {
-  int64 id = 1;
+  string url = 1;
 }
 message GetFileContentResponse {
   bool last = 1;
