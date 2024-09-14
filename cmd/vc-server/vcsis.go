@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	configlibsql "vcassist-backend/lib/configutil/libsql"
+	"vcassist-backend/lib/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/proto/vcassist/services/sis/v1/sisv1connect"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/vcsis"
+	"vcassist-backend/services/vcsis/db"
 
 	"connectrpc.com/connect"
 )
@@ -22,10 +23,10 @@ type VCSisOAuthConfig struct {
 }
 
 type VCSisConfig struct {
-	Database           configlibsql.Struct `json:"database"`
-	PowerschoolBaseUrl string              `json:"powerschool_base_url"`
-	PowerschoolOAuth   VCSisOAuthConfig    `json:"powerschool_oauth"`
-	WeightsFile        string              `json:"weights_file"`
+	Database           string           `json:"database"`
+	PowerschoolBaseUrl string           `json:"powerschool_base_url"`
+	PowerschoolOAuth   VCSisOAuthConfig `json:"powerschool_oauth"`
+	WeightsFile        string           `json:"weights_file"`
 }
 
 func InitVCSis(
@@ -35,7 +36,7 @@ func InitVCSis(
 	keychain keychainv1connect.KeychainServiceClient,
 	linker linkerv1connect.LinkerServiceClient,
 ) error {
-	database, err := cfg.Database.OpenDB()
+	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return err
 	}

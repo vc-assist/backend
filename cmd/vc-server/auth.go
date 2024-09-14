@@ -2,10 +2,11 @@ package main
 
 import (
 	"net/http"
-	configlibsql "vcassist-backend/lib/configutil/libsql"
+	"vcassist-backend/lib/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
+	"vcassist-backend/services/auth/db"
 	"vcassist-backend/services/auth/verifier"
 )
 
@@ -17,9 +18,9 @@ type AuthSmtpConfig struct {
 }
 
 type AuthConfig struct {
-	Smtp           AuthSmtpConfig      `json:"smtp"`
-	Database       configlibsql.Struct `json:"database"`
-	AllowedDomains []string            `json:"allowed_domains"`
+	Smtp           AuthSmtpConfig `json:"smtp"`
+	Database       string         `json:"database"`
+	AllowedDomains []string       `json:"allowed_domains"`
 	// this is an email address that will have a verification code bypass
 	// for app reviewers and testers
 	TestEmail            string `json:"test_email"`
@@ -27,7 +28,7 @@ type AuthConfig struct {
 }
 
 func InitAuth(mux *http.ServeMux, cfg AuthConfig) (verifier.Verifier, error) {
-	database, err := cfg.Database.OpenDB()
+	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return verifier.Verifier{}, err
 	}

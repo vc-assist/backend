@@ -2,22 +2,23 @@ package main
 
 import (
 	"net/http"
-	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker"
+	"vcassist-backend/services/linker/db"
 
 	"connectrpc.com/connect"
 )
 
 type LinkerConfig struct {
-	Database    configlibsql.Struct `json:"database"`
-	AccessToken string              `json:"access_token"`
+	Database    string `json:"database"`
+	AccessToken string `json:"access_token"`
 }
 
 func InitLinker(mux *http.ServeMux, cfg LinkerConfig) (linkerv1connect.InstrumentedLinkerServiceClient, error) {
-	db, err := cfg.Database.OpenDB()
+	db, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return linkerv1connect.NewInstrumentedLinkerServiceClient(nil), err
 	}

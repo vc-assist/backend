@@ -29,6 +29,7 @@
    - `htmlutil/` - additional utilities for working with HTML.
    - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
    - `restyutil/` - utilities for the `resty` HTTP client
+   - `sqliteutil/` - utilities for opening up and migrating sqlite databases
    - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
    - `telemetry/` - telemetry setup/teardown as well as misc. instrumentation utilities
 - `dev/` - code for setting up the development environment
@@ -40,21 +41,15 @@
 - `sqlc.yaml` - [sqlc.yaml](https://docs.sqlc.dev/en/latest/reference/config.html)
 - `telemetry.json5` - configuration of telemetry for development
 
-## Development environment
+## Docker services
 
-This project comes with its own custom development environment (which is basically just setup work that has to be done in order for a variety of things to work locally).
+This project relies on grafana + opentelemetry for some of its debugging information, to run the appropriate docker services to make the integration work, you should execute
 
-The code that initializes this environment is kept under `dev/`.
+```sh
+go run ./dev
+```
 
-Here are a few things it sets up:
-
-1. A local setup of telemetry using Docker Compose under `dev/local_stack/`, you can access the grafana dashboard at `http://localhost:3000`.
-2. Moodle credentials for use in testing in `lib/scrapers/moodle/...`
-
-As such, before running tests or doing local debugging you should run one of the following commands.
-
-- `go run ./dev` - setup development environment
-- `go run ./dev -recreate` - recreate development environment (bypass cache)
+in the root directory of the repository.
 
 ## Commands
 
@@ -68,7 +63,6 @@ Here are some commands relating to linting and code generation that will probabl
 - `buf generate --template buf.gen-go.yaml` - generate golang protobuf code with [buf](https://buf.build/)
 - `buf generate --template buf.gen-ts.yaml` - generate typescript protobuf code with [buf](https://buf.build/)
 - `protogetter --fix ./...` - makes sure you use `Get` methods on protobufs to prevent nil pointer dereference when chaining stuff together
-- `atlas schema apply -u "libsql://<db_url>?authToken=<auth_token>" --to file://path/to/schema.sql --dev-url "sqlite://dev?mode=memory"` - migrates a database, see [declarative migrations](https://atlasgo.io/getting-started/#declarative-migrations)
 
 > [!NOTE]
 > To use these commands you'll need to install their respective CLI binaries.
@@ -84,4 +78,7 @@ Here are some commands relating to linting and code generation that will probabl
 - `go test ./lib/... ./services/auth` - runs all tests that don't require manual interaction
 - `go test -v ./services/vcsis` - runs the tests for powerschool scraping, this is kept separately from the rest of the tests because it requires you to sign in with powerschool manually which doesn't work out that well if you're testing everything all at once
 - `go clean -testcache` - cleans test cache, may be useful if telemetry isn't working
+
+> [!NOTE]
+> It is not a good idea to run tests from a directory other than root, this is because many temporary and local files are resolved relative to the current working directory so you may find unexpected issues!
 

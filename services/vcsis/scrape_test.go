@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/restyutil"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
@@ -88,10 +87,8 @@ func tokenFromCallbackUrl(t testing.TB, oauthFlow *keychainv1.OAuthFlow, callbac
 }
 
 func promptForToken(t testing.TB, ctx context.Context, oauthConfig OAuthConfig) string {
-	callbackPath, err := devenv.ResolvePath("<dev_state>/tests/vcsis_scrape/callback_url")
-	if err != nil {
-		t.Fatal(err)
-	}
+	os.MkdirAll(".dev/test_vcsis", 0777)
+	callbackPath := ".dev/test_vcsis/callback_url"
 	os.Remove(callbackPath)
 
 	cleanupProtocol := createPSProtocolHandler(t, callbackPath)
@@ -138,10 +135,7 @@ func promptForToken(t testing.TB, ctx context.Context, oauthConfig OAuthConfig) 
 }
 
 func getToken(t testing.TB, ctx context.Context, oauthConfig OAuthConfig) string {
-	tokenPath, err := devenv.ResolvePath("<dev_state>/tests/vcsis_scrape/token")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tokenPath := ".dev/test_vcsis/token"
 
 	info, err := os.Stat(tokenPath)
 	if err == nil && time.Now().Sub(info.ModTime()).Hours() < 0.5 {
@@ -184,7 +178,7 @@ func TestScrape(t *testing.T) {
 		t.Fatal(err)
 	}
 	client.SetRestyInstrumentOutput(restyutil.NewFilesystemOutput(
-		"<dev_state>/tests/vcsis_scrape/resty",
+		".dev/test_vcsis/resty/powerschool",
 	))
 
 	_, err = client.LoginOAuth(ctx, token)

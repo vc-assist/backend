@@ -3,15 +3,14 @@ package commands
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
 	"strings"
 	"unicode"
-	devenv "vcassist-backend/dev/env"
 	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/sqliteutil"
 	"vcassist-backend/services/vcmoodle/db"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -26,7 +25,7 @@ var targetDb *string
 var chapterTarget *int64
 
 func init() {
-	targetDb = testCmd.Flags().String("db", "<dev_state>/vcmoodle.db", "The database to write scrape results to.")
+	targetDb = testCmd.Flags().String("db", "results.db", "The target database to validate scrape results.")
 	chapterTarget = testCmd.Flags().Int64("chapter", -1, "The chapter to specifically test.")
 	rootCmd.AddCommand(testCmd)
 }
@@ -35,11 +34,7 @@ var testCmd = &cobra.Command{
 	Use:   "test [--db <path/to/output.db>] [--chapter <chapter_id>]",
 	Short: "Validates the result of a moodle scrape.",
 	Run: func(cmd *cobra.Command, args []string) {
-		path, err := devenv.ResolvePath(*targetDb)
-		if err != nil {
-			serviceutil.Fatal("failed to resolve db path", err)
-		}
-		database, err := sql.Open("sqlite", path)
+		database, err := sqliteutil.OpenDB(db.Schema, *targetDb)
 		if err != nil {
 			serviceutil.Fatal("failed to open db", err)
 		}
@@ -153,9 +148,15 @@ func ValidateHeaders(chapters []Chapter) {
 			)
 			doc := goquery.NewDocumentFromNode(chapter.Contents)
 			rendered := converter.Convert(doc.Selection)
-			fmt.Fprintln(os.Stderr, "\n------------------------------------\n")
+			fmt.Fprint(
+				os.Stderr,
+				"\n------------------------------------\n\n",
+			)
 			fmt.Fprintln(os.Stderr, rendered)
-			fmt.Fprintln(os.Stderr, "\n------------------------------------\n")
+			fmt.Fprint(
+				os.Stderr,
+				"\n------------------------------------\n\n",
+			)
 		}
 	}
 }
