@@ -64,15 +64,19 @@ func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, username, password st
 	}
 }
 
-func InitVCMoodleScraper(ctx context.Context, cfg VCMoodleScraperConfig) error {
+func InitVCMoodleScraper(ctx context.Context, cfg VCMoodleScraperConfig, initialScrape *bool) error {
 	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return err
 	}
 
-	_, err = createMoodleClient(cfg.Username, cfg.Password)
+	client, err := createMoodleClient(cfg.Username, cfg.Password)
 	if err != nil {
 		return err
+	}
+	if *initialScrape {
+		slog.Info("scraping moodle on start")
+		go scraper.Scrape(ctx, database, client)
 	}
 	go vcmoodleScrapeWorker(ctx, database, cfg.Username, cfg.Password)
 
