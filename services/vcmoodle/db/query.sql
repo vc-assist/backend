@@ -54,3 +54,9 @@ select * from Chapter where
 -- name: GetChapterContent :one
 select content_html from Chapter where id = ?;
 
+-- name: GetFileResource :one
+select url from Resource where id = ? and type = 1;
+
+-- name: GetAllCourses :many
+select * from Course;
+

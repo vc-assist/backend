@@ -86,7 +86,7 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 
 	switch resource.Type {
 	case view.RESOURCE_GENERIC:
-		realLink, err := scrapeThroughWorkaroundLink(ctx, s.client, urlStr)
+		realLink, err := ScrapeThroughWorkaroundLink(ctx, s.client, urlStr)
 		if err == nil {
 			slog.DebugContext(ctx, "scraped through workaround link", "workaround_url", urlStr, "real_url", realLink)
 			params.Url = realLink
@@ -95,10 +95,21 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 		}
 
 		slog.DebugContext(ctx, "noting generic resource", "idx", sectionIdx, "course_id", courseId, "name", resource.Name)
-		params.Type = 0
+		params.Type = int64(db.RESOURCE_GENERIC)
+	case view.RESOURCE_FILE:
+		realLink, err := ScrapeThroughWorkaroundLink(ctx, s.client, urlStr)
+		if err == nil {
+			slog.DebugContext(ctx, "scraped through workaround link", "workaround_url", urlStr, "real_url", realLink)
+			params.Url = realLink
+		} else {
+			slog.WarnContext(ctx, "failed to scrape through workaround link", "url", urlStr, "err", err)
+		}
+
+		slog.DebugContext(ctx, "noting file resource", "idx", sectionIdx, "course_id", courseId, "name", resource.Name)
+		params.Type = int64(db.RESOURCE_FILE)
 	case view.RESOURCE_BOOK:
 		slog.DebugContext(ctx, "noting book resource", "idx", sectionIdx, "course_id", courseId, "name", resource.Name)
-		params.Type = 1
+		params.Type = int64(db.RESOURCE_BOOK)
 
 		s.wg.Add(1)
 		go func() {
@@ -107,7 +118,7 @@ func (s scraper) handleResource(ctx context.Context, resource view.Resource, res
 		}()
 	case view.RESOURCE_HTML_AREA:
 		slog.DebugContext(ctx, "noting html area resource", "idx", sectionIdx, "course_id", courseId, "length", len(resource.Name))
-		params.Type = 2
+		params.Type = int64(db.RESOURCE_HTML_AREA)
 	default:
 		slog.WarnContext(ctx, "unknown resource type", "type", resource.Type)
 		return

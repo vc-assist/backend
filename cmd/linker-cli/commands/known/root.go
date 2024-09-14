@@ -1,8 +1,8 @@
 package known
 
 import (
-	"vcassist-backend/cmd/linker-cli/cmd/known/key"
-	"vcassist-backend/cmd/linker-cli/cmd/known/set"
+	"vcassist-backend/cmd/linker-cli/commands/known/key"
+	"vcassist-backend/cmd/linker-cli/commands/known/set"
 
 	"github.com/spf13/cobra"
 )

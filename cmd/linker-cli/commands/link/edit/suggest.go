@@ -65,9 +65,9 @@ var suggestLinksCmd = &cobra.Command{
 			for _, suggest := range res.Msg.GetSuggestions() {
 				file.actions = append(file.actions, actionLine{
 					directive: action_add,
-					keyLeft:   suggest.LeftKey,
-					keyRight:  suggest.RightKey,
-					comment:   fmt.Sprintf("correlation: %f", suggest.Correlation),
+					keyLeft:   suggest.GetLeftKey(),
+					keyRight:  suggest.GetRightKey(),
+					comment:   fmt.Sprintf("correlation: %f", suggest.GetCorrelation()),
 				})
 			}
 

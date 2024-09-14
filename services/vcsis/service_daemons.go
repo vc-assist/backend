@@ -35,8 +35,8 @@ func (s Service) takeGradeSnapshots(ctx context.Context) error {
 			continue
 		}
 
-		courseSnapshots := make([]gradestore.CourseSnapshot, len(data.Courses))
-		for i, course := range data.Courses {
+		courseSnapshots := make([]gradestore.CourseSnapshot, len(data.GetCourses()))
+		for i, course := range data.GetCourses() {
 			courseSnapshots[i] = gradestore.CourseSnapshot{
 				Course: course.GetGuid(),
 				Value:  float64(course.GetOverallGrade()),

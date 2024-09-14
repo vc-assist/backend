@@ -1,11 +1,11 @@
-package cmd
+package commands
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"vcassist-backend/cmd/linker-cli/cmd/known"
-	"vcassist-backend/cmd/linker-cli/cmd/link"
+	"vcassist-backend/cmd/linker-cli/commands/known"
+	"vcassist-backend/cmd/linker-cli/commands/link"
 
 	"github.com/spf13/cobra"
 )

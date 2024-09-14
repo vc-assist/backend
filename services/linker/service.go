@@ -314,11 +314,11 @@ func (s Service) SuggestLinks(ctx context.Context, req *connect.Request[linkerv1
 		return nil, err
 	}
 	resolvedLeftKeys := make(map[string]struct{})
-	for _, k := range explicit.Msg.LeftKeys {
+	for _, k := range explicit.Msg.GetLeftKeys() {
 		resolvedLeftKeys[k] = struct{}{}
 	}
 	resolvedRightKeys := make(map[string]struct{})
-	for _, k := range explicit.Msg.RightKeys {
+	for _, k := range explicit.Msg.GetRightKeys() {
 		resolvedRightKeys[k] = struct{}{}
 	}
 

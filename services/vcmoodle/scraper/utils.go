@@ -10,9 +10,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// NOTE: much of this is legacy scraping code, it may be used later so it is kept here
-
-func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link string) (string, error) {
+func ScrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link string) (string, error) {
 	if !strings.Contains(link, client.Core.Http.BaseURL) ||
 		!(strings.Contains(link, "/mod/url") || strings.Contains(link, "/mod/resource")) {
 		return link, nil

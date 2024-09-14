@@ -47,6 +47,33 @@ func (q *Queries) DeleteAllSections(ctx context.Context) error {
 	return err
 }
 
+const getAllCourses = `-- name: GetAllCourses :many
+select id, name from Course
+`
+
+func (q *Queries) GetAllCourses(ctx context.Context) ([]Course, error) {
+	rows, err := q.db.QueryContext(ctx, getAllCourses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Course
+	for rows.Next() {
+		var i Course
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChapterContent = `-- name: GetChapterContent :one
 select content_html from Chapter where id = ?
 `
@@ -128,6 +155,17 @@ func (q *Queries) GetCourses(ctx context.Context, ids []int64) ([]Course, error)
 		return nil, err
 	}
 	return items, nil
+}
+
+const getFileResource = `-- name: GetFileResource :one
+select url from Resource where id = ? and type = 1
+`
+
+func (q *Queries) GetFileResource(ctx context.Context, id sql.NullInt64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getFileResource, id)
+	var url string
+	err := row.Scan(&url)
+	return url, err
 }
 
 const getResourceChapters = `-- name: GetResourceChapters :many

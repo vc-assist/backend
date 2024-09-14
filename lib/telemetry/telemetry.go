@@ -15,6 +15,12 @@ import (
 )
 
 func InitSlog(verbose bool) {
+	noColor := false
+	noColorEnv, _ := os.LookupEnv("NOCOLOR")
+	if noColorEnv == "1" {
+		noColor = true
+	}
+
 	level := slog.LevelInfo
 	if verbose {
 		level = slog.LevelDebug
@@ -23,6 +29,7 @@ func InitSlog(verbose bool) {
 	pretty := tint.NewHandler(os.Stderr, &tint.Options{
 		Level:      level,
 		TimeFormat: time.Kitchen,
+		NoColor:    noColor,
 	})
 	toOtel := slogotel.OtelHandler{
 		Next: pretty,

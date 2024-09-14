@@ -25,8 +25,9 @@ create table Resource (
     -- this may or may not also have an actual id depending on what is stored
     id integer,
     -- 0: generic url
-    -- 1: book
-    -- 2: html area
+    -- 1: file
+    -- 2: book
+    -- 3: html area
     type integer not null,
     url text not null,
     -- this will be the name for urls/books
