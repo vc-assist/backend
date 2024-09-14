@@ -69,7 +69,7 @@ func AddGradeSnapshots(ctx context.Context, courseData []*sisv1.CourseData, seri
 	for _, course := range series {
 		var target *sisv1.CourseData
 		for _, tc := range courseData {
-			if tc.Guid == course.Course {
+			if tc.GetGuid() == course.Course {
 				target = tc
 				break
 			}

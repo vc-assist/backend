@@ -40,12 +40,12 @@ var startCmd = &cobra.Command{
 			leftSet:  left,
 			rightSet: right,
 		}
-		file.actions = make([]actionLine, len(res.Msg.LeftKeys))
-		for i := 0; i < len(res.Msg.LeftKeys); i++ {
+		file.actions = make([]actionLine, len(res.Msg.GetLeftKeys()))
+		for i := 0; i < len(res.Msg.GetLeftKeys()); i++ {
 			file.actions[i] = actionLine{
 				directive: action_keep,
-				keyLeft:   res.Msg.LeftKeys[i],
-				keyRight:  res.Msg.RightKeys[i],
+				keyLeft:   res.Msg.GetLeftKeys()[i],
+				keyRight:  res.Msg.GetRightKeys()[i],
 			}
 		}
 		f, err := os.Create(outputFilePath)

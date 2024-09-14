@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"vcassist-backend/cmd/linker-cli/cmd"
+	"vcassist-backend/cmd/linker-cli/commands"
 	"vcassist-backend/cmd/linker-cli/globals"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 
@@ -36,7 +36,7 @@ func main() {
 		connect.WithInterceptors(authInterceptor(accessToken)),
 	)
 
-	cmd.ExecuteContext(globals.Set(
+	commands.ExecuteContext(globals.Set(
 		context.Background(),
 		&globals.Value{Client: client},
 	))

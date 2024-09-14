@@ -7,12 +7,12 @@ import (
 	"log/slog"
 	"time"
 	"vcassist-backend/lib/scrapers/moodle/core"
-	"vcassist-backend/lib/scrapers/moodle/view"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcmoodlev1 "vcassist-backend/proto/vcassist/services/vcmoodle/v1"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/vcmoodle/db"
+	"vcassist-backend/services/vcmoodle/scraper"
 
 	"connectrpc.com/connect"
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -28,6 +28,7 @@ type Service struct {
 	qry             *db.Queries
 	userCourseCache *expirable.LRU[string, []db.Course]
 	coursesCache    *expirable.LRU[string, []*vcmoodlev1.Course]
+	sessionCache    sessionCache
 }
 
 func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) Service {
@@ -38,6 +39,7 @@ func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) 
 		userCourseCache: expirable.NewLRU[string, []db.Course](2048, nil, time.Hour*24),
 		// reevaluate course data every 12 hours
 		coursesCache: expirable.NewLRU[string, []*vcmoodlev1.Course](2048, nil, time.Hour*12),
+		sessionCache: newSessionCache(keychain),
 	}
 }
 
@@ -92,48 +94,15 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 	return &connect.Response[vcmoodlev1.ProvideUsernamePasswordResponse]{Msg: &vcmoodlev1.ProvideUsernamePasswordResponse{}}, nil
 }
 
-func pbResourceType(resourceType int64) vcmoodlev1.ResourceType {
-	switch resourceType {
-	case 0:
-		return vcmoodlev1.ResourceType_GENERIC_URL
-	case 1:
-		return vcmoodlev1.ResourceType_BOOK
-	case 2:
-		return vcmoodlev1.ResourceType_HTML_AREA
-	default:
-		return -1
-	}
-}
-
 func (s Service) getUserCourses(ctx context.Context, email string) ([]db.Course, error) {
 	cached, hit := s.userCourseCache.Get(email)
 	if hit {
 		return cached, nil
 	}
 
-	res, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
-		Msg: &keychainv1.GetUsernamePasswordRequest{
-			Namespace: keychainNamespace,
-			Id:        email,
-		},
-	})
+	client, err := s.sessionCache.Get(ctx, email)
 	if err != nil {
-		return nil, err
-	}
-
-	coreClient, err := core.NewClient(ctx, core.ClientOptions{
-		BaseUrl: baseUrl,
-	})
-	if err != nil {
-		return nil, err
-	}
-	err = coreClient.LoginUsernamePassword(ctx, res.Msg.GetKey().GetUsername(), res.Msg.GetKey().GetPassword())
-	if err != nil {
-		return nil, err
-	}
-	client, err := view.NewClient(ctx, coreClient)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create session: %w", err)
 	}
 	courses, err := client.Courses(ctx)
 	if err != nil {
@@ -227,6 +196,31 @@ func (s Service) GetChapterContent(ctx context.Context, req *connect.Request[vcm
 	return &connect.Response[vcmoodlev1.GetChapterContentResponse]{
 		Msg: &vcmoodlev1.GetChapterContentResponse{
 			Html: content,
+		},
+	}, nil
+}
+
+func (s Service) GetFileContent(ctx context.Context, req *connect.Request[vcmoodlev1.GetFileContentRequest]) (*connect.Response[vcmoodlev1.GetFileContentResponse], error) {
+	profile := verifier.ProfileFromContext(ctx)
+
+	client, err := s.sessionCache.Get(ctx, profile.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	fileUrl, err := scraper.ScrapeThroughWorkaroundLink(ctx, client, req.Msg.GetUrl())
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := client.Core.Http.R().Get(fileUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connect.Response[vcmoodlev1.GetFileContentResponse]{
+		Msg: &vcmoodlev1.GetFileContentResponse{
+			File: res.Body(),
 		},
 	}, nil
 }

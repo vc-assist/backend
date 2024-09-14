@@ -18,10 +18,10 @@ type chapterPair struct {
 
 func setLessonPlanChapter(chapters []chapterPair) {
 	slices.SortFunc(chapters, func(a, b chapterPair) int {
-		if a.proto.Dates[0] < b.proto.Dates[0] {
+		if a.proto.GetDates()[0] < b.proto.GetDates()[0] {
 			return -1
 		}
-		if a.proto.Dates[0] > b.proto.Dates[0] {
+		if a.proto.GetDates()[0] > b.proto.GetDates()[0] {
 			return 1
 		}
 		return 0
@@ -32,7 +32,7 @@ func setLessonPlanChapter(chapters []chapterPair) {
 	var lastValue chapterPair
 	for _, c := range chapters {
 		allFuture := true
-		for _, d := range c.proto.Dates {
+		for _, d := range c.proto.GetDates() {
 			if now > d {
 				allFuture = false
 				break
@@ -45,6 +45,21 @@ func setLessonPlanChapter(chapters []chapterPair) {
 	}
 	if lastValue.proto != nil {
 		lastValue.proto.HomepageContent = lastValue.contentHtml
+	}
+}
+
+func pbResourceType(resourceType db.ResourceType) vcmoodlev1.ResourceType {
+	switch resourceType {
+	case db.RESOURCE_GENERIC:
+		return vcmoodlev1.ResourceType_GENERIC_URL
+	case db.RESOURCE_FILE:
+		return vcmoodlev1.ResourceType_FILE
+	case db.RESOURCE_BOOK:
+		return vcmoodlev1.ResourceType_BOOK
+	case db.RESOURCE_HTML_AREA:
+		return vcmoodlev1.ResourceType_HTML_AREA
+	default:
+		return -1
 	}
 }
 
@@ -79,7 +94,7 @@ func GetCourseData(ctx context.Context, qry *db.Queries, dbCourses []db.Course) 
 					return nil, err
 				}
 
-				resourceType := pbResourceType(resource.Type)
+				resourceType := pbResourceType(db.ResourceType(resource.Type))
 				if resourceType < 0 {
 					slog.WarnContext(ctx, "unknown resource type", "type", resource.Type)
 					continue

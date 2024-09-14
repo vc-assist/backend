@@ -231,7 +231,7 @@ func TestScrape(t *testing.T) {
 		if len(course.GetMeetings()) == 0 {
 			slog.Warn("no meetings present", "course", course.GetName())
 		}
-		for _, meeting := range course.Meetings {
+		for _, meeting := range course.GetMeetings() {
 			slog.Debug(
 				"meeting",
 				"start", time.Unix(meeting.GetStart(), 0).Format(time.RFC850),
@@ -260,8 +260,8 @@ func TestScrape(t *testing.T) {
 	mapping := map[string]string{}
 	for _, course := range courses {
 		for weightCourse := range weightData {
-			if course.Name == weightCourse {
-				mapping[weightCourse] = course.Name
+			if course.GetName() == weightCourse {
+				mapping[weightCourse] = course.GetName()
 				break
 			}
 		}

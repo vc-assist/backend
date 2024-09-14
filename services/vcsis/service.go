@@ -229,11 +229,11 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 		slog.WarnContext(ctx, "pull grade snapshots", "err", err)
 	}
 	if len(series) > 0 {
-		AddGradeSnapshots(ctx, data.Courses, series)
+		AddGradeSnapshots(ctx, data.GetCourses(), series)
 	}
 
-	courseNames := make([]string, len(data.Courses))
-	for i, c := range data.Courses {
+	courseNames := make([]string, len(data.GetCourses()))
+	for i, c := range data.GetCourses() {
 		courseNames[i] = c.GetName()
 	}
 	linkRes, err := s.linker.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
@@ -251,7 +251,7 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 	if err != nil {
 		slog.WarnContext(ctx, "add weights", "err", err)
 	} else {
-		AddWeights(ctx, data.Courses, s.weightData, linkRes.Msg.SrcToDst)
+		AddWeights(ctx, data.GetCourses(), s.weightData, linkRes.Msg.GetSrcToDst())
 	}
 
 	return data, nil

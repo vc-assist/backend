@@ -135,6 +135,7 @@ type ResourceType int
 
 const (
 	RESOURCE_GENERIC ResourceType = iota
+	RESOURCE_FILE
 	RESOURCE_BOOK
 	RESOURCE_HTML_AREA
 )
@@ -151,7 +152,10 @@ func resourcesFromAnchors(anchors []htmlutil.Anchor) []Resource {
 		a := anchors[i]
 
 		resourceType := RESOURCE_GENERIC
-		if strings.HasPrefix(a.Url.Path, "/mod/book") {
+		switch {
+		case strings.HasPrefix(a.Url.Path, "/mod/resource"):
+			resourceType = RESOURCE_FILE
+		case strings.HasPrefix(a.Url.Path, "/mod/book"):
 			resourceType = RESOURCE_BOOK
 		}
 

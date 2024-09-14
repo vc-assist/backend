@@ -1,7 +1,7 @@
 package link
 
 import (
-	"vcassist-backend/cmd/linker-cli/cmd/link/edit"
+	"vcassist-backend/cmd/linker-cli/commands/link/edit"
 
 	"github.com/spf13/cobra"
 )

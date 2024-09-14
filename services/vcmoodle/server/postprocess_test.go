@@ -60,7 +60,7 @@ func TestLessonPlanResolution(t *testing.T) {
 
 		var resolved chapterPair
 		for _, chapter := range chapterPairs {
-			if chapter.proto.HomepageContent != "" {
+			if chapter.proto.GetHomepageContent() != "" {
 				resolved = chapter
 				break
 			}
@@ -72,11 +72,11 @@ func TestLessonPlanResolution(t *testing.T) {
 				"now", test.now.Format(time.RFC850), "expected", test.expectChapterId, "to be resolved",
 			)
 		}
-		if resolved.proto.Id != test.expectChapterId {
+		if resolved.proto.GetId() != test.expectChapterId {
 			t.Fatal(
 				"resolved the wrong chapter",
 				"now", test.now.Format(time.RFC850), "expected", test.expectChapterId,
-				"instead got", resolved.proto.Id,
+				"instead got", resolved.proto.GetId(),
 			)
 		}
 	}
