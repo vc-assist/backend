@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	devenv "vcassist-backend/dev/env"
 )
 
 type FilesystemOutput struct {
@@ -12,12 +11,8 @@ type FilesystemOutput struct {
 }
 
 func NewFilesystemOutput(dir string) FilesystemOutput {
-	dir, err := devenv.ResolvePath(dir)
-	if err != nil {
-		panic(err)
-	}
 	os.RemoveAll(dir)
-	err = os.MkdirAll(dir, 0777)
+	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		panic(err)
 	}

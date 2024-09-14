@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	devenv "vcassist-backend/dev/env"
+	"vcassist-backend/lib/configutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/telemetry"
 
@@ -23,13 +23,13 @@ func TestClient(t *testing.T) {
 	ctx, span := tracer.Start(context.Background(), "TestClient")
 	defer span.End()
 
-	coreConfig, err := devenv.GetStateConfig[core.TestConfig]("moodle/core.json5")
+	coreConfig, err := configutil.ReadConfig[core.TestConfig](".dev/test_moodle/config.json5")
 	if err != nil {
-		t.Fatal("failed to read test config at dev/.state/moodle/core.json5")
+		t.Fatal("failed to read test config at .dev/test_moodle/config.json5")
 	}
-	config, err := devenv.GetStateConfig[TestConfig]("moodle/view.json5")
+	config, err := configutil.ReadConfig[TestConfig](".dev/test_moodle/view/config.json5")
 	if err != nil {
-		t.Fatal("there is no test config at dev/.state/moodle/view.json5")
+		t.Fatal("there is no test config at .dev/test_moodle/view/config.json5")
 	}
 
 	coreClient, err := core.NewClient(ctx, core.ClientOptions{

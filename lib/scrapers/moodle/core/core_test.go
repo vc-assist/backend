@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 	"testing"
-	devenv "vcassist-backend/dev/env"
+	"vcassist-backend/lib/configutil"
 	"vcassist-backend/lib/telemetry"
 
 	_ "embed"
@@ -16,9 +16,9 @@ func TestClient(t *testing.T) {
 	ctx, span := tracer.Start(context.Background(), "TestClient")
 	defer span.End()
 
-	config, err := devenv.GetStateConfig[TestConfig]("moodle/core.json5")
+	config, err := configutil.ReadConfig[TestConfig](".dev/test_moodle/config.json5")
 	if err != nil {
-		t.Fatal("there is no valid test config at dev/.state/moodle/core.json5")
+		t.Fatal("failed to read test config at .dev/test_moodle/config.json5")
 	}
 	client, err := NewClient(ctx, ClientOptions{
 		BaseUrl: config.BaseUrl,

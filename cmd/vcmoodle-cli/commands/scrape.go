@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"time"
 	"vcassist-backend/lib/configutil"
@@ -10,9 +9,9 @@ import (
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
-
-	devenv "vcassist-backend/dev/env"
 
 	"github.com/spf13/cobra"
 	_ "modernc.org/sqlite"
@@ -26,7 +25,7 @@ type Config struct {
 var scrapeDb *string
 
 func init() {
-	scrapeDb = scrapeCmd.Flags().String("db", "<dev_state>/vcmoodle.db", "The database to write scrape results to.")
+	scrapeDb = scrapeCmd.Flags().String("db", "results.db", "The database to write scrape results to.")
 	rootCmd.AddCommand(scrapeCmd)
 }
 
@@ -40,7 +39,7 @@ func createClient(username, password string) view.Client {
 	if err != nil {
 		serviceutil.Fatal("failed to initialize core moodle client", err)
 	}
-	core.SetRestyInstrumentOutput(restyutil.NewFilesystemOutput("<dev_state>/vcmoodle/resty"))
+	core.SetRestyInstrumentOutput(restyutil.NewFilesystemOutput(".dev/resty/scraper"))
 
 	err = coreClient.LoginUsernamePassword(ctx, username, password)
 	if err != nil {
@@ -63,13 +62,10 @@ var scrapeCmd = &cobra.Command{
 			serviceutil.Fatal("failed to read config", err)
 		}
 
+		slog.Info("scraping using user", "username", cfg.Username)
 		client := createClient(cfg.Username, cfg.Password)
 
-		path, err := devenv.ResolvePath(*scrapeDb)
-		if err != nil {
-			serviceutil.Fatal("failed to resolve db path", err)
-		}
-		out, err := sql.Open("sqlite", path)
+		out, err := sqliteutil.OpenDB(db.Schema, *scrapeDb)
 		if err != nil {
 			serviceutil.Fatal("failed to open db", err)
 		}

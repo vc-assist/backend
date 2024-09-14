@@ -32,11 +32,7 @@ func create(recreate bool) error {
 	if err != nil {
 		return err
 	}
-	err = CreateDevDatabases()
-	if err != nil {
-		return err
-	}
-	PrintConfigLocations()
+	PrintDisclaimer()
 
 	return nil
 }

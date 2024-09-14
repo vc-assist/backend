@@ -33,12 +33,12 @@ func InitTelemetry(ctx context.Context, verbose bool) {
 	}
 
 	vcsis.SetRestyInstrumentOutput(
-		restyutil.NewFilesystemOutput("<dev_state>/resty_telemetry/vcsis"),
+		restyutil.NewFilesystemOutput(".dev/resty/vcsis"),
 	)
 	keychain.SetRestyInstrumentOutput(
-		restyutil.NewFilesystemOutput("<dev_state>/resty_telemetry/keychain"),
+		restyutil.NewFilesystemOutput(".dev/resty/keychain"),
 	)
 	core.SetRestyInstrumentOutput(
-		restyutil.NewFilesystemOutput("<dev_state>/resty_telemetry/moodle_core"),
+		restyutil.NewFilesystemOutput(".dev/resty/moodle_core"),
 	)
 }

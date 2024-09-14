@@ -5,17 +5,18 @@ import (
 	"database/sql"
 	"log/slog"
 	"time"
-	configlibsql "vcassist-backend/lib/configutil/libsql"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
+	"vcassist-backend/lib/sqliteutil"
 	"vcassist-backend/lib/timezone"
+	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
 )
 
 type VCMoodleScraperConfig struct {
-	Database configlibsql.Struct `json:"database"`
-	Username string              `json:"username"`
-	Password string              `json:"password"`
+	Database string `json:"database"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func createMoodleClient(username, password string) (view.Client, error) {
@@ -64,7 +65,7 @@ func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, username, password st
 }
 
 func InitVCMoodleScraper(ctx context.Context, cfg VCMoodleScraperConfig) error {
-	database, err := cfg.Database.OpenDB()
+	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return err
 	}
