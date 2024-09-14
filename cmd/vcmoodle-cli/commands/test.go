@@ -124,6 +124,42 @@ func GetAllChapters(ctx context.Context, qry *db.Queries) ([]Chapter, error) {
 	return result, nil
 }
 
+var converter = md.NewConverter("", true, nil)
+
+func ValidateHeaders(chapters []Chapter) {
+	for _, chapter := range chapters {
+		hasHomework := false
+		chapterName := normalize(chapter.Name)
+
+		var found []string
+		findSectionTitles(chapter.Contents, &found)
+
+		for _, text := range found {
+			normalized := normalize(text)
+			if chapterName == normalized || normalized == "" {
+				continue
+			}
+			if strings.Contains(normalized, "homework") ||
+				strings.Contains(normalized, "assignments") {
+				hasHomework = true
+			}
+		}
+
+		if !hasHomework {
+			slog.Warn(
+				"failed to find homework header",
+				"resource", chapter.ResourceID,
+				"chapter", chapter.ID,
+			)
+			doc := goquery.NewDocumentFromNode(chapter.Contents)
+			rendered := converter.Convert(doc.Selection)
+			fmt.Fprintln(os.Stderr, "\n------------------------------------\n")
+			fmt.Fprintln(os.Stderr, rendered)
+			fmt.Fprintln(os.Stderr, "\n------------------------------------\n")
+		}
+	}
+}
+
 var collapseWhitespaceRe = regexp.MustCompile(`\s\s+`)
 
 func normalize(text string) string {
@@ -182,41 +218,5 @@ func findSectionTitles(root *html.Node, out *[]string) {
 	for child != nil {
 		findSectionTitles(child, out)
 		child = child.NextSibling
-	}
-}
-
-var converter = md.NewConverter("", true, nil)
-
-func ValidateHeaders(chapters []Chapter) {
-	for _, chapter := range chapters {
-		hasHomework := false
-		chapterName := normalize(chapter.Name)
-
-		var found []string
-		findSectionTitles(chapter.Contents, &found)
-
-		for _, text := range found {
-			normalized := normalize(text)
-			if chapterName == normalized || normalized == "" {
-				continue
-			}
-			if strings.Contains(normalized, "homework") ||
-				strings.Contains(normalized, "assignments") {
-				hasHomework = true
-			}
-		}
-
-		if !hasHomework {
-			slog.Warn(
-				"failed to find homework header",
-				"resource", chapter.ResourceID,
-				"chapter", chapter.ID,
-			)
-			doc := goquery.NewDocumentFromNode(chapter.Contents)
-			rendered := converter.Convert(doc.Selection)
-			fmt.Fprintln(os.Stderr, "\n------------------------------------\n")
-			fmt.Fprintln(os.Stderr, rendered)
-			fmt.Fprintln(os.Stderr, "\n------------------------------------\n")
-		}
 	}
 }
