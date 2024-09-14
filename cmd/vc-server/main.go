@@ -18,6 +18,7 @@ type Config struct {
 
 func main() {
 	verbose := flag.Bool("v", false, "Enable verbose logging/instrumentation.")
+	initialScrape := flag.Bool("scrape", false, "Trigger scraping immediately on run.")
 	flag.Parse()
 
 	ctx := serviceutil.SignalContext()
@@ -44,7 +45,7 @@ func main() {
 		serviceutil.Fatal("init keychain", err)
 	}
 
-	err = InitVCMoodleScraper(ctx, cfg.VCMoodleScraper)
+	err = InitVCMoodleScraper(ctx, cfg.VCMoodleScraper, initialScrape)
 	if err != nil {
 		serviceutil.Fatal("init vcmoodle scraper", err)
 	}
