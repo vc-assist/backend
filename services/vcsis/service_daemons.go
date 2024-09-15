@@ -65,6 +65,8 @@ func (s Service) gradeSnapshotDaemon(ctx context.Context) {
 			if !(now.Hour() == 10 || now.Hour() == 18) {
 				continue
 			}
+
+			slog.InfoContext(ctx, "taking grade snapshots...")
 			err := s.takeGradeSnapshots(ctx)
 			if err != nil {
 				slog.ErrorContext(ctx, "take grade snapshot", "err", err)
@@ -110,6 +112,7 @@ func (s Service) preloadStudentDataDaemon(ctx context.Context) {
 				continue
 			}
 
+			slog.InfoContext(ctx, "preloading student data...")
 			ctx, cancel := context.WithTimeout(ctx, time.Hour)
 			err := s.preloadAllStudentData(ctx)
 			if err != nil {
