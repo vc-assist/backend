@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	gradestoredb "vcassist-backend/lib/gradestore/db"
 	"vcassist-backend/lib/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
@@ -11,7 +12,7 @@ import (
 	"vcassist-backend/proto/vcassist/services/sis/v1/sisv1connect"
 	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/vcsis"
-	"vcassist-backend/services/vcsis/db"
+	vcsisdb "vcassist-backend/services/vcsis/db"
 
 	"connectrpc.com/connect"
 )
@@ -36,7 +37,10 @@ func InitVCSis(
 	keychain keychainv1connect.KeychainServiceClient,
 	linker linkerv1connect.LinkerServiceClient,
 ) error {
-	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
+	database, err := sqliteutil.OpenDB(
+		vcsisdb.Schema+"\n"+gradestoredb.Schema,
+		cfg.Database,
+	)
 	if err != nil {
 		return err
 	}
