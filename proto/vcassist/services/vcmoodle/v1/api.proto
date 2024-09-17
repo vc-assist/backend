@@ -80,10 +80,17 @@ message RefreshCoursesResponse {
   repeated Course courses = 1;
 }
 
+// GetSession
+message GetSessionRequest {}
+message GetSessionResponse {
+  string cookies = 1;
+}
+
 service MoodleService {
   rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
   rpc ProvideUsernamePassword(ProvideUsernamePasswordRequest) returns (ProvideUsernamePasswordResponse);
 
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
   rpc GetCourses(GetCoursesRequest) returns (GetCoursesResponse);
   rpc RefreshCourses(RefreshCoursesRequest) returns (RefreshCoursesResponse);
   rpc GetChapterContent(GetChapterContentRequest) returns (GetChapterContentResponse);
