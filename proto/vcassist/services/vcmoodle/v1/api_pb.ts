@@ -721,3 +721,73 @@ export class RefreshCoursesResponse extends Message<RefreshCoursesResponse> {
   }
 }
 
+/**
+ * GetSession
+ *
+ * @generated from message vcassist.services.vcmoodle.v1.GetSessionRequest
+ */
+export class GetSessionRequest extends Message<GetSessionRequest> {
+  constructor(data?: PartialMessage<GetSessionRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.vcmoodle.v1.GetSessionRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSessionRequest {
+    return new GetSessionRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSessionRequest {
+    return new GetSessionRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSessionRequest {
+    return new GetSessionRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSessionRequest | PlainMessage<GetSessionRequest> | undefined, b: GetSessionRequest | PlainMessage<GetSessionRequest> | undefined): boolean {
+    return proto3.util.equals(GetSessionRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message vcassist.services.vcmoodle.v1.GetSessionResponse
+ */
+export class GetSessionResponse extends Message<GetSessionResponse> {
+  /**
+   * @generated from field: string cookies = 1;
+   */
+  cookies = "";
+
+  constructor(data?: PartialMessage<GetSessionResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vcassist.services.vcmoodle.v1.GetSessionResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "cookies", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSessionResponse {
+    return new GetSessionResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSessionResponse {
+    return new GetSessionResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSessionResponse {
+    return new GetSessionResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSessionResponse | PlainMessage<GetSessionResponse> | undefined, b: GetSessionResponse | PlainMessage<GetSessionResponse> | undefined): boolean {
+    return proto3.util.equals(GetSessionResponse, a, b);
+  }
+}
+

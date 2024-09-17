@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetAuthStatusRequest, GetAuthStatusResponse, GetChapterContentRequest, GetChapterContentResponse, GetCoursesRequest, GetCoursesResponse, GetFileContentRequest, GetFileContentResponse, ProvideUsernamePasswordRequest, ProvideUsernamePasswordResponse, RefreshCoursesRequest, RefreshCoursesResponse } from "./api_pb.js";
+import { GetAuthStatusRequest, GetAuthStatusResponse, GetChapterContentRequest, GetChapterContentResponse, GetCoursesRequest, GetCoursesResponse, GetFileContentRequest, GetFileContentResponse, GetSessionRequest, GetSessionResponse, ProvideUsernamePasswordRequest, ProvideUsernamePasswordResponse, RefreshCoursesRequest, RefreshCoursesResponse } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -28,6 +28,15 @@ export const MoodleService = {
       name: "ProvideUsernamePassword",
       I: ProvideUsernamePasswordRequest,
       O: ProvideUsernamePasswordResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc vcassist.services.vcmoodle.v1.MoodleService.GetSession
+     */
+    getSession: {
+      name: "GetSession",
+      I: GetSessionRequest,
+      O: GetSessionResponse,
       kind: MethodKind.Unary,
     },
     /**
