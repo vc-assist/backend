@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
@@ -221,6 +222,26 @@ func (s Service) GetFileContent(ctx context.Context, req *connect.Request[vcmood
 	return &connect.Response[vcmoodlev1.GetFileContentResponse]{
 		Msg: &vcmoodlev1.GetFileContentResponse{
 			File: res.Body(),
+		},
+	}, nil
+}
+
+func (s Service) GetSession(ctx context.Context, req *connect.Request[vcmoodlev1.GetSessionRequest]) (*connect.Response[vcmoodlev1.GetSessionResponse], error) {
+	profile := verifier.ProfileFromContext(ctx)
+
+	client, err := s.sessionCache.Get(ctx, profile.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	cookies := strings.Builder{}
+	for _, c := range client.Core.Http.Cookies {
+		cookies.WriteString(fmt.Sprintf("%s=%s; ", c.Name, c.Value))
+	}
+
+	return &connect.Response[vcmoodlev1.GetSessionResponse]{
+		Msg: &vcmoodlev1.GetSessionResponse{
+			Cookies: cookies.String(),
 		},
 	}, nil
 }
