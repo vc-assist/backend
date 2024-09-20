@@ -242,10 +242,6 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	}
 
 	mapping := make(map[string]string)
-	for _, l := range links {
-		mapping[l.Leftkey] = l.Rightkey
-	}
-	slog.DebugContext(ctx, "mapping from explicit links", "mapping", mapping)
 
 	keys := make(map[string]struct{})
 	for _, k := range leftKeys {
@@ -258,6 +254,15 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 			mapping[k] = k
 		}
 	}
+
+	for _, l := range links {
+		_, hasLeft := mapping[l.Leftkey]
+		if !hasLeft {
+			continue
+		}
+		mapping[l.Leftkey] = l.Rightkey
+	}
+	slog.DebugContext(ctx, "mapping from explicit links", "mapping", mapping)
 
 	return &connect.Response[linkerv1.LinkResponse]{
 		Msg: &linkerv1.LinkResponse{
