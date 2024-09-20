@@ -243,35 +243,20 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 
 	mapping := make(map[string]string)
 	for _, l := range links {
-		mapping[left] = l.Rightkey
+		mapping[l.Leftkey] = l.Rightkey
 	}
+	slog.DebugContext(ctx, "mapping from explicit links", "mapping", mapping)
 
-	var exactMatches []string
-	if len(leftKeys) <= len(rightKeys) {
-		dstKeys := make(map[string]struct{})
-		for _, dst := range rightKeys {
-			dstKeys[dst] = struct{}{}
-		}
-		for _, src := range leftKeys {
-			_, hasKey := dstKeys[src]
-			if hasKey {
-				exactMatches = append(exactMatches, src)
-			}
-		}
-	} else {
-		srcKeys := make(map[string]struct{})
-		for _, src := range leftKeys {
-			srcKeys[src] = struct{}{}
-		}
-		for _, dst := range rightKeys {
-			_, hasKey := srcKeys[dst]
-			if hasKey {
-				exactMatches = append(exactMatches, dst)
-			}
-		}
+	keys := make(map[string]struct{})
+	for _, k := range leftKeys {
+		keys[k] = struct{}{}
 	}
-	for _, k := range exactMatches {
-		mapping[k] = k
+	for _, k := range rightKeys {
+		_, ok := keys[k]
+		if ok {
+			slog.DebugContext(ctx, "exact match", "key", k)
+			mapping[k] = k
+		}
 	}
 
 	return &connect.Response[linkerv1.LinkResponse]{
