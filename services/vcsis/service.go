@@ -251,6 +251,7 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 	if err != nil {
 		slog.WarnContext(ctx, "add weights", "err", err)
 	} else {
+		slog.DebugContext(ctx, "linked weights -> powerschool", "mapping", linkRes.Msg.GetSrcToDst())
 		AddWeights(ctx, data.GetCourses(), s.weightData, linkRes.Msg.GetSrcToDst())
 	}
 
