@@ -110,11 +110,16 @@ func AddWeights(
 			}
 		}
 		if target == nil {
+			var psNames []string
+			for _, c := range courseData {
+				psNames = append(psNames, c.GetName())
+			}
 			slog.ErrorContext(
 				ctx,
 				"failed to find a powerschool course, this should never happen?",
 				"weight_name", weightCourseName,
 				"powerschool_name", powerschoolName,
+				"powerschool_name_list", psNames,
 			)
 			continue
 		}
