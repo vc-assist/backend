@@ -241,28 +241,31 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 		return nil, err
 	}
 
+	slog.DebugContext(ctx, "explicit links", "links", links)
+
 	mapping := make(map[string]string)
 
 	srcKeys := make(map[string]struct{})
 	for _, k := range leftKeys {
 		srcKeys[k] = struct{}{}
 	}
+	slog.DebugContext(ctx, "source keys", "keys", srcKeys)
+
 	for _, k := range rightKeys {
 		_, ok := srcKeys[k]
-		if ok {
-			slog.DebugContext(ctx, "exact match", "key", k)
-			mapping[k] = k
+		if !ok {
+			continue
 		}
+		slog.DebugContext(ctx, "exact match", "key", k)
+		mapping[k] = k
 	}
-
 	for _, l := range links {
-		_, inScope := srcKeys[l.Leftkey]
-		if !inScope {
+		_, ok := srcKeys[l.Leftkey]
+		if !ok {
 			continue
 		}
 		mapping[l.Leftkey] = l.Rightkey
 	}
-	slog.DebugContext(ctx, "mapping from explicit links", "mapping", mapping)
 
 	return &connect.Response[linkerv1.LinkResponse]{
 		Msg: &linkerv1.LinkResponse{
