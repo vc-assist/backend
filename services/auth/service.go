@@ -55,6 +55,10 @@ func NewService(database *sql.DB, options Options) Service {
 	}
 }
 
+func normalizeEmail(email string) string {
+	return strings.Trim(strings.ToLower(email), " \t\n")
+}
+
 func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
 	ctx, span := tracer.Start(ctx, "createVerificationCode")
 	defer span.End()
@@ -67,7 +71,7 @@ func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, 
 	}
 	err = txqry.CreateVerificationCode(ctx, db.CreateVerificationCodeParams{
 		Code:      code,
-		Useremail: email,
+		Useremail: normalizeEmail(email),
 		Expiresat: timezone.Now().Add(time.Hour).Unix(),
 	})
 	if err != nil {
@@ -136,7 +140,7 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.Sta
 	defer tx.Rollback()
 	txqry := s.qry.WithTx(tx)
 
-	email := req.Msg.GetEmail()
+	email := normalizeEmail(req.Msg.GetEmail())
 	if !s.hasAllowedDomain(email) {
 		return nil, fmt.Errorf("Invalid email domain, please use a different email address.")
 	}
@@ -220,8 +224,8 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 	defer tx.Rollback()
 	txqry := s.qry.WithTx(tx)
 
-	email := req.Msg.GetEmail()
-	providedCode := req.Msg.GetProvidedCode()
+	email := normalizeEmail(req.Msg.GetEmail())
+	providedCode := strings.Trim(req.Msg.GetProvidedCode(), " \t\n")
 
 	// hard coded bypass for app store reviewers
 	if s.config.TestEmail != "" && email == s.config.TestEmail && providedCode == s.config.TestVerificationCode {
