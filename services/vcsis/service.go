@@ -239,19 +239,19 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 	linkRes, err := s.linker.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
 		Msg: &linkerv1.LinkRequest{
 			Src: &linkerv1.Set{
-				Name: "weights",
-				Keys: s.weightCourseNames,
-			},
-			Dst: &linkerv1.Set{
 				Name: "powerschool",
 				Keys: courseNames,
+			},
+			Dst: &linkerv1.Set{
+				Name: "weights",
+				Keys: s.weightCourseNames,
 			},
 		},
 	})
 	if err != nil {
 		slog.WarnContext(ctx, "add weights", "err", err)
 	} else {
-		slog.DebugContext(ctx, "linked weights -> powerschool", "mapping", linkRes.Msg.GetSrcToDst())
+		slog.DebugContext(ctx, "linked powerschool -> weights", "mapping", linkRes.Msg.GetSrcToDst())
 		AddWeights(ctx, data.GetCourses(), s.weightData, linkRes.Msg.GetSrcToDst())
 	}
 

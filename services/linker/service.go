@@ -249,7 +249,6 @@ func (s Service) Link(ctx context.Context, req *connect.Request[linkerv1.LinkReq
 	for _, k := range leftKeys {
 		srcKeys[k] = struct{}{}
 	}
-	slog.DebugContext(ctx, "source keys", "keys", srcKeys)
 
 	for _, k := range rightKeys {
 		_, ok := srcKeys[k]
