@@ -12,6 +12,8 @@ import (
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
 
 	_ "embed"
+
+	"github.com/antzucaro/matchr"
 )
 
 func ScrapePowerschool(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error) {
@@ -97,10 +99,10 @@ func AddWeights(
 	ctx context.Context,
 	courseData []*sisv1.CourseData,
 	weightData WeightData,
-	weightToPowerschoolMap map[string]string,
+	powerschoolToWeightsMap map[string]string,
 ) {
-	for weightCourseName, powerschoolName := range weightToPowerschoolMap {
-		categories := weightData[weightCourseName]
+	for powerschoolName, weightName := range powerschoolToWeightsMap {
+		categories := weightData[weightName]
 
 		var target *sisv1.CourseData
 		for _, course := range courseData {
@@ -117,7 +119,7 @@ func AddWeights(
 			slog.ErrorContext(
 				ctx,
 				"failed to find a powerschool course, this should never happen?",
-				"weight_name", weightCourseName,
+				"weight_name", weightName,
 				"powerschool_name", powerschoolName,
 				"powerschool_name_list", psNames,
 			)
@@ -134,5 +136,25 @@ func AddWeights(
 			i++
 		}
 		target.AssignmentCategories = out
+
+		for _, a := range target.Assignments {
+			_, ok := categories[a.GetCategory()]
+			if ok {
+				continue
+			}
+
+			mostSimilar := ""
+			var similarity float64
+			for target := range categories {
+				sim := matchr.JaroWinkler(a.GetCategory(), target, false)
+				if sim > similarity {
+					similarity = sim
+					mostSimilar = target
+				}
+			}
+			if mostSimilar != "" {
+				a.Category = mostSimilar
+			}
+		}
 	}
 }
