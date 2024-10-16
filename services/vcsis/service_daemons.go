@@ -55,6 +55,8 @@ func (s Service) takeGradeSnapshots(ctx context.Context) error {
 }
 
 func (s Service) gradeSnapshotDaemon(ctx context.Context) {
+	slog.InfoContext(ctx, "start daemon", "task", "take grade snapshots at 10:00 and 18:00 every day")
+
 	ticker := time.NewTicker(time.Hour)
 	for {
 		select {
@@ -100,6 +102,8 @@ func (s Service) preloadAllStudentData(ctx context.Context) error {
 }
 
 func (s Service) preloadStudentDataDaemon(ctx context.Context) {
+	slog.InfoContext(ctx, "start daemon", "task", "preload student data at 4:00 and 20:00 every day")
+
 	ticker := time.NewTicker(time.Hour)
 	for {
 		select {

@@ -42,7 +42,7 @@ func createMoodleClient(username, password string) (view.Client, error) {
 }
 
 func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, username, password string) {
-	ticker := time.NewTicker(time.Minute * 10)
+	ticker := time.NewTicker(time.Hour)
 	defer ticker.Stop()
 	for {
 		select {
@@ -50,7 +50,7 @@ func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, username, password st
 			return
 		case <-ticker.C:
 			current := timezone.Now()
-			if current.Hour() != 3 {
+			if current.Hour() != 3 && current.Hour() != 13 {
 				continue
 			}
 

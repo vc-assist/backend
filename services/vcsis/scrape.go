@@ -118,7 +118,7 @@ func AddWeights(
 			}
 			slog.ErrorContext(
 				ctx,
-				"failed to find a powerschool course, this should never happen?",
+				"failed to find powerschool course name had been provided to linker, this should never happen!",
 				"weight_name", weightName,
 				"powerschool_name", powerschoolName,
 				"powerschool_name_list", psNames,

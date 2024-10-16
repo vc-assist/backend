@@ -163,7 +163,7 @@ func toSisSchools(input []SchoolData) []*sisv1.SchoolData {
 func toSisBulletins(input []Bulletin) []*sisv1.Bulletin {
 	bulletins := make([]*sisv1.Bulletin, len(input))
 	for i, bulletin := range input {
-		start, err := DecodeTimestamp(bulletin.StartDate)
+		start, err := DecodeBulletinTimestamp(bulletin.StartDate)
 		if err != nil {
 			slog.Warn(
 				"failed to parse bulletin start time",
@@ -172,7 +172,7 @@ func toSisBulletins(input []Bulletin) []*sisv1.Bulletin {
 			)
 			continue
 		}
-		stop, err := DecodeTimestamp(bulletin.EndDate)
+		stop, err := DecodeBulletinTimestamp(bulletin.EndDate)
 		if err != nil {
 			slog.Warn(
 				"failed to parse bulletin end time",

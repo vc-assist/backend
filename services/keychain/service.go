@@ -136,6 +136,8 @@ func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
 }
 
 func (s Service) refreshOAuthDaemon(ctx context.Context) {
+	slog.InfoContext(ctx, "start daemon", "task", "refresh oauth keys every 3 minutes")
+
 	ticker := time.NewTicker(time.Minute * 3)
 	defer ticker.Stop()
 	for {
@@ -149,6 +151,8 @@ func (s Service) refreshOAuthDaemon(ctx context.Context) {
 }
 
 func (s Service) deleteOAuthDaemon(ctx context.Context) {
+	slog.InfoContext(ctx, "start daemon", "task", "delete expired oauth keys every 30 minutes")
+
 	ticker := time.NewTicker(time.Minute * 30)
 	defer ticker.Stop()
 	for {
