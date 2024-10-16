@@ -28,7 +28,7 @@ type Service struct {
 	keychain        keychainv1connect.KeychainServiceClient
 	qry             *db.Queries
 	userCourseCache *expirable.LRU[string, []db.Course]
-	coursesCache    *expirable.LRU[string, []*vcmoodlev1.Course]
+	userDataCache   *expirable.LRU[string, []*vcmoodlev1.Course]
 	sessionCache    sessionCache
 }
 
@@ -37,10 +37,9 @@ func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) 
 		keychain: keychain,
 		qry:      db.New(data),
 		// reevaluate course list every day
-		userCourseCache: expirable.NewLRU[string, []db.Course](2048, nil, time.Hour*24),
-		// reevaluate course data every 12 hours
-		coursesCache: expirable.NewLRU[string, []*vcmoodlev1.Course](2048, nil, time.Hour*12),
-		sessionCache: newSessionCache(keychain),
+		userCourseCache: expirable.NewLRU[string, []db.Course](2048, nil, time.Hour*24*30),
+		userDataCache:   expirable.NewLRU[string, []*vcmoodlev1.Course](2048, nil, time.Hour*12),
+		sessionCache:    newSessionCache(keychain),
 	}
 }
 
@@ -135,7 +134,7 @@ func (s Service) getUserCourses(ctx context.Context, email string) ([]db.Course,
 func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1.GetCoursesRequest]) (*connect.Response[vcmoodlev1.GetCoursesResponse], error) {
 	profile := verifier.ProfileFromContext(ctx)
 
-	cached, hit := s.coursesCache.Get(profile.Email)
+	cached, hit := s.userDataCache.Get(profile.Email)
 	if hit {
 		return &connect.Response[vcmoodlev1.GetCoursesResponse]{
 			Msg: &vcmoodlev1.GetCoursesResponse{
@@ -153,7 +152,7 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 		return nil, err
 	}
 
-	evicted := s.coursesCache.Add(profile.Email, outCourses)
+	evicted := s.userDataCache.Add(profile.Email, outCourses)
 	if evicted {
 		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", profile.Email)
 	}
@@ -177,7 +176,7 @@ func (s Service) RefreshCourses(ctx context.Context, req *connect.Request[vcmood
 		return nil, err
 	}
 
-	evicted := s.coursesCache.Add(profile.Email, outCourses)
+	evicted := s.userDataCache.Add(profile.Email, outCourses)
 	if evicted {
 		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", profile.Email)
 	}

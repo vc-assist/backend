@@ -81,6 +81,10 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 	return expiresAt, nil
 }
 
+func DecodeBulletinTimestamp(tstr string) (time.Time, error) {
+	return time.Parse("2024-08-13", tstr)
+}
+
 func DecodeTimestamp(tstr string) (time.Time, error) {
 	// aka. parse by ISO timestamp
 	return time.Parse(time.RFC3339, tstr)
