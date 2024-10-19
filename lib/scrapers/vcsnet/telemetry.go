@@ -11,5 +11,5 @@ var tracer = telemetry.Tracer("vcassist.lib.scrapers.vcsnet")
 
 func SetRestyInstrumentOutput(out restyutil.InstrumentOutput) {
 	client = resty.New()
-	restyutil.InstrumentClient(client, tracer, out)
+	restyutil.InstrumentClient(client, "", tracer, out)
 }

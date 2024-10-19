@@ -33,7 +33,7 @@ func NewService(ctx context.Context, database *sql.DB) keychainv1connect.Keychai
 	client.SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 	client.SetTimeout(time.Second * 30)
 
-	restyutil.InstrumentClient(client, nil, restyInstrumentOutput)
+	restyutil.InstrumentClient(client, "keychain", nil, restyInstrumentOutput)
 
 	s := Service{
 		db:     database,

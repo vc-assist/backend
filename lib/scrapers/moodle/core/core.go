@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/util/htmlutil"
 	"vcassist-backend/lib/util/restyutil"
 
@@ -29,7 +30,9 @@ type Client struct {
 }
 
 type ClientOptions struct {
-	BaseUrl string
+	BaseUrl               string
+	RestyInstrumentOutput restyutil.InstrumentOutput
+	Tracer                telemetry.TracerLike
 }
 
 func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
@@ -63,7 +66,7 @@ func NewClient(ctx context.Context, opts ClientOptions) (*Client, error) {
 		return nil
 	})
 
-	restyutil.InstrumentClient(client, tracer, restyInstrumentOutput)
+	restyutil.InstrumentClient(client, "moodle", tracer, opts.RestyInstrumentOutput)
 
 	c := &Client{
 		BaseUrl: baseUrl,
@@ -108,7 +111,6 @@ func wrapLoginError(err error) error {
 }
 
 func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
-
 	res, err := c.Http.R().
 		SetContext(ctx).
 		Get("/login/index.php")

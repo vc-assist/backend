@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"vcassist-backend/lib/util/oauthutil"
-	"vcassist-backend/lib/util/restyutil"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/util/oauthutil"
+	"vcassist-backend/lib/util/restyutil"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 
 	"github.com/go-resty/resty/v2"
@@ -74,7 +74,7 @@ func tokenFromCallbackUrl(t testing.TB, oauthFlow *keychainv1.OAuthFlow, callbac
 	}
 
 	client := resty.New()
-	restyutil.InstrumentClient(client, nil, restyInstrumentOutput)
+	restyutil.InstrumentClient(client, "vcsis_test", nil, restyInstrumentOutput)
 
 	res, err := client.R().
 		SetBody(body).

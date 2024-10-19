@@ -13,8 +13,6 @@ import (
 	"vcassist-backend/lib/util/htmlutil"
 
 	"github.com/PuerkitoBio/goquery"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 )
 
 var tracer = telemetry.Tracer("vcassist.lib.scrapers.moodle.view")
@@ -61,22 +59,18 @@ func coursesFromAnchors(anchors []htmlutil.Anchor) []Course {
 }
 
 func (c Client) Courses(ctx context.Context) ([]Course, error) {
-
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get("/index.php")
 	if err != nil {
-
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-
 		return nil, err
 	}
 
 	anchors := htmlutil.GetAnchors(res.Request.RawRequest.URL, doc.Find("ul.unlist a"))
-
 	return coursesFromAnchors(anchors), nil
 }
 
@@ -98,24 +92,20 @@ func sectionsFromAnchors(anchors []htmlutil.Anchor) []Section {
 }
 
 func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) {
-
 	endpoint := course.Url.String()
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
-
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-
 		return nil, err
 	}
 
 	anchors := htmlutil.GetAnchors(course.Url, doc.Find(".course-content a.nav-link"))
-
 	return sectionsFromAnchors(anchors), nil
 }
 
@@ -157,7 +147,6 @@ func resourcesFromAnchors(anchors []htmlutil.Anchor) []Resource {
 }
 
 func (c Client) Resources(ctx context.Context, section Section) ([]Resource, error) {
-
 	if section.Url == nil {
 		return nil, fmt.Errorf("section url is nil")
 	}
@@ -167,12 +156,10 @@ func (c Client) Resources(ctx context.Context, section Section) ([]Resource, err
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
-
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -215,19 +202,16 @@ func chaptersFromAnchors(anchors []htmlutil.Anchor) []Chapter {
 }
 
 func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, error) {
-
 	endpoint := resource.Url.String()
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
-
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -258,27 +242,22 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 }
 
 func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, error) {
-
 	endpoint := chapter.Url
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint.String())
 	if err != nil {
-
 		return "", err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-
 		return "", err
 	}
 
 	contents, err := doc.Find("div[role=main] div.box").Html()
 	if err != nil {
-
 		return "", err
 	}
-
 	return contents, nil
 }

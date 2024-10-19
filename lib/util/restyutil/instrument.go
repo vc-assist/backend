@@ -20,6 +20,7 @@ type InstrumentOutput interface {
 }
 
 type instrumentCtx struct {
+	logger    *slog.Logger
 	output    InstrumentOutput
 	tracer    telemetry.TracerLike
 	idcounter *uint64
@@ -27,7 +28,7 @@ type instrumentCtx struct {
 
 // `tracer` can be nil, it will default to a library name of "resty"
 // `output` can also be nil, if it is, then the function is a no-op
-func InstrumentClient(client *resty.Client, tracer telemetry.TracerLike, output InstrumentOutput) {
+func InstrumentClient(client *resty.Client, name string, tracer telemetry.TracerLike, output InstrumentOutput) {
 	if output == nil {
 		return
 	}
@@ -36,7 +37,12 @@ func InstrumentClient(client *resty.Client, tracer telemetry.TracerLike, output 
 	}
 
 	var idcounter uint64
-	i := instrumentCtx{output: output, tracer: tracer, idcounter: &idcounter}
+	i := instrumentCtx{
+		output:    output,
+		tracer:    tracer,
+		idcounter: &idcounter,
+		logger:    slog.With("resty.client", name),
+	}
 	client.OnBeforeRequest(i.onBeforeRequest(i.tracer))
 	client.OnAfterResponse(i.onAfterResponse)
 	client.OnError(i.onError)
@@ -50,7 +56,7 @@ func (i instrumentCtx) onBeforeRequest(tracer telemetry.TracerLike) resty.Reques
 
 		if slog.Default().Enabled(ctx, slog.LevelDebug) {
 			messageId := strconv.FormatUint(atomic.AddUint64(i.idcounter, 1), 10)
-			slog.DebugContext(
+			i.logger.DebugContext(
 				ctx, "startin",
 				"method", req.Method,
 				"url", req.URL,
@@ -84,7 +90,7 @@ func (i instrumentCtx) onAfterResponse(_ *resty.Client, res *resty.Response) err
 		span.SetAttributes(attribute.String("message_id", messageId))
 
 		i.output.Write(messageId, formatHttpMessage(res))
-		slog.DebugContext(
+		i.logger.DebugContext(
 			ctx, "success",
 			"method", res.Request.Method,
 			"url", res.Request.URL,
@@ -111,16 +117,16 @@ func (i instrumentCtx) onError(req *resty.Request, err error) {
 
 		span.SetAttributes(attribute.String("message_id", messageId))
 
-		slog.ErrorContext(
-			req.Context(), "failure",
+		i.logger.ErrorContext(
+			req.Context(), "http error",
 			"method", req.Method,
 			"url", req.URL,
 			"err", err,
 			"message_id", messageId,
 		)
 	} else {
-		slog.ErrorContext(
-			req.Context(), "failure",
+		i.logger.ErrorContext(
+			req.Context(), "http error",
 			"method", req.Method,
 			"url", req.URL,
 			"err", err,
