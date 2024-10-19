@@ -1,7 +1,7 @@
 package vcsis
 
 import (
-	"vcassist-backend/lib/oauth"
+	"vcassist-backend/lib/util/oauthutil"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 )
 
@@ -12,7 +12,7 @@ type OAuthConfig struct {
 }
 
 func (o OAuthConfig) GetOAuthFlow() (*keychainv1.OAuthFlow, error) {
-	codeVerifier, err := oauth.GenerateCodeVerifier()
+	codeVerifier, err := oauthutil.GenerateCodeVerifier()
 	if err != nil {
 		return nil, err
 	}

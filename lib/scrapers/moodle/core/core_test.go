@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 	"testing"
-	"vcassist-backend/lib/configutil"
+	"vcassist-backend/lib/util/configutil"
 	"vcassist-backend/lib/telemetry"
 
 	_ "embed"

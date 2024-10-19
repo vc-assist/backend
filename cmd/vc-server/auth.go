@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"

@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
-	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/lib/util/serviceutil"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/services/vcmoodle/db"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"

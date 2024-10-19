@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/vcmoodle/v1/vcmoodlev1connect"

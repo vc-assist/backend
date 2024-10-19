@@ -2,8 +2,8 @@ package main
 
 import (
 	"net/http"
-	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/lib/util/serviceutil"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker"

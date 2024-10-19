@@ -1,7 +1,7 @@
 package vcsis
 
 import (
-	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/util/restyutil"
 )
 
 var restyInstrumentOutput restyutil.InstrumentOutput

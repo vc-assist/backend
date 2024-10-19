@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-	"vcassist-backend/lib/configutil"
+	"vcassist-backend/lib/util/configutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/telemetry"

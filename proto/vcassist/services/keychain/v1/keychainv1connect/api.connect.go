@@ -110,14 +110,14 @@ type keychainServiceClient struct {
 	getUsernamePassword *connect.Client[v1.GetUsernamePasswordRequest, v1.GetUsernamePasswordResponse]
 }
 
-// SetOAuth calls vcassist.services.keychain.v1.KeychainService.SetOAuth.
+// SetOAuth calls vcassist.services.keychain.v1.KeychainService.Setoauthutil.
 func (c *keychainServiceClient) SetOAuth(ctx context.Context, req *connect.Request[v1.SetOAuthRequest]) (*connect.Response[v1.SetOAuthResponse], error) {
-	return c.setOAuth.CallUnary(ctx, req)
+	return c.setoauthutil.CallUnary(ctx, req)
 }
 
-// GetOAuth calls vcassist.services.keychain.v1.KeychainService.GetOAuth.
+// GetOAuth calls vcassist.services.keychain.v1.KeychainService.Getoauthutil.
 func (c *keychainServiceClient) GetOAuth(ctx context.Context, req *connect.Request[v1.GetOAuthRequest]) (*connect.Response[v1.GetOAuthResponse], error) {
-	return c.getOAuth.CallUnary(ctx, req)
+	return c.getoauthutil.CallUnary(ctx, req)
 }
 
 // SetUsernamePassword calls vcassist.services.keychain.v1.KeychainService.SetUsernamePassword.

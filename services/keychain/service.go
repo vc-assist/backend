@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/util/oauthutil"
+	"vcassist-backend/lib/util/restyutil"
 	"vcassist-backend/lib/timezone"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
@@ -48,7 +48,7 @@ func NewService(ctx context.Context, database *sql.DB) keychainv1connect.Keychai
 }
 
 func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) error {
-	var originalToken oauth.OpenIdToken
+	var originalToken oauthutil.OpenIdToken
 	err := json.Unmarshal([]byte(originalRow.Token), &originalToken)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (s Service) refreshOAuthKey(ctx context.Context, originalRow db.OAuth) erro
 		return err
 	}
 
-	var newToken oauth.OpenIdToken
+	var newToken oauthutil.OpenIdToken
 	err = json.Unmarshal(res.Body(), &newToken)
 	if err != nil {
 		return err

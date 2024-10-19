@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/lib/util/htmlutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/telemetry"
 

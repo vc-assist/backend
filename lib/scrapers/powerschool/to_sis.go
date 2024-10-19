@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"regexp"
 	"strconv"
-	"vcassist-backend/lib/textutil"
+	"vcassist-backend/lib/util/textutil"
 	"vcassist-backend/lib/timezone"
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
 )

@@ -30,16 +30,17 @@
       - `moodle/` - [moodle](https://moodle.org/)
       - `powerschool/` - [powerschool](https://powerschool.com/)
       - `vcsnet/` - [vcs.net](https://vcs.net)
-   - `configutil/` - additional utilities for reading and resolving configuration.
    - `gradestore/` - a simple time-series store for grade data.
-   - `htmlutil/` - additional utilities for working with HTML.
-   - `oauth/` - shared utils for working with oauth.
-   - `restyutil/` - utilities for the `resty` HTTP client wrapper.
-   - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
-   - `sqliteutil/` - utilities for opening up and migrating sqlite databases
    - `telemetry/` - telemetry setup/teardown as well as misc. instrumentation utilities
-   - `textutil/` - utilities for cleaning and processing text.
    - `timezone/` - `time.Now()` always in the correct timezone, instead of system time. (because sometimes servers are hosted outside of PDT)
+   - `util/`
+      - `configutil/` - additional utilities for reading and resolving configuration.
+      - `htmlutil/` - additional utilities for working with HTML.
+      - `oauthutil/` - shared utils for working with oauth.
+      - `restyutil/` - utilities for the `resty` HTTP client wrapper.
+      - `serviceutil/` - additional utilities that are commonly used in service entrypoints.
+      - `sqliteutil/` - utilities for opening up and migrating sqlite databases
+      - `textutil/` - utilities for cleaning and processing text.
 - `dev/` - go scripts for setting up the development environment
    - `local_stack/` - docker compose stuff for setting up grafana and other things locally
 - `buf.yaml` - [buf.yaml](https://buf.build/docs/configuration/v2/buf-gen-yaml)

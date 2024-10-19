@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"vcassist-backend/lib/htmlutil"
-	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/util/htmlutil"
+	"vcassist-backend/lib/util/restyutil"
 
 	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"
 	"github.com/PuerkitoBio/goquery"

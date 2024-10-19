@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"net/http"
-	"vcassist-backend/lib/configutil"
-	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/util/configutil"
+	"vcassist-backend/lib/util/serviceutil"
 )
 
 type Config struct {

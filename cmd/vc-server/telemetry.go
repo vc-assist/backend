@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"log/slog"
-	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/util/restyutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
-	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/util/serviceutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/vcsis"

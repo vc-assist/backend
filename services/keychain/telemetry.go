@@ -1,6 +1,6 @@
 package keychain
 
-import "vcassist-backend/lib/restyutil"
+import "vcassist-backend/lib/util/restyutil"
 
 var restyInstrumentOutput restyutil.InstrumentOutput
 

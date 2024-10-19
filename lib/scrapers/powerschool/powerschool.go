@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http/cookiejar"
 	"time"
-	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/timezone"
+	"vcassist-backend/lib/util/oauthutil"
+	"vcassist-backend/lib/util/restyutil"
 
 	"github.com/go-resty/resty/v2"
 	"go.opentelemetry.io/otel/attribute"
@@ -55,7 +55,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 	ctx, span := tracer.Start(ctx, "LoginOAuth")
 	defer span.End()
 
-	var openidToken oauth.OpenIdToken
+	var openidToken oauthutil.OpenIdToken
 	err = json.Unmarshal([]byte(token), &openidToken)
 	if err != nil {
 		return timezone.Now(), err

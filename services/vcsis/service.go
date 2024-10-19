@@ -47,7 +47,7 @@ type ServiceOptions struct {
 }
 
 func NewService(opts ServiceOptions) Service {
-	if opts.OAuth.BaseLoginUrl == "" {
+	if opts.oauthutil.BaseLoginUrl == "" {
 		panic("empty base login url")
 	}
 	if opts.Database == nil {
@@ -98,7 +98,7 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 		return nil, err
 	}
 	if res.Msg.GetKey() == nil || res.Msg.GetKey().GetExpiresAt() < timezone.Now().Unix() {
-		oauthFlow, err := s.oauth.GetOAuthFlow()
+		oauthFlow, err := s.oauthutil.GetOAuthFlow()
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "failed to create oauth flow")
@@ -151,8 +151,8 @@ func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[sis
 			Id:        profile.Email,
 			Key: &keychainv1.OAuthKey{
 				Token:      token,
-				RefreshUrl: s.oauth.RefreshUrl,
-				ClientId:   s.oauth.ClientId,
+				RefreshUrl: s.oauthutil.RefreshUrl,
+				ClientId:   s.oauthutil.ClientId,
 				ExpiresAt:  expiresAt.Unix(),
 			},
 		},

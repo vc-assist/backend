@@ -2,7 +2,7 @@ package telemetry
 
 import (
 	"context"
-	"vcassist-backend/lib/configutil"
+	"vcassist-backend/lib/util/configutil"
 )
 
 var setupTestEnvironments = map[string]bool{}

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	"vcassist-backend/lib/configutil"
+	"vcassist-backend/lib/util/configutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/telemetry"
 

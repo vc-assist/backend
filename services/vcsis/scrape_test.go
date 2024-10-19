@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"vcassist-backend/lib/oauth"
-	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/util/oauthutil"
+	"vcassist-backend/lib/util/restyutil"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/telemetry"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
@@ -60,7 +60,7 @@ func tokenFromCallbackUrl(t testing.TB, oauthFlow *keychainv1.OAuthFlow, callbac
 		t.Fatal("could not get auth code", callbackUrl)
 	}
 
-	req := oauth.TokenRequest{
+	req := oauthutil.TokenRequest{
 		GrantType:    "authorization_code",
 		ClientId:     oauthFlow.GetClientId(),
 		CodeVerifier: oauthFlow.GetCodeVerifier(),
@@ -98,9 +98,9 @@ func promptForToken(t testing.TB, ctx context.Context, oauthConfig OAuthConfig) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	loginUrl, err := oauth.GetLoginUrl(
+	loginUrl, err := oauthutil.GetLoginUrl(
 		ctx,
-		oauth.AuthCodeRequest{
+		oauthutil.AuthCodeRequest{
 			AccessType:   flow.GetAccessType(),
 			Scope:        flow.GetScope(),
 			RedirectUri:  flow.GetRedirectUri(),

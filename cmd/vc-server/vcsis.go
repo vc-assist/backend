@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 	gradestoredb "vcassist-backend/lib/gradestore/db"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"vcassist-backend/lib/restyutil"
+	"vcassist-backend/lib/util/restyutil"
 	"vcassist-backend/lib/telemetry"
 )
 
