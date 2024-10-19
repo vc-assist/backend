@@ -67,8 +67,6 @@ type Event struct {
 var client = resty.New()
 
 func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
-	ctx, span := tracer.Start(ctx, "FetchEvents")
-	defer span.End()
 
 	link, err := url.Parse("https://www.vcs.net/fs/elements/39337")
 	if err != nil {
@@ -146,27 +144,18 @@ func FetchEvents(ctx context.Context, tz *time.Location) ([]Event, error) {
 }
 
 func parseCalendar(ctx context.Context, link string, tz *time.Location) ([]Event, error) {
-	ctx, span := tracer.Start(ctx, "parseCalendar")
-	defer span.End()
-
-	span.SetAttributes(attribute.KeyValue{
-		Key:   "url",
-		Value: attribute.StringValue(link),
-	})
 
 	res, err := client.R().
 		SetContext(ctx).
 		Get(link)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch calendar page")
+
 		return nil, err
 	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse calendar page html")
+
 		return nil, err
 	}
 
@@ -175,84 +164,26 @@ func parseCalendar(ctx context.Context, link string, tz *time.Location) ([]Event
 		yearAttr := div.AttrOr("data-year", "")
 		year, err := strconv.Atoi(yearAttr)
 		if err != nil {
-			span.AddEvent(
-				"could not get the year of one date element",
-				trace.WithAttributes(
-					attribute.KeyValue{
-						Key:   "log.severity",
-						Value: attribute.StringValue("WARN"),
-					},
-					attribute.KeyValue{
-						Key:   "year",
-						Value: attribute.StringValue(yearAttr),
-					},
-				),
-			)
-			span.SetStatus(codes.Error, "WARN: could not get year of one date element")
+
 			return
 		}
 
 		monthAttr := div.AttrOr("data-month", "")
 		month, err := strconv.Atoi(monthAttr)
 		if err != nil {
-			span.AddEvent(
-				"could not get the month of one date element",
-				trace.WithAttributes(
-					attribute.KeyValue{
-						Key:   "log.severity",
-						Value: attribute.StringValue("WARN"),
-					},
-					attribute.KeyValue{
-						Key:   "month",
-						Value: attribute.StringValue(monthAttr),
-					},
-				),
-			)
-			span.SetStatus(codes.Error, "WARN: could not get the month of one date element")
+
 			return
 		}
 
 		dayAttr := div.AttrOr("data-day", "")
 		day, err := strconv.Atoi(dayAttr)
 		if err != nil {
-			span.AddEvent(
-				"could not get the day of one date element",
-				trace.WithAttributes(
-					attribute.KeyValue{
-						Key:   "log.severity",
-						Value: attribute.StringValue("WARN"),
-					},
-					attribute.KeyValue{
-						Key:   "day",
-						Value: attribute.StringValue(dayAttr),
-					},
-				),
-			)
-			span.SetStatus(codes.Error, "WARN: could not get the day of one date element")
+
 			return
 		}
 
 		div.Parent().Find("a.fsCalendarEventLink").Each(func(_ int, s *goquery.Selection) {
 			name := s.Text()
-
-			span.AddEvent("found event", trace.WithAttributes(
-				attribute.KeyValue{
-					Key:   "year",
-					Value: attribute.Int64Value(int64(year)),
-				},
-				attribute.KeyValue{
-					Key:   "month",
-					Value: attribute.Int64Value(int64(month)),
-				},
-				attribute.KeyValue{
-					Key:   "day",
-					Value: attribute.Int64Value(int64(day)),
-				},
-				attribute.KeyValue{
-					Key:   "name",
-					Value: attribute.StringValue(name),
-				},
-			))
 
 			events = append(events, Event{
 				Name: name,
@@ -263,15 +194,6 @@ func parseCalendar(ctx context.Context, link string, tz *time.Location) ([]Event
 			})
 		})
 	})
-
-	if span.IsRecording() {
-		eventsStr, err := json.Marshal(events)
-		if err == nil {
-			span.SetAttributes(attribute.String("events", string(eventsStr)))
-		} else {
-			span.SetAttributes(attribute.String("events", "err: "+err.Error()))
-		}
-	}
 
 	return events, nil
 }

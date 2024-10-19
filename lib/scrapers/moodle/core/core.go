@@ -108,8 +108,6 @@ func wrapLoginError(err error) error {
 }
 
 func (c *Client) LoginUsernamePassword(ctx context.Context, username, password string) error {
-	ctx, span := tracer.Start(ctx, "LoginUsernamePassword")
-	defer span.End()
 
 	res, err := c.Http.R().
 		SetContext(ctx).

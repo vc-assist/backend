@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/util/serviceutil"
 	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
@@ -17,16 +16,13 @@ type LinkerConfig struct {
 	AccessToken string `json:"access_token"`
 }
 
-func InitLinker(mux *http.ServeMux, cfg LinkerConfig) (linkerv1connect.InstrumentedLinkerServiceClient, error) {
+func InitLinker(mux *http.ServeMux, cfg LinkerConfig) (linker.Service, error) {
 	db, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
-		return linkerv1connect.NewInstrumentedLinkerServiceClient(nil), err
+		return linker.Service{}, err
 	}
-	linkerv1connect.LinkerServiceTracer = telemetry.Tracer("linker")
 
-	service := linkerv1connect.NewInstrumentedLinkerServiceClient(
-		linker.NewService(db),
-	)
+	service := linker.NewService(db)
 	mux.Handle(linkerv1connect.NewLinkerServiceHandler(
 		service,
 		connect.WithInterceptors(

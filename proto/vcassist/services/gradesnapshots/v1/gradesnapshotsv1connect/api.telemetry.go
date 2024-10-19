@@ -21,7 +21,7 @@ var (
 )
 
 type InstrumentedGradeSnapshotsServiceClient struct {
-	inner GradeSnapshotsServiceClient
+	inner           GradeSnapshotsServiceClient
 	WithInputOutput bool
 }
 
@@ -30,70 +30,23 @@ func NewInstrumentedGradeSnapshotsServiceClient(inner GradeSnapshotsServiceClien
 }
 
 func (c InstrumentedGradeSnapshotsServiceClient) Push(ctx context.Context, req *connect.Request[v1.PushRequest]) (*connect.Response[v1.PushResponse], error) {
-	ctx, span := GradeSnapshotsServiceTracer.Start(ctx, "Push")
-	defer span.End()
-
-	if span.IsRecording() && c.WithInputOutput {
-		input, err := protojson.Marshal(req.Msg)
-		if err == nil {
-			span.SetAttributes(attribute.String("input", string(input)))
-		} else {
-			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
-			span.RecordError(err)
-		}
-	}
 
 	res, err := c.inner.Push(ctx, req)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	}
 
-	if span.IsRecording() && c.WithInputOutput {
-		output, err := protojson.Marshal(res.Msg)
-		if err == nil {
-			span.SetAttributes(attribute.String("output", string(output)))
-		} else {
-			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
-			span.RecordError(err)
-		}
+		return nil, err
 	}
 
 	return res, nil
 }
 
 func (c InstrumentedGradeSnapshotsServiceClient) Pull(ctx context.Context, req *connect.Request[v1.PullRequest]) (*connect.Response[v1.PullResponse], error) {
-	ctx, span := GradeSnapshotsServiceTracer.Start(ctx, "Pull")
-	defer span.End()
-
-	if span.IsRecording() && c.WithInputOutput {
-		input, err := protojson.Marshal(req.Msg)
-		if err == nil {
-			span.SetAttributes(attribute.String("input", string(input)))
-		} else {
-			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
-			span.RecordError(err)
-		}
-	}
 
 	res, err := c.inner.Pull(ctx, req)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	}
 
-	if span.IsRecording() && c.WithInputOutput {
-		output, err := protojson.Marshal(res.Msg)
-		if err == nil {
-			span.SetAttributes(attribute.String("output", string(output)))
-		} else {
-			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
-			span.RecordError(err)
-		}
+		return nil, err
 	}
 
 	return res, nil
 }
-

@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
@@ -40,12 +39,7 @@ func InitAuth(mux *http.ServeMux, cfg AuthConfig) (verifier.Verifier, error) {
 		TestVerificationCode: cfg.TestVerificationCode,
 	})
 
-	authv1connect.AuthServiceTracer = telemetry.Tracer("auth")
-	mux.Handle(authv1connect.NewAuthServiceHandler(
-		authv1connect.NewInstrumentedAuthServiceClient(
-			service,
-		),
-	))
+	mux.Handle(authv1connect.NewAuthServiceHandler(service))
 
 	return verifier.NewVerifier(database), nil
 }

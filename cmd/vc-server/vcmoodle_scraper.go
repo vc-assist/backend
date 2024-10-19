@@ -7,8 +7,8 @@ import (
 	"time"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
-	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/lib/timezone"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
 )

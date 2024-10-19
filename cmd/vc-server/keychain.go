@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/keychain/db"

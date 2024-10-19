@@ -47,9 +47,6 @@ func (c Course) ensureEditing(ctx context.Context) error {
 		return nil
 	}
 
-	ctx, span := tracer.Start(ctx, "ensureEditing")
-	defer span.End()
-
 	redirects := 0
 	c.Core.Http.SetRedirectPolicy(resty.RedirectPolicyFunc(
 		func(req *http.Request, via []*http.Request) error {
@@ -68,12 +65,11 @@ func (c Course) ensureEditing(ctx context.Context) error {
 		}).
 		Post("/course/view.php")
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to make request")
+
 		return err
 	}
 	if redirects == 0 {
-		span.SetStatus(codes.Error, "request didn't redirect")
+
 		return fmt.Errorf("failed to enable editing, didn't redirect")
 	}
 
@@ -87,13 +83,10 @@ type Section struct {
 }
 
 func (c Course) ListSections(ctx context.Context) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "ListSections")
-	defer span.End()
 
 	err := c.ensureEditing(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to ensure editing mode is on")
+
 		return nil, err
 	}
 
@@ -101,14 +94,12 @@ func (c Course) ListSections(ctx context.Context) ([]Section, error) {
 		SetContext(ctx).
 		Get(c.href.String())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to make fetch request")
+
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse html")
+
 		return nil, err
 	}
 
@@ -142,27 +133,22 @@ type actionArgs interface {
 type actionList []action
 
 func (a actionList) do(ctx context.Context, course Course) (*resty.Response, error) {
-	ctx, span := tracer.Start(ctx, "action.do")
-	defer span.End()
 
 	if len(a) == 0 {
 		err := fmt.Errorf("you must have at least one action to make a request")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+
 		return nil, err
 	}
 
 	err := course.ensureEditing(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to ensure editing mode enabled")
+
 		return nil, err
 	}
 
 	body, err := json.Marshal(a)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to marshal body")
+
 		return nil, err
 	}
 
@@ -174,8 +160,7 @@ func (a actionList) do(ctx context.Context, course Course) (*resty.Response, err
 		SetHeader("content-type", "application/json").
 		Post("/lib/ajax/service.php")
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to make request")
+
 		return nil, err
 	}
 
@@ -202,13 +187,10 @@ type sectionResponse []struct {
 
 // note: this does not return the new sections created, but all the sections after creating the new sections
 func (c Course) CreateSections(ctx context.Context, lastSectionId string, count int) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "CreateSection")
-	defer span.End()
 
 	if count <= 0 {
 		err := fmt.Errorf("you must specify a count of at least 1 to add sections")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+
 		return nil, err
 	}
 
@@ -229,8 +211,7 @@ func (c Course) CreateSections(ctx context.Context, lastSectionId string, count 
 
 	res, err := actList.do(ctx, c)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to do action")
+
 		return nil, err
 	}
 
@@ -239,21 +220,18 @@ func (c Course) CreateSections(ctx context.Context, lastSectionId string, count 
 	}
 	err = json.Unmarshal(res.Body(), &responseJson)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse response json")
+
 		return nil, err
 	}
 	if len(responseJson) == 0 {
 		err := fmt.Errorf("got empty response json")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+
 		return nil, err
 	}
 	var sectionData sectionResponse
 	err = json.Unmarshal([]byte(responseJson[0].Data), &sectionData)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse section data json")
+
 		return nil, err
 	}
 
@@ -286,13 +264,10 @@ type RenameEntry struct {
 }
 
 func (c Course) RenameSections(ctx context.Context, entries []RenameEntry) error {
-	ctx, span := tracer.Start(ctx, "RenameSection")
-	defer span.End()
 
 	err := c.ensureEditing(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to ensure editing mode enabled")
+
 		return err
 	}
 
@@ -315,13 +290,10 @@ func (c Course) RenameSections(ctx context.Context, entries []RenameEntry) error
 }
 
 func (c Course) DeleteSections(ctx context.Context, sectionIds []string) error {
-	ctx, span := tracer.Start(ctx, "RemoveSection")
-	defer span.End()
 
 	err := c.ensureEditing(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to ensure editing mode enabled")
+
 		return err
 	}
 
@@ -339,8 +311,7 @@ func (c Course) DeleteSections(ctx context.Context, sectionIds []string) error {
 	}
 	_, err = actList.do(ctx, c)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to do action")
+
 		return err
 	}
 	return nil

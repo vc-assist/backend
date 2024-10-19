@@ -1,8 +1,8 @@
 package vcsnet
 
 import (
-	"vcassist-backend/lib/util/restyutil"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/util/restyutil"
 
 	"github.com/go-resty/resty/v2"
 )

@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"vcassist-backend/lib/util/htmlutil"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/telemetry"
+	"vcassist-backend/lib/util/htmlutil"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.opentelemetry.io/otel/attribute"
@@ -61,21 +61,17 @@ func coursesFromAnchors(anchors []htmlutil.Anchor) []Course {
 }
 
 func (c Client) Courses(ctx context.Context) ([]Course, error) {
-	ctx, span := tracer.Start(ctx, "Courses")
-	defer span.End()
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get("/index.php")
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch")
+
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse html")
+
 		return nil, err
 	}
 
@@ -102,27 +98,19 @@ func sectionsFromAnchors(anchors []htmlutil.Anchor) []Section {
 }
 
 func (c Client) Sections(ctx context.Context, course Course) ([]Section, error) {
-	ctx, span := tracer.Start(ctx, "Sections")
-	defer span.End()
 
 	endpoint := course.Url.String()
-	span.SetAttributes(attribute.KeyValue{
-		Key:   "url",
-		Value: attribute.StringValue(endpoint),
-	})
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch")
+
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse html")
+
 		return nil, err
 	}
 
@@ -169,30 +157,22 @@ func resourcesFromAnchors(anchors []htmlutil.Anchor) []Resource {
 }
 
 func (c Client) Resources(ctx context.Context, section Section) ([]Resource, error) {
-	ctx, span := tracer.Start(ctx, "SectionContent")
-	defer span.End()
 
 	if section.Url == nil {
 		return nil, fmt.Errorf("section url is nil")
 	}
 	endpoint := section.Url.String()
-	span.SetAttributes(attribute.KeyValue{
-		Key:   "url",
-		Value: attribute.StringValue(endpoint),
-	})
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch")
+
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse html")
+
 		return nil, err
 	}
 
@@ -235,27 +215,19 @@ func chaptersFromAnchors(anchors []htmlutil.Anchor) []Chapter {
 }
 
 func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, error) {
-	ctx, span := tracer.Start(ctx, "Chapters")
-	defer span.End()
 
 	endpoint := resource.Url.String()
-	span.SetAttributes(attribute.KeyValue{
-		Key:   "url",
-		Value: attribute.StringValue(endpoint),
-	})
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch")
+
 		return nil, err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse html")
+
 		return nil, err
 	}
 
@@ -286,34 +258,25 @@ func (c Client) Chapters(ctx context.Context, resource Resource) ([]Chapter, err
 }
 
 func (c Client) ChapterContent(ctx context.Context, chapter Chapter) (string, error) {
-	ctx, span := tracer.Start(ctx, "ChapterContent")
-	defer span.End()
 
 	endpoint := chapter.Url
-	span.SetAttributes(attribute.KeyValue{
-		Key:   "url",
-		Value: attribute.StringValue(endpoint.String()),
-	})
 
 	res, err := c.Core.Http.R().
 		SetContext(ctx).
 		Get(endpoint.String())
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch")
+
 		return "", err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to parse html")
+
 		return "", err
 	}
 
 	contents, err := doc.Find("div[role=main] div.box").Html()
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+
 		return "", err
 	}
 

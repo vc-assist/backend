@@ -60,13 +60,10 @@ func normalizeEmail(email string) string {
 }
 
 func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
-	ctx, span := tracer.Start(ctx, "createVerificationCode")
-	defer span.End()
 
 	code, err = random.String(8)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to generate verification code")
+
 		return "", err
 	}
 	err = txqry.CreateVerificationCode(ctx, db.CreateVerificationCodeParams{
@@ -75,8 +72,7 @@ func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, 
 		Expiresat: timezone.Now().Add(time.Hour).Unix(),
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to insert verification code row")
+
 		return "", err
 	}
 
@@ -84,8 +80,6 @@ func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, 
 }
 
 func (s Service) sendVerificationCode(ctx context.Context, userEmail, code string) error {
-	ctx, span := tracer.Start(ctx, "sendVerificationCode")
-	defer span.End()
 
 	mail := email.NewEmail()
 	mail.From = fmt.Sprintf("VC Assist <%s>", s.config.Smtp.EmailAddress)
@@ -106,14 +100,12 @@ If you don't recognize this account, please ignore this email.`, code)
 	if err != nil && strings.Contains(err.Error(), "server doesn't support AUTH") {
 		err = mail.Send(fmt.Sprintf("%s:%d", s.config.Smtp.Server, s.config.Smtp.Port), nil)
 		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "failed to send email")
+
 			return err
 		}
 	}
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to send email")
+
 		return err
 	}
 
@@ -168,23 +160,19 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.Sta
 }
 
 func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
-	ctx, span := tracer.Start(ctx, "verifyAndDeleteCode")
-	defer span.End()
 
 	email, err := txqry.GetUserFromCode(ctx, code)
 	if err == sql.ErrNoRows {
-		span.SetStatus(codes.Error, "invalid verification code")
+
 		return fmt.Errorf("invalid verification code")
 	}
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get user from code")
+
 		return err
 	}
 	err = txqry.DeleteVerificationCode(ctx, code)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "could not delete consumed verification code")
+
 		return err
 	}
 
@@ -192,14 +180,11 @@ func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, ema
 }
 
 func (s Service) createToken(ctx context.Context, txqry *db.Queries, email string) (string, error) {
-	ctx, span := tracer.Start(ctx, "createToken")
-	defer span.End()
 
 	nonce := make([]byte, 32)
 	_, err := rand.Read(nonce)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to generate token")
+
 		return "", err
 	}
 	token := hex.EncodeToString(nonce)
@@ -208,8 +193,7 @@ func (s Service) createToken(ctx context.Context, txqry *db.Queries, email strin
 		Token:     token,
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "got unexpected error while creating user")
+
 		return "", err
 	}
 

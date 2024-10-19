@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	gradestoredb "vcassist-backend/lib/gradestore/db"
-	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/lib/util/sqliteutil"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
@@ -57,19 +56,16 @@ func InitVCSis(
 		}
 	}
 
-	sisv1connect.SIServiceTracer = telemetry.Tracer("vcsis")
 	mux.Handle(sisv1connect.NewSIServiceHandler(
-		sisv1connect.NewInstrumentedSIServiceClient(
-			vcsis.NewService(
-				vcsis.ServiceOptions{
-					Database:   database,
-					Keychain:   keychain,
-					Linker:     linker,
-					BaseUrl:    cfg.PowerschoolBaseUrl,
-					OAuth:      vcsis.OAuthConfig(cfg.PowerschoolOAuth),
-					WeightData: weights,
-				},
-			),
+		vcsis.NewService(
+			vcsis.ServiceOptions{
+				Database:   database,
+				Keychain:   keychain,
+				Linker:     linker,
+				BaseUrl:    cfg.PowerschoolBaseUrl,
+				OAuth:      vcsis.OAuthConfig(cfg.PowerschoolOAuth),
+				WeightData: weights,
+			},
 		),
 		connect.WithInterceptors(
 			verifier.NewAuthInterceptor(verify),

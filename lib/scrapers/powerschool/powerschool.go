@@ -52,8 +52,6 @@ func (c *Client) SetRestyInstrumentOutput(out restyutil.InstrumentOutput) {
 }
 
 func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.Time, err error) {
-	ctx, span := tracer.Start(ctx, "LoginOAuth")
-	defer span.End()
 
 	var openidToken oauthutil.OpenIdToken
 	err = json.Unmarshal([]byte(token), &openidToken)
@@ -72,11 +70,6 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 
 	now := timezone.Now()
 	expiresAt = now.Add(time.Second * time.Duration(openidToken.ExpiresIn))
-
-	span.SetAttributes(
-		attribute.String("now", now.Format(time.ANSIC)),
-		attribute.String("expiresAt", expiresAt.Format(time.ANSIC)),
-	)
 
 	return expiresAt, nil
 }
