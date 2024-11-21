@@ -941,5 +941,11 @@
     "Major Assignments": 0.2,
     "Mastery Assignments": 0.3,
     "Final Exam": 0.15
+  },
+  "AP Psychology": {
+    "Classwork/Homework": 0.25,
+    "Progress Assessment": 0.2,
+    "Mastery Assessment": 0.35,
+    "Final Exam": 0.2
   }
 }
