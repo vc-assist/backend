@@ -1,3 +1,5 @@
+--all snake case
+
 -- name: GetUserFromToken :one
 select email from User
 inner join (
@@ -26,3 +28,6 @@ delete from VerificationCode where code = ?;
 -- name: DeleteToken :exec
 delete from ActiveToken where token = ?;
 
+-- name: CreateParent :exec
+insert into Parent(parentEmail, userEmail) values(?, ?)
+on conflict do nothing;

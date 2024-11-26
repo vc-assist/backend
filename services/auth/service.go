@@ -277,3 +277,27 @@ func (s Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.Ve
 		},
 	}, nil
 }
+
+func (s Service) LinkParentEmail(ctx context.Context, req *connect.Request[authv1.LinkParentRequest]) (*connect.Response[authv1.LinkParentResponse], error) {
+
+	user, err := s.verifier.VerifyToken(ctx, req.Msg.GetToken())
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.qry.CreateParent(ctx, db.CreateParentParams{
+		Parentemail: req.Msg.ParentEmail,
+		Useremail: user.Email,
+	})
+	
+	if(err != nil){
+		return nil, err
+	}
+	
+	return &connect.Response[authv1.LinkParentResponse]{
+		Msg: &authv1.LinkParentResponse{
+			UserEmail: user.Email,
+			ParentEmail: req.Msg.ParentEmail,
+		},
+	}, nil
+} 

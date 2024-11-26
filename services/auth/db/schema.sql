@@ -1,7 +1,12 @@
 create table User (
-    email text not null primary key
-);
+    email text not null primary key 
 
+);
+create table Parent (
+    parentEmail text not null primary key, 
+    userEmail text not null,
+    foreign key (userEmail) references User(email)
+);
 create table ActiveToken (
     token text not null primary key,
     userEmail text not null,
