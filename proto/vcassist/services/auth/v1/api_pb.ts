@@ -240,11 +240,6 @@ export class LinkParentRequest extends Message<LinkParentRequest> {
   token = "";
 
   /**
-   * @generated from field: string userEmail = 2;
-   */
-  userEmail = "";
-
-  /**
    * @generated from field: string parentEmail = 3;
    */
   parentEmail = "";
@@ -258,7 +253,6 @@ export class LinkParentRequest extends Message<LinkParentRequest> {
   static readonly typeName = "vcassist.services.auth.v1.LinkParentRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "userEmail", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "parentEmail", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 

@@ -131,3 +131,37 @@ func (c InstrumentedAuthServiceClient) VerifyToken(ctx context.Context, req *con
 	return res, nil
 }
 
+func (c InstrumentedAuthServiceClient) LinkParentEmail(ctx context.Context, req *connect.Request[v1.LinkParentRequest]) (*connect.Response[v1.LinkParentResponse], error) {
+	ctx, span := AuthServiceTracer.Start(ctx, "LinkParentEmail")
+	defer span.End()
+
+	if span.IsRecording() && c.WithInputOutput {
+		input, err := protojson.Marshal(req.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("input", string(input)))
+		} else {
+			span.SetAttributes(attribute.String("input", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	res, err := c.inner.LinkParentEmail(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if span.IsRecording() && c.WithInputOutput {
+		output, err := protojson.Marshal(res.Msg)
+		if err == nil {
+			span.SetAttributes(attribute.String("output", string(output)))
+		} else {
+			span.SetAttributes(attribute.String("output", "ERROR: FAILED TO SERIALIZE"))
+			span.RecordError(err)
+		}
+	}
+
+	return res, nil
+}
+

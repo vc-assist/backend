@@ -25,7 +25,6 @@ message VerifyTokenResponse {
 
 message LinkParentRequest {
   string token = 1;
-  string userEmail = 2;
   string parentEmail = 3;
 }
 
