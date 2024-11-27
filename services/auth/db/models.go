@@ -11,8 +11,20 @@ type ActiveToken struct {
 }
 
 type Parent struct {
+	Email     string
+	Useremail string
+}
+
+type ParentToken struct {
+	Token       string
 	Parentemail string
-	Useremail   string
+	Expiresat   int64
+}
+
+type ParentVerificationCode struct {
+	Code        string
+	Parentemail string
+	Expiresat   int64
 }
 
 type User struct {

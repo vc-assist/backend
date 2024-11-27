@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"net/smtp"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ func normalizeEmail(email string) string {
 	return strings.Trim(strings.ToLower(email), " \t\n")
 }
 
-func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string) (code string, err error) {
+func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, email string, isParent bool) (code string, err error) {
 	ctx, span := tracer.Start(ctx, "createVerificationCode")
 	defer span.End()
 
@@ -69,17 +70,29 @@ func (s Service) createVerificationCode(ctx context.Context, txqry *db.Queries, 
 		span.SetStatus(codes.Error, "failed to generate verification code")
 		return "", err
 	}
-	err = txqry.CreateVerificationCode(ctx, db.CreateVerificationCodeParams{
-		Code:      code,
-		Useremail: normalizeEmail(email),
-		Expiresat: timezone.Now().Add(time.Hour).Unix(),
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to insert verification code row")
-		return "", err
+	if(!isParent){
+		err = txqry.CreateVerificationCode(ctx, db.CreateVerificationCodeParams{
+			Code:      code,
+			Useremail: normalizeEmail(email),
+			Expiresat: timezone.Now().Add(time.Hour).Unix(),
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to insert verification code row")
+			return "", err
+		}
+	} else {
+		err = txqry.CreateParentVerificationCode(ctx, db.CreateParentVerificationCodeParams{
+			Code: code,
+			Parentemail: email,
+			Expiresat: timezone.Now().Add(time.Hour).Unix(),
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to insert verification code row")
+			return "", err
+		}
 	}
-
 	return code, nil
 }
 
@@ -145,53 +158,96 @@ func (s Service) StartLogin(ctx context.Context, req *connect.Request[authv1.Sta
 		return nil, fmt.Errorf("Invalid email domain, please use a different email address.")
 	}
 
-	err = txqry.EnsureUserExists(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-	code, err := s.createVerificationCode(ctx, txqry, email)
-	if err != nil {
-		return nil, err
+	_, err = s.qry.CheckParent(ctx, req.Msg.Email);
+	
+	if(err == sql.ErrNoRows) { //parent doesnt exist 
+		slog.Debug("The parent account doesnt exist, treating as regular user")
+		err = txqry.EnsureUserExists(ctx, email)
+		if err != nil {
+			return nil, err
+		}
+		code, err := s.createVerificationCode(ctx, txqry, email, false)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.sendVerificationCode(ctx, email, code)
+		if err != nil {
+			return nil, err
+		}
+		return &connect.Response[authv1.StartLoginResponse]{Msg: &authv1.StartLoginResponse{}}, nil
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
+	if(err == nil){
+		code, err := s.createVerificationCode(ctx, txqry, email, true)
+		if err != nil {
+			return nil, err
+		}
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.sendVerificationCode(ctx, email, code)
+		if err != nil {
+			return nil, err
+		}
+		return &connect.Response[authv1.StartLoginResponse]{Msg: &authv1.StartLoginResponse{}}, nil
 	}
 
-	err = s.sendVerificationCode(ctx, email, code)
-	if err != nil {
-		return nil, err
-	}
 
-	return &connect.Response[authv1.StartLoginResponse]{Msg: &authv1.StartLoginResponse{}}, nil
+	return nil, err;
 }
 
-func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string) error {
+//note please refactor when time is available
+func (s Service) verifyAndDeleteCode(ctx context.Context, txqry *db.Queries, email, code string, isParent bool) error {
 	ctx, span := tracer.Start(ctx, "verifyAndDeleteCode")
 	defer span.End()
-
-	email, err := txqry.GetUserFromCode(ctx, code)
-	if err == sql.ErrNoRows {
-		span.SetStatus(codes.Error, "invalid verification code")
-		return fmt.Errorf("invalid verification code")
+	if(!isParent){
+		_, err := txqry.GetUserFromCode(ctx, code)
+		if err == sql.ErrNoRows {
+			span.SetStatus(codes.Error, "invalid verification code")
+			return fmt.Errorf("invalid verification code")
+		}
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to get user from code")
+			return err
+		}
+		err = txqry.DeleteVerificationCode(ctx, code)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "could not delete consumed verification code")
+			return err
+		}
+	} else { 
+		_, err := txqry.GetUserFromCode(ctx, code)
+		if err == sql.ErrNoRows {
+			span.SetStatus(codes.Error, "invalid parent verification code")
+			return fmt.Errorf("invalid parent verification code")
+		}
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to get parent from code")
+			return err
+		}
+		err = txqry.DeleteParentVerificationCode(ctx, code)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "could not delete consumed parent verification code")
+			return err
+		}
 	}
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get user from code")
-		return err
-	}
-	err = txqry.DeleteVerificationCode(ctx, code)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "could not delete consumed verification code")
-		return err
-	}
-
 	return nil
 }
 
-func (s Service) createToken(ctx context.Context, txqry *db.Queries, email string) (string, error) {
+//refractor when avaiable
+func (s Service) createToken(ctx context.Context, txqry *db.Queries, email string, isParent bool) (string, error) {
 	ctx, span := tracer.Start(ctx, "createToken")
 	defer span.End()
 
@@ -203,16 +259,28 @@ func (s Service) createToken(ctx context.Context, txqry *db.Queries, email strin
 		return "", err
 	}
 	token := hex.EncodeToString(nonce)
-	err = txqry.CreateToken(ctx, db.CreateTokenParams{
-		Useremail: email,
-		Token:     token,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "got unexpected error while creating user")
-		return "", err
+	if(!isParent){
+		err = txqry.CreateToken(ctx, db.CreateTokenParams{
+			Useremail: email,
+			Token: token,
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "got unexpected error while creating user")
+			return "", err
+		}
+	} else {
+		err = txqry.CreateParentToken(ctx, db.CreateParentTokenParams{
+			Parentemail: email,
+			Token: "父母"+token,
+		})
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "got unexpected error while creating user")
+			return "", err
+		}
+		token = "父母"+token;
 	}
-
 	return token, nil
 }
 
@@ -229,7 +297,7 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 
 	// hard coded bypass for app store reviewers
 	if s.config.TestEmail != "" && email == s.config.TestEmail && providedCode == s.config.TestVerificationCode {
-		token, err := s.createToken(ctx, txqry, email)
+		token, err := s.createToken(ctx, txqry, email, false)
 		if err != nil {
 			return nil, err
 		}
@@ -244,25 +312,58 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 		}, nil
 	}
 
-	err = s.verifyAndDeleteCode(ctx, txqry, email, providedCode)
-	if err != nil {
-		return nil, err
+	_, err = s.qry.CheckParentVerification(ctx, db.CheckParentVerificationParams{
+		Expiresat: timezone.Now().Unix(), 
+		Code: providedCode, 
+		Parentemail: email,
+		});
+	if err == sql.ErrNoRows {
+		slog.Debug("This is not a parent code, trying usercode")
+		err = s.verifyAndDeleteCode(ctx, txqry, email, providedCode, false)
+		if err != nil {
+			return nil, err
+		}
+		token, err := s.createToken(ctx, txqry, email, false)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		return &connect.Response[authv1.ConsumeVerificationCodeResponse]{
+			Msg: &authv1.ConsumeVerificationCodeResponse{
+				Token: token,
+			},
+		}, nil
 	}
-	token, err := s.createToken(ctx, txqry, email)
-	if err != nil {
-		return nil, err
+	
+	if err == nil{
+		err = s.verifyAndDeleteCode(ctx, txqry, email, providedCode, true)
+		if err != nil {
+			return nil, err
+		}
+		token, err := s.createToken(ctx, txqry, email, true)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		return &connect.Response[authv1.ConsumeVerificationCodeResponse]{
+			Msg: &authv1.ConsumeVerificationCodeResponse{
+				Token: token,
+			},
+		}, nil
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return &connect.Response[authv1.ConsumeVerificationCodeResponse]{
-		Msg: &authv1.ConsumeVerificationCodeResponse{
-			Token: token,
-		},
-	}, nil
+	
+	return nil, err
 }
 
 func (s Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.VerifyTokenRequest]) (*connect.Response[authv1.VerifyTokenResponse], error) {
@@ -279,14 +380,14 @@ func (s Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.Ve
 }
 
 func (s Service) LinkParentEmail(ctx context.Context, req *connect.Request[authv1.LinkParentRequest]) (*connect.Response[authv1.LinkParentResponse], error) {
-
+	
 	user, err := s.verifier.VerifyToken(ctx, req.Msg.GetToken())
 	if err != nil {
 		return nil, err
 	}
 
 	err = s.qry.CreateParent(ctx, db.CreateParentParams{
-		Parentemail: req.Msg.ParentEmail,
+		Email: normalizeEmail(req.Msg.ParentEmail),
 		Useremail: user.Email,
 	})
 	

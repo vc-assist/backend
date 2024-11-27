@@ -9,18 +9,76 @@ import (
 	"context"
 )
 
+const checkParent = `-- name: CheckParent :one
+SELECT UserEmail from Parent where email = ?
+`
+
+func (q *Queries) CheckParent(ctx context.Context, email string) (string, error) {
+	row := q.db.QueryRowContext(ctx, checkParent, email)
+	var useremail string
+	err := row.Scan(&useremail)
+	return useremail, err
+}
+
+const checkParentVerification = `-- name: CheckParentVerification :one
+SELECT count(*) from ParentVerificationCode where expiresAt > ? and code = ? and parentEmail = ?
+`
+
+type CheckParentVerificationParams struct {
+	Expiresat   int64
+	Code        string
+	Parentemail string
+}
+
+func (q *Queries) CheckParentVerification(ctx context.Context, arg CheckParentVerificationParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkParentVerification, arg.Expiresat, arg.Code, arg.Parentemail)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createParent = `-- name: CreateParent :exec
-insert into Parent(parentEmail, userEmail) values(?, ?)
+insert into Parent(email, userEmail) values(?, ?)
 on conflict do nothing
 `
 
 type CreateParentParams struct {
-	Parentemail string
-	Useremail   string
+	Email     string
+	Useremail string
 }
 
 func (q *Queries) CreateParent(ctx context.Context, arg CreateParentParams) error {
-	_, err := q.db.ExecContext(ctx, createParent, arg.Parentemail, arg.Useremail)
+	_, err := q.db.ExecContext(ctx, createParent, arg.Email, arg.Useremail)
+	return err
+}
+
+const createParentToken = `-- name: CreateParentToken :exec
+insert into ParentToken(token, parentEmail, expiresAt) values (?, ?, ?)
+`
+
+type CreateParentTokenParams struct {
+	Token       string
+	Parentemail string
+	Expiresat   int64
+}
+
+func (q *Queries) CreateParentToken(ctx context.Context, arg CreateParentTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createParentToken, arg.Token, arg.Parentemail, arg.Expiresat)
+	return err
+}
+
+const createParentVerificationCode = `-- name: CreateParentVerificationCode :exec
+insert into ParentVerificationCode(code, parentEmail, expiresAt) values (?, ?, ?)
+`
+
+type CreateParentVerificationCodeParams struct {
+	Code        string
+	Parentemail string
+	Expiresat   int64
+}
+
+func (q *Queries) CreateParentVerificationCode(ctx context.Context, arg CreateParentVerificationCodeParams) error {
+	_, err := q.db.ExecContext(ctx, createParentVerificationCode, arg.Code, arg.Parentemail, arg.Expiresat)
 	return err
 }
 
@@ -54,6 +112,24 @@ func (q *Queries) CreateVerificationCode(ctx context.Context, arg CreateVerifica
 	return err
 }
 
+const deleteParentToken = `-- name: DeleteParentToken :exec
+delete from ParentToken where token = ?
+`
+
+func (q *Queries) DeleteParentToken(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, deleteParentToken, token)
+	return err
+}
+
+const deleteParentVerificationCode = `-- name: DeleteParentVerificationCode :exec
+delete from ParentVerificationCode where code = ?
+`
+
+func (q *Queries) DeleteParentVerificationCode(ctx context.Context, code string) error {
+	_, err := q.db.ExecContext(ctx, deleteParentVerificationCode, code)
+	return err
+}
+
 const deleteToken = `-- name: DeleteToken :exec
 delete from ActiveToken where token = ?
 `
@@ -80,6 +156,34 @@ on conflict do nothing
 func (q *Queries) EnsureUserExists(ctx context.Context, email string) error {
 	_, err := q.db.ExecContext(ctx, ensureUserExists, email)
 	return err
+}
+
+const gerParentFromToken = `-- name: GerParentFromToken :one
+select email from Parent
+inner join (
+    select token, parentemail, expiresat from ParentToken where token = ?
+) as token on token.parentEmail = Parent.email
+`
+
+func (q *Queries) GerParentFromToken(ctx context.Context, token string) (string, error) {
+	row := q.db.QueryRowContext(ctx, gerParentFromToken, token)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}
+
+const getParentFromCode = `-- name: GetParentFromCode :one
+select email from Parent
+inner join (
+    select code, parentemail, expiresat from ParentVerificationCode where code = ?
+) as code on code.ParentVerificationCode = Parent.email
+`
+
+func (q *Queries) GetParentFromCode(ctx context.Context, code string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getParentFromCode, code)
+	var email string
+	err := row.Scan(&email)
+	return email, err
 }
 
 const getUserFromCode = `-- name: GetUserFromCode :one
