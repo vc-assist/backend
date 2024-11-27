@@ -158,20 +158,6 @@ func (q *Queries) EnsureUserExists(ctx context.Context, email string) error {
 	return err
 }
 
-const gerParentFromToken = `-- name: GerParentFromToken :one
-select email from Parent
-inner join (
-    select token, parentemail, expiresat from ParentToken where token = ?
-) as token on token.parentEmail = Parent.email
-`
-
-func (q *Queries) GerParentFromToken(ctx context.Context, token string) (string, error) {
-	row := q.db.QueryRowContext(ctx, gerParentFromToken, token)
-	var email string
-	err := row.Scan(&email)
-	return email, err
-}
-
 const getParentFromCode = `-- name: GetParentFromCode :one
 select email from Parent
 inner join (
@@ -181,6 +167,20 @@ inner join (
 
 func (q *Queries) GetParentFromCode(ctx context.Context, code string) (string, error) {
 	row := q.db.QueryRowContext(ctx, getParentFromCode, code)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}
+
+const getParentFromToken = `-- name: GetParentFromToken :one
+select email from Parent
+inner join (
+    select token, parentemail, expiresat from ParentToken where token = ?
+) as token on token.parentEmail = Parent.email
+`
+
+func (q *Queries) GetParentFromToken(ctx context.Context, token string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getParentFromToken, token)
 	var email string
 	err := row.Scan(&email)
 	return email, err
@@ -198,6 +198,17 @@ func (q *Queries) GetUserFromCode(ctx context.Context, code string) (string, err
 	var email string
 	err := row.Scan(&email)
 	return email, err
+}
+
+const getUserFromParent = `-- name: GetUserFromParent :one
+SELECT UserEmail from Parent where email = ?
+`
+
+func (q *Queries) GetUserFromParent(ctx context.Context, email string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserFromParent, email)
+	var useremail string
+	err := row.Scan(&useremail)
+	return useremail, err
 }
 
 const getUserFromToken = `-- name: GetUserFromToken :one

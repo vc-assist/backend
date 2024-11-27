@@ -52,9 +52,9 @@ func NewVerifier(database *sql.DB) Verifier {
 
 var InvalidToken = fmt.Errorf("invalid token")
 
-func (v Verifier) VerifyToken(ctx context.Context, token string) (db.User, db.Parent, error) {
+func (v Verifier) VerifyToken(ctx context.Context, token string) (db.User, error) {
 	if strings.HasPrefix(token, "父母") {
-		email, err := v.qry.GerParentFromToken(ctx, token)
+		email, err := v.qry.GetParentFromToken(ctx, token)
 		if(sql.ErrNoRows) == err {
 			slog.ErrorContext(ctx, "parents dont exist to the adoption center we go", err);
 			return db.User{}, InvalidToken
@@ -62,8 +62,9 @@ func (v Verifier) VerifyToken(ctx context.Context, token string) (db.User, db.Pa
 			slog.ErrorContext(ctx, "parents failed to read", err);
 			return db.User{}, err
 		}
-		return db.User{}, db.Parent{Email: email, Useremail}
-	} //parfent logic
+		userEmail, err := v.qry.GetUserFromParent(ctx, email);
+		return db.User{Email: userEmail}, nil
+	} 
 	email, err := v.qry.GetUserFromToken(ctx, token)
 	if sql.ErrNoRows == err {
 		return db.User{}, InvalidToken

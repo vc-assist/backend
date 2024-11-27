@@ -12,7 +12,7 @@ inner join (
     select * from VerificationCode where code = ?
 ) as code on code.userEmail = User.email;
 
--- name: GerParentFromToken :one 
+-- name: GetParentFromToken :one 
 select email from Parent
 inner join (
     select * from ParentToken where token = ?
@@ -23,6 +23,9 @@ select email from Parent
 inner join (
     select * from ParentVerificationCode where code = ?
 ) as code on code.ParentVerificationCode = Parent.email;
+
+-- name: GetUserFromParent :one 
+SELECT UserEmail from Parent where email = ?;
 
 -- name: EnsureUserExists :exec
 insert into User(email) values (?)
