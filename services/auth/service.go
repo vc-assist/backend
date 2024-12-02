@@ -366,15 +366,35 @@ func (s Service) ConsumeVerificationCode(ctx context.Context, req *connect.Reque
 	return nil, err
 }
 
-func (s Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.VerifyTokenRequest]) (*connect.Response[authv1.VerifyTokenResponse], error) {
-	user, err := s.verifier.VerifyToken(ctx, req.Msg.GetToken())
-	if err != nil {
+func (v Service) VerifyToken(ctx context.Context, req *connect.Request[authv1.VerifyTokenRequest]) (*connect.Response[authv1.VerifyTokenResponse], error) {
+	token := req.Msg.GetToken()
+	if strings.HasPrefix(token, "父母") {   
+		email, err := v.qry.GetParentFromToken(ctx, token)
+		if(sql.ErrNoRows) == err {
+			slog.ErrorContext(ctx, "parents dont exist to the adoption center we go", err);
+			return nil, fmt.Errorf("Invalid parent token");
+		} else if err != nil {
+			slog.ErrorContext(ctx, "parents failed to read", err);
+			return nil, err
+		}
+		userEmail, err := v.qry.GetUserFromParent(ctx, email);
+		return &connect.Response[authv1.VerifyTokenResponse]{
+			Msg: &authv1.VerifyTokenResponse{
+				Email: userEmail,
+			},
+		}, nil
+	} 
+	email, err := v.qry.GetUserFromToken(ctx, token)
+	if sql.ErrNoRows == err {
+		return nil, fmt.Errorf("Invalid user token");
+	} else if err != nil {
+		slog.ErrorContext(ctx, "failed to read user from token in db", "err", err)
 		return nil, err
 	}
 
 	return &connect.Response[authv1.VerifyTokenResponse]{
 		Msg: &authv1.VerifyTokenResponse{
-			Email: user.Email,
+			Email: email,
 		},
 	}, nil
 }
