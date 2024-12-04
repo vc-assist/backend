@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"strings"
 	"time"
-	"vcassist-backend/lib/scrapers/moodle/core"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcmoodlev1 "vcassist-backend/proto/vcassist/services/vcmoodle/v1"
@@ -80,16 +79,16 @@ func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 
-	client, err := core.NewClient(ctx, core.ClientOptions{
-		BaseUrl: baseUrl,
-	})
-	if err != nil {
-		return nil, err
-	}
-	err = client.LoginUsernamePassword(ctx, req.Msg.GetUsername(), req.Msg.GetPassword())
-	if err != nil {
-		return nil, err
-	}
+	// client, err := core.NewClient(ctx, core.ClientOptions{
+	// 	BaseUrl: baseUrl,
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// err = client.LoginUsernamePassword(ctx, req.Msg.GetUsername(), req.Msg.GetPassword())
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &connect.Response[vcmoodlev1.ProvideUsernamePasswordResponse]{Msg: &vcmoodlev1.ProvideUsernamePasswordResponse{}}, nil
 }
@@ -132,6 +131,12 @@ func (s Service) getUserCourses(ctx context.Context, email string) ([]db.Course,
 }
 
 func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1.GetCoursesRequest]) (*connect.Response[vcmoodlev1.GetCoursesResponse], error) {
+	return &connect.Response[vcmoodlev1.GetCoursesResponse]{
+		Msg: &vcmoodlev1.GetCoursesResponse{
+			Courses: []*vcmoodlev1.Course{},
+		},
+	}, nil
+
 	profile := verifier.ProfileFromContext(ctx)
 
 	cached, hit := s.userDataCache.Get(profile.Email)
@@ -165,6 +170,12 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 }
 
 func (s Service) RefreshCourses(ctx context.Context, req *connect.Request[vcmoodlev1.RefreshCoursesRequest]) (*connect.Response[vcmoodlev1.RefreshCoursesResponse], error) {
+	return &connect.Response[vcmoodlev1.RefreshCoursesResponse]{
+		Msg: &vcmoodlev1.RefreshCoursesResponse{
+			Courses: []*vcmoodlev1.Course{},
+		},
+	}, nil
+
 	profile := verifier.ProfileFromContext(ctx)
 
 	dbCourses, err := s.getUserCourses(ctx, profile.Email)
@@ -226,6 +237,12 @@ func (s Service) GetFileContent(ctx context.Context, req *connect.Request[vcmood
 }
 
 func (s Service) GetSession(ctx context.Context, req *connect.Request[vcmoodlev1.GetSessionRequest]) (*connect.Response[vcmoodlev1.GetSessionResponse], error) {
+	return &connect.Response[vcmoodlev1.GetSessionResponse]{
+		Msg: &vcmoodlev1.GetSessionResponse{
+			Cookies: "",
+		},
+	}, nil
+
 	profile := verifier.ProfileFromContext(ctx)
 
 	client, err := s.sessionCache.Get(ctx, profile.Email)
