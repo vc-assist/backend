@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 	"time"
 	"vcassist-backend/lib/gradestore"
 	"vcassist-backend/lib/scrapers/powerschool"
@@ -15,6 +17,10 @@ import (
 
 	"github.com/antzucaro/matchr"
 )
+
+// appending this invisible unicode char to the end of a string indicates
+// that it is a string with a distinction marker
+const distinctionMarker = "​"
 
 func ScrapePowerschool(ctx context.Context, client *powerschool.Client) (*sisv1.Data, error) {
 	allStudents, err := client.GetAllStudents(ctx)
@@ -33,6 +39,33 @@ func ScrapePowerschool(ctx context.Context, client *powerschool.Client) (*sisv1.
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	studentData.Student.Courses[0].Name = studentData.Student.Courses[1].Name
+
+	for i, src := range studentData.Student.Courses {
+		if strings.HasSuffix(src.Name, distinctionMarker) {
+			continue
+		}
+		clarificationNeeded := false
+		for j := i + 1; j < len(studentData.Student.Courses); j++ {
+			dst := studentData.Student.Courses[j]
+			if src.Name == dst.Name {
+				clarificationNeeded = true
+				dst.Name = fmt.Sprintf("%s %s"+distinctionMarker, dst.Name, dst.Period)
+				// because this is not a pointer
+				studentData.Student.Courses[j] = dst
+			}
+		}
+		if clarificationNeeded {
+			src.Name = fmt.Sprintf("%s %s"+distinctionMarker, src.Name, src.Period)
+			// because this is not a pointer
+			studentData.Student.Courses[i] = src
+		}
+	}
+
+	for _, c := range studentData.Student.Courses {
+		slog.Debug("student course", "name", c.Name)
 	}
 
 	guids := make([]string, len(studentData.Student.Courses))
@@ -95,6 +128,8 @@ func AddGradeSnapshots(ctx context.Context, courseData []*sisv1.CourseData, seri
 // map[CourseName]map[CategoryName]<weight value: 0-1>
 type WeightData = map[string]map[string]float32
 
+var stripPSDistinguisher = regexp.MustCompile(`(.+) \[\w+\]$`)
+
 func AddWeights(
 	ctx context.Context,
 	courseData []*sisv1.CourseData,
@@ -102,11 +137,19 @@ func AddWeights(
 	powerschoolToWeightsMap map[string]string,
 ) {
 	for powerschoolName, weightName := range powerschoolToWeightsMap {
+		realPSName := powerschoolName
+		if strings.HasSuffix(powerschoolName, distinctionMarker) {
+			matches := stripPSDistinguisher.FindStringSubmatch(realPSName)
+			if len(matches) == 2 {
+				realPSName = matches[1]
+			}
+		}
+
 		categories := weightData[weightName]
 
 		var target *sisv1.CourseData
 		for _, course := range courseData {
-			if course.GetName() == powerschoolName {
+			if course.GetName() == realPSName {
 				target = course
 				break
 			}
@@ -120,7 +163,7 @@ func AddWeights(
 				ctx,
 				"failed to find powerschool course name had been provided to linker, this should never happen!",
 				"weight_name", weightName,
-				"powerschool_name", powerschoolName,
+				"powerschool_name", realPSName,
 				"powerschool_name_list", psNames,
 			)
 			continue
