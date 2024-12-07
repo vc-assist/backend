@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
 	"time"
 	"vcassist-backend/lib/gradestore"
@@ -128,8 +127,6 @@ func AddGradeSnapshots(ctx context.Context, courseData []*sisv1.CourseData, seri
 // map[CourseName]map[CategoryName]<weight value: 0-1>
 type WeightData = map[string]map[string]float32
 
-var stripPSDistinguisher = regexp.MustCompile(`(.+) \[\w+\]$`)
-
 func AddWeights(
 	ctx context.Context,
 	courseData []*sisv1.CourseData,
@@ -139,10 +136,9 @@ func AddWeights(
 	for powerschoolName, weightName := range powerschoolToWeightsMap {
 		realPSName := powerschoolName
 		if strings.HasSuffix(powerschoolName, distinctionMarker) {
-			matches := stripPSDistinguisher.FindStringSubmatch(realPSName)
-			if len(matches) == 2 {
-				realPSName = matches[1]
-			}
+			segments := strings.Split(realPSName, " ")
+			segments = segments[:len(segments)-1]
+			realPSName = strings.Join(segments, " ")
 		}
 
 		categories := weightData[weightName]
