@@ -40,8 +40,6 @@ func ScrapePowerschool(ctx context.Context, client *powerschool.Client) (*sisv1.
 		return nil, err
 	}
 
-	studentData.Student.Courses[0].Name = studentData.Student.Courses[1].Name
-
 	for i, src := range studentData.Student.Courses {
 		if strings.HasSuffix(src.Name, distinctionMarker) {
 			continue
