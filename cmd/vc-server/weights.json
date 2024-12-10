@@ -947,5 +947,11 @@
     "Progress Assessment": 0.2,
     "Mastery Assessment": 0.35,
     "Final Exam": 0.2
+  },
+  "Linear Algebra (H)": {
+    "Classwork/Homework": 0.25,
+    "Progress Assessment": 0.15,
+    "Mastery Assessment": 0.4,
+    "Final Exam": 0.2
   }
 }
