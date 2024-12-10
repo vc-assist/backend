@@ -132,18 +132,11 @@ func AddWeights(
 	powerschoolToWeightsMap map[string]string,
 ) {
 	for powerschoolName, weightName := range powerschoolToWeightsMap {
-		realPSName := powerschoolName
-		if strings.HasSuffix(powerschoolName, distinctionMarker) {
-			segments := strings.Split(realPSName, " ")
-			segments = segments[:len(segments)-1]
-			realPSName = strings.Join(segments, " ")
-		}
-
 		categories := weightData[weightName]
 
 		var target *sisv1.CourseData
 		for _, course := range courseData {
-			if course.GetName() == realPSName {
+			if course.GetName() == powerschoolName {
 				target = course
 				break
 			}
@@ -157,7 +150,7 @@ func AddWeights(
 				ctx,
 				"failed to find powerschool course name had been provided to linker, this should never happen!",
 				"weight_name", weightName,
-				"powerschool_name", realPSName,
+				"powerschool_name", powerschoolName,
 				"powerschool_name_list", psNames,
 			)
 			continue

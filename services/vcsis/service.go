@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 	"vcassist-backend/lib/gradestore"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/timezone"
@@ -234,7 +235,13 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 
 	courseNames := make([]string, len(data.GetCourses()))
 	for i, c := range data.GetCourses() {
-		courseNames[i] = c.GetName()
+		name := c.GetName()
+		if strings.HasSuffix(c.GetName(), distinctionMarker) {
+			segments := strings.Split(c.GetName(), " ")
+			segments = segments[:len(segments)-1]
+			name = strings.Join(segments, " ")
+		}
+		courseNames[i] = name
 	}
 	linkRes, err := s.linker.Link(ctx, &connect.Request[linkerv1.LinkRequest]{
 		Msg: &linkerv1.LinkRequest{
