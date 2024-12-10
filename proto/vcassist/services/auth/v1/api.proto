@@ -1,3 +1,4 @@
+// ALL SNAKE CASE
 syntax = "proto3";
 
 package vcassist.services.auth.v1;
@@ -22,8 +23,18 @@ message VerifyTokenResponse {
   string email = 1;
 }
 
+message LinkParentRequest {
+  string token = 1;
+  string parentEmail = 3;
+}
+
+message LinkParentResponse {
+  string userEmail = 1; //return both emails for debugging purposes
+  string parentEmail = 2;
+}
 service AuthService {
   rpc StartLogin(StartLoginRequest) returns (StartLoginResponse);
   rpc ConsumeVerificationCode(ConsumeVerificationCodeRequest) returns (ConsumeVerificationCodeResponse);
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc LinkParentEmail(LinkParentRequest) returns (LinkParentResponse);
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 	"vcassist-backend/lib/telemetry"
@@ -52,6 +53,18 @@ func NewVerifier(database *sql.DB) Verifier {
 var InvalidToken = fmt.Errorf("invalid token")
 
 func (v Verifier) VerifyToken(ctx context.Context, token string) (db.User, error) {
+	if strings.HasPrefix(token, "父母") {
+		email, err := v.qry.GetParentFromToken(ctx, token)
+		if(sql.ErrNoRows) == err {
+			slog.ErrorContext(ctx, "parents dont exist to the adoption center we go", err);
+			return db.User{}, InvalidToken
+		} else if err != nil {
+			slog.ErrorContext(ctx, "parents failed to read", err);
+			return db.User{}, err
+		}
+		userEmail, err := v.qry.GetUserFromParent(ctx, email);
+		return db.User{Email: userEmail}, nil
+	} 
 	email, err := v.qry.GetUserFromToken(ctx, token)
 	if sql.ErrNoRows == err {
 		return db.User{}, InvalidToken
@@ -59,7 +72,7 @@ func (v Verifier) VerifyToken(ctx context.Context, token string) (db.User, error
 		slog.ErrorContext(ctx, "failed to read user from token in db", "err", err)
 		return db.User{}, err
 	}
-
+	
 	defer loginTrackerMutex.Unlock()
 	loginTrackerMutex.Lock()
 
