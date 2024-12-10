@@ -39,6 +39,9 @@ const (
 	// KeychainServiceGetOAuthProcedure is the fully-qualified name of the KeychainService's GetOAuth
 	// RPC.
 	KeychainServiceGetOAuthProcedure = "/vcassist.services.keychain.v1.KeychainService/GetOAuth"
+	// KeychainServiceSetSessionTokenProcedure is the fully-qualified name of the KeychainService's
+	// SetSessionToken RPC.
+	KeychainServiceSetSessionTokenProcedure = "/vcassist.services.keychain.v1.KeychainService/SetSessionToken"
 	// KeychainServiceSetUsernamePasswordProcedure is the fully-qualified name of the KeychainService's
 	// SetUsernamePassword RPC.
 	KeychainServiceSetUsernamePasswordProcedure = "/vcassist.services.keychain.v1.KeychainService/SetUsernamePassword"
@@ -52,6 +55,7 @@ var (
 	keychainServiceServiceDescriptor                   = v1.File_vcassist_services_keychain_v1_api_proto.Services().ByName("KeychainService")
 	keychainServiceSetOAuthMethodDescriptor            = keychainServiceServiceDescriptor.Methods().ByName("SetOAuth")
 	keychainServiceGetOAuthMethodDescriptor            = keychainServiceServiceDescriptor.Methods().ByName("GetOAuth")
+	keychainServiceSetSessionTokenMethodDescriptor     = keychainServiceServiceDescriptor.Methods().ByName("SetSessionToken")
 	keychainServiceSetUsernamePasswordMethodDescriptor = keychainServiceServiceDescriptor.Methods().ByName("SetUsernamePassword")
 	keychainServiceGetUsernamePasswordMethodDescriptor = keychainServiceServiceDescriptor.Methods().ByName("GetUsernamePassword")
 )
@@ -60,6 +64,7 @@ var (
 type KeychainServiceClient interface {
 	SetOAuth(context.Context, *connect.Request[v1.SetOAuthRequest]) (*connect.Response[v1.SetOAuthResponse], error)
 	GetOAuth(context.Context, *connect.Request[v1.GetOAuthRequest]) (*connect.Response[v1.GetOAuthResponse], error)
+	SetSessionToken(context.Context, *connect.Request[v1.SetSessionTokenRequest]) (*connect.Response[v1.SetSessionTokenResponse], error)
 	SetUsernamePassword(context.Context, *connect.Request[v1.SetUsernamePasswordRequest]) (*connect.Response[v1.SetUsernamePasswordResponse], error)
 	GetUsernamePassword(context.Context, *connect.Request[v1.GetUsernamePasswordRequest]) (*connect.Response[v1.GetUsernamePasswordResponse], error)
 }
@@ -87,6 +92,12 @@ func NewKeychainServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(keychainServiceGetOAuthMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		setSessionToken: connect.NewClient[v1.SetSessionTokenRequest, v1.SetSessionTokenResponse](
+			httpClient,
+			baseURL+KeychainServiceSetSessionTokenProcedure,
+			connect.WithSchema(keychainServiceSetSessionTokenMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		setUsernamePassword: connect.NewClient[v1.SetUsernamePasswordRequest, v1.SetUsernamePasswordResponse](
 			httpClient,
 			baseURL+KeychainServiceSetUsernamePasswordProcedure,
@@ -106,6 +117,7 @@ func NewKeychainServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 type keychainServiceClient struct {
 	setOAuth            *connect.Client[v1.SetOAuthRequest, v1.SetOAuthResponse]
 	getOAuth            *connect.Client[v1.GetOAuthRequest, v1.GetOAuthResponse]
+	setSessionToken     *connect.Client[v1.SetSessionTokenRequest, v1.SetSessionTokenResponse]
 	setUsernamePassword *connect.Client[v1.SetUsernamePasswordRequest, v1.SetUsernamePasswordResponse]
 	getUsernamePassword *connect.Client[v1.GetUsernamePasswordRequest, v1.GetUsernamePasswordResponse]
 }
@@ -118,6 +130,11 @@ func (c *keychainServiceClient) SetOAuth(ctx context.Context, req *connect.Reque
 // GetOAuth calls vcassist.services.keychain.v1.KeychainService.GetOAuth.
 func (c *keychainServiceClient) GetOAuth(ctx context.Context, req *connect.Request[v1.GetOAuthRequest]) (*connect.Response[v1.GetOAuthResponse], error) {
 	return c.getOAuth.CallUnary(ctx, req)
+}
+
+// SetSessionToken calls vcassist.services.keychain.v1.KeychainService.SetSessionToken.
+func (c *keychainServiceClient) SetSessionToken(ctx context.Context, req *connect.Request[v1.SetSessionTokenRequest]) (*connect.Response[v1.SetSessionTokenResponse], error) {
+	return c.setSessionToken.CallUnary(ctx, req)
 }
 
 // SetUsernamePassword calls vcassist.services.keychain.v1.KeychainService.SetUsernamePassword.
@@ -135,6 +152,7 @@ func (c *keychainServiceClient) GetUsernamePassword(ctx context.Context, req *co
 type KeychainServiceHandler interface {
 	SetOAuth(context.Context, *connect.Request[v1.SetOAuthRequest]) (*connect.Response[v1.SetOAuthResponse], error)
 	GetOAuth(context.Context, *connect.Request[v1.GetOAuthRequest]) (*connect.Response[v1.GetOAuthResponse], error)
+	SetSessionToken(context.Context, *connect.Request[v1.SetSessionTokenRequest]) (*connect.Response[v1.SetSessionTokenResponse], error)
 	SetUsernamePassword(context.Context, *connect.Request[v1.SetUsernamePasswordRequest]) (*connect.Response[v1.SetUsernamePasswordResponse], error)
 	GetUsernamePassword(context.Context, *connect.Request[v1.GetUsernamePasswordRequest]) (*connect.Response[v1.GetUsernamePasswordResponse], error)
 }
@@ -157,6 +175,12 @@ func NewKeychainServiceHandler(svc KeychainServiceHandler, opts ...connect.Handl
 		connect.WithSchema(keychainServiceGetOAuthMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	keychainServiceSetSessionTokenHandler := connect.NewUnaryHandler(
+		KeychainServiceSetSessionTokenProcedure,
+		svc.SetSessionToken,
+		connect.WithSchema(keychainServiceSetSessionTokenMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	keychainServiceSetUsernamePasswordHandler := connect.NewUnaryHandler(
 		KeychainServiceSetUsernamePasswordProcedure,
 		svc.SetUsernamePassword,
@@ -175,6 +199,8 @@ func NewKeychainServiceHandler(svc KeychainServiceHandler, opts ...connect.Handl
 			keychainServiceSetOAuthHandler.ServeHTTP(w, r)
 		case KeychainServiceGetOAuthProcedure:
 			keychainServiceGetOAuthHandler.ServeHTTP(w, r)
+		case KeychainServiceSetSessionTokenProcedure:
+			keychainServiceSetSessionTokenHandler.ServeHTTP(w, r)
 		case KeychainServiceSetUsernamePasswordProcedure:
 			keychainServiceSetUsernamePasswordHandler.ServeHTTP(w, r)
 		case KeychainServiceGetUsernamePasswordProcedure:
@@ -194,6 +220,10 @@ func (UnimplementedKeychainServiceHandler) SetOAuth(context.Context, *connect.Re
 
 func (UnimplementedKeychainServiceHandler) GetOAuth(context.Context, *connect.Request[v1.GetOAuthRequest]) (*connect.Response[v1.GetOAuthResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.keychain.v1.KeychainService.GetOAuth is not implemented"))
+}
+
+func (UnimplementedKeychainServiceHandler) SetSessionToken(context.Context, *connect.Request[v1.SetSessionTokenRequest]) (*connect.Response[v1.SetSessionTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vcassist.services.keychain.v1.KeychainService.SetSessionToken is not implemented"))
 }
 
 func (UnimplementedKeychainServiceHandler) SetUsernamePassword(context.Context, *connect.Request[v1.SetUsernamePasswordRequest]) (*connect.Response[v1.SetUsernamePasswordResponse], error) {

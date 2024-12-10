@@ -26,3 +26,15 @@ on conflict do update set
     username = EXCLUDED.username,
     password = EXCLUDED.password;
 
+-- name: FindIdFromOAuthToken :one 
+select id from OAuth where token = ?;
+
+-- name: FindIdFromUsername :one 
+select id from UsernamePassword where username = ?;
+
+-- name: CreateSessionToken :exec
+insert into SessionToken(token, OAuthId, UsernamePasswordId) values (?, ?, ?)
+on conflict do nothing;
+
+-- name: FindSessionToken :one
+select * from SessionToken where token = ?;

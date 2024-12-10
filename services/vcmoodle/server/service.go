@@ -10,7 +10,6 @@ import (
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcmoodlev1 "vcassist-backend/proto/vcassist/services/vcmoodle/v1"
-	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
 
@@ -43,7 +42,7 @@ func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) 
 }
 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcmoodlev1.GetAuthStatusResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
+	profile := 
 
 	existing, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{

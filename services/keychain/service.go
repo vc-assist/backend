@@ -2,7 +2,9 @@ package keychain
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -21,6 +23,8 @@ import (
 
 	_ "modernc.org/sqlite"
 )
+
+//no idea if this is bad or not @Shengzhi please double check
 
 type Service struct {
 	db     *sql.DB
@@ -171,7 +175,7 @@ func (s Service) deleteOAuthDaemon(ctx context.Context) {
 func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.SetOAuthRequest]) (*connect.Response[keychainv1.SetOAuthResponse], error) {
 	err := s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
 		Namespace:  req.Msg.GetNamespace(),
-		ID:         req.Msg.GetId(),
+		ID:         0,
 		Token:      req.Msg.GetKey().GetToken(),
 		RefreshUrl: req.Msg.GetKey().GetRefreshUrl(),
 		ClientID:   req.Msg.GetKey().GetClientId(),
@@ -189,7 +193,7 @@ func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.S
 func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.GetOAuthRequest]) (*connect.Response[keychainv1.GetOAuthResponse], error) {
 	row, err := s.qry.GetOAuth(ctx, db.GetOAuthParams{
 		Namespace: req.Msg.GetNamespace(),
-		ID:        req.Msg.GetId(),
+		ID:        0,
 	})
 	if err == sql.ErrNoRows || row.ExpiresAt < timezone.Now().Unix() {
 		return &connect.Response[keychainv1.GetOAuthResponse]{
@@ -217,7 +221,7 @@ func (s Service) GetOAuth(ctx context.Context, req *connect.Request[keychainv1.G
 func (s Service) SetUsernamePassword(ctx context.Context, req *connect.Request[keychainv1.SetUsernamePasswordRequest]) (*connect.Response[keychainv1.SetUsernamePasswordResponse], error) {
 	err := s.qry.CreateUsernamePassword(ctx, db.CreateUsernamePasswordParams{
 		Namespace: req.Msg.GetNamespace(),
-		ID:        req.Msg.GetId(),
+		ID:        0,
 		Username:  req.Msg.GetKey().GetUsername(),
 		Password:  req.Msg.GetKey().GetPassword(),
 	})
@@ -233,7 +237,7 @@ func (s Service) SetUsernamePassword(ctx context.Context, req *connect.Request[k
 func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[keychainv1.GetUsernamePasswordRequest]) (*connect.Response[keychainv1.GetUsernamePasswordResponse], error) {
 	row, err := s.qry.GetUsernamePassword(ctx, db.GetUsernamePasswordParams{
 		Namespace: req.Msg.GetNamespace(),
-		ID:        req.Msg.GetId(),
+		ID:        0,
 	})
 	if err == sql.ErrNoRows {
 		return &connect.Response[keychainv1.GetUsernamePasswordResponse]{
@@ -252,6 +256,104 @@ func (s Service) GetUsernamePassword(ctx context.Context, req *connect.Request[k
 				Username: row.Username,
 				Password: row.Password,
 			},
+		},
+	}, nil
+}
+
+func GenerateRandomBytes(length int) ([]byte, error) {
+	token := make([]byte, length)
+	_, err := rand.Read(token)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+// generate token function
+func GenerateBase64Token(length int) (string, error) {
+	bytes, err := GenerateRandomBytes(length)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes), nil
+}
+
+// this function does not need to return an error
+// either the token
+func (s Service) CheckSessionToken(ctx context.Context, token string) (b bool) {
+	_, err := s.qry.FindSessionToken(ctx, token)
+	return err == sql.ErrNoRows
+}
+func (s Service) SetSessionToken(ctx context.Context, req *connect.Request[keychainv1.SetSessionTokenRequest]) (res *connect.Response[keychainv1.SetSessionTokenResponse], err error) {
+	//get oauth token if it exists, insert it into the db(if it does) grab the id - if can
+	//check useranme password passed in if exists then then grab id if it doesnt (either paremeters are null or new user - handle this) insert into db or just do nothing
+	//finally create the random token, check if either one exists and insert in to the session token db
+	mainReq := req.Msg
+	var OAuthId int64
+	var UsernamePasswordId int64
+	if err != nil {
+		slog.Debug("failed to properly generate token, apologies from Justin Shi")
+	}
+	if mainReq.OauthFeilds == nil {
+		slog.Debug("OauthFeilds are nil")
+	} else {
+		s.qry.CreateOAuth(
+			ctx,
+			db.CreateOAuthParams{
+				Namespace:  "powerschool",
+				ID:         0, //this is autoincreamented in the db 0 is tem parameter
+				Token:      mainReq.OauthFeilds.Token,
+				RefreshUrl: mainReq.OauthFeilds.RefreshUrl,
+				ClientID:   mainReq.OauthFeilds.ClientId,
+				ExpiresAt:  mainReq.OauthFeilds.ExpiresAt,
+			},
+		)
+		OAuthId, err = s.qry.FindIdFromOAuthToken(ctx, mainReq.OauthFeilds.Token)
+		if err != nil {
+			slog.Debug("cannot find the token in outh db insertion went wrong")
+		}
+	}
+
+	if mainReq.UsernamePassword == nil {
+		slog.Debug("Username Password feilds are nil")
+	} else {
+		s.qry.CreateUsernamePassword(
+			ctx,
+			db.CreateUsernamePasswordParams{
+				Namespace: "moodle",
+				ID:        0,
+				Username:  mainReq.UsernamePassword.Username,
+				Password:  mainReq.UsernamePassword.Password,
+			},
+		)
+		UsernamePasswordId, err = s.qry.FindIdFromUsername(ctx, mainReq.UsernamePassword.Username)
+		if err != nil {
+			slog.Debug("insertion into the usernamepassword table went wrong")
+		}
+	}
+	mainToken, err := GenerateBase64Token(32)
+	sqlOauthId := sql.NullInt64{
+		Int64: OAuthId,
+		Valid: true,
+	}
+	sqlUsernamePasswordId := sql.NullInt64{
+		Int64: UsernamePasswordId,
+		Valid: true,
+	}
+	err = s.qry.CreateSessionToken(
+		ctx,
+		db.CreateSessionTokenParams{
+			Token:              mainToken,
+			Oauthid:            sqlOauthId,
+			Usernamepasswordid: sqlUsernamePasswordId,
+		},
+	)
+	if err != nil {
+		slog.Debug("Session token failed to create")
+	}
+	return &connect.Response[keychainv1.SetSessionTokenResponse]{
+		Msg: &keychainv1.SetSessionTokenResponse{
+			SessionToken: mainToken,
 		},
 	}, nil
 }

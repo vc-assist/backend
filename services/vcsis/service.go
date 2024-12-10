@@ -13,7 +13,6 @@ import (
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
-	"vcassist-backend/services/auth/verifier"
 	"vcassist-backend/services/vcsis/db"
 
 	"connectrpc.com/connect"
@@ -132,6 +131,7 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 	}, nil
 }
 
+// un needed
 func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[sisv1.ProvideCredentialRequest]) (*connect.Response[sisv1.ProvideCredentialResponse], error) {
 	profile := verifier.ProfileFromContext(ctx)
 
