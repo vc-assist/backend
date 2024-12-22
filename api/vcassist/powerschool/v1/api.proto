@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package vcassist.powerschool.v1;
+
+import "vcassist/powerschool/v1/types.proto";
+
+// Refresh
+message RefreshRequest {}
+message RefreshResponse {}
+
+// Data
+message DataRequest {}
+message DataResponse {
+  // currently unused
+  // StudentProfile profile = 1;
+  // repeated SchoolData schools = 2;
+  // repeated Bulletin bulletins = 3;
+  repeated CourseData courses = 4;
+}
+
+service PowerschoolService {
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+
+  // Data has no server-side caching, it is up to the clients to cache this request.
+  rpc Data(DataRequest) returns (DataResponse);
+}
+

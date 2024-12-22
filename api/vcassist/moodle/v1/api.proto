@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package vcassist.moodle.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// LessonPlans
+message LessonPlansRequest {}
+message LessonPlansResponse {
+  message Chapter {
+    int64 id = 1;
+    // the dates this chapter likely belongs to
+    repeated google.protobuf.Timestamp dates = 2;
+    // the content will be not null if the lesson plan is today's lesson plan
+    optional string content = 3;
+  }
+  message Course {
+    int64 id = 1;
+    string name = 2;
+    string teacher = 3;
+    string url = 4;
+    repeated Chapter chapters = 5;
+  }
+  repeated Course courses = 1;
+}
+
+// ChapterContent
+message ChapterContentRequest {
+  int64 id = 1;
+}
+message ChapterContentResponse {
+  string content = 1;
+}
+
+// Refresh
+message RefreshRequest {}
+message RefreshResponse {}
+
+service MoodleService {
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+
+  // LessonPlans has no server-side caching, it is up to the clients to cache this request.
+  rpc LessonPlans(LessonPlansRequest) returns (LessonPlansResponse);
+
+  // ChapterContent has no server-side caching, it is up to the clients to cache this request.
+  rpc ChapterContent(ChapterContentRequest) returns (ChapterContentResponse);
+}
+
