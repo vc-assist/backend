@@ -50,9 +50,31 @@ message GetUsernamePasswordResponse {
   UsernamePasswordKey key = 1;
 }
 
+message SetSessionTokenRequest {
+  message UsernamePassword {
+    string username = 1;
+    string password = 2;
+  }
+  message OAuthFeilds {
+    string token = 1;
+    string refresh_url = 2;
+    string client_id = 3;
+    int64 expires_at = 4;
+  }
+    string oauth_token = 1;    
+    optional UsernamePassword username_password = 2; //could be either one or both inputted
+    optional OAuthFeilds oauth_feilds = 3; // this is for all of our oath paraemeters alot
+
+}
+
+message SetSessionTokenResponse {
+  string sessionToken = 1; //token is nil if does not exist 
+}
+
 service KeychainService {
   rpc SetOAuth(SetOAuthRequest) returns (SetOAuthResponse);
   rpc GetOAuth(GetOAuthRequest) returns (GetOAuthResponse);
+  rpc SetSessionToken(SetSessionTokenRequest) returns (SetSessionTokenResponse);
   rpc SetUsernamePassword(SetUsernamePasswordRequest) returns (SetUsernamePasswordResponse);
   rpc GetUsernamePassword(GetUsernamePasswordRequest) returns (GetUsernamePasswordResponse);
 }

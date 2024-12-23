@@ -2,19 +2,6 @@ syntax = "proto3";
 
 package vcassist.services.vcmoodle.v1;
 
-// GetAuthStatus
-message GetAuthStatusRequest {}
-message GetAuthStatusResponse {
-  bool provided = 1;
-}
-
-// ProvideUsernamePassword
-message ProvideUsernamePasswordRequest {
-  string username = 1;
-  string password = 2;
-}
-message ProvideUsernamePasswordResponse {}
-
 // GetCourses
 enum ResourceType {
   GENERIC_URL = 0;
@@ -87,9 +74,6 @@ message GetSessionResponse {
 }
 
 service MoodleService {
-  rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
-  rpc ProvideUsernamePassword(ProvideUsernamePasswordRequest) returns (ProvideUsernamePasswordResponse);
-
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
   rpc GetCourses(GetCoursesRequest) returns (GetCoursesResponse);
   rpc RefreshCourses(RefreshCoursesRequest) returns (RefreshCoursesResponse);

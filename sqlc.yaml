@@ -1,12 +1,7 @@
+# @format
+
 version: "2"
 sql:
-  - engine: "sqlite"
-    queries: "services/auth/db/query.sql"
-    schema: "services/auth/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/auth/db"
   - engine: "sqlite"
     queries: "lib/gradestore/db/query.sql"
     schema: "lib/gradestore/db/schema.sql"

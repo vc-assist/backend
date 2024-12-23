@@ -5,10 +5,16 @@ import (
 	"net/http"
 	"vcassist-backend/lib/configutil"
 	"vcassist-backend/lib/serviceutil"
+	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/services/keychain"
+	"vcassist-backend/services/linker/db"
 )
 
+type KeychainConfig struct {
+	Database string `json:"database"`
+}
+
 type Config struct {
-	Auth            AuthConfig            `json:"auth"`
 	Keychain        KeychainConfig        `json:"keychain"`
 	Linker          LinkerConfig          `json:"linker"`
 	VCSis           VCSisConfig           `json:"vcsis"`
@@ -32,28 +38,25 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	verify, err := InitAuth(mux, cfg.Auth)
-	if err != nil {
-		serviceutil.Fatal("init auth", err)
-	}
 	linker, err := InitLinker(mux, cfg.Linker)
 	if err != nil {
 		serviceutil.Fatal("init linker", err)
 	}
-	keychain, err := InitKeychain(ctx, cfg.Keychain)
+	db, err := sqliteutil.OpenDB(db.Schema, cfg.Keychain.Database)
 	if err != nil {
 		serviceutil.Fatal("init keychain", err)
 	}
+	keychainService := keychain.NewService(ctx, db)
 
 	err = InitVCMoodleScraper(ctx, cfg.VCMoodleScraper, initialScrape)
 	if err != nil {
 		serviceutil.Fatal("init vcmoodle scraper", err)
 	}
-	err = InitVCMoodleServer(mux, verify, cfg.VCMoodleServer, keychain)
+	err = InitVCMoodleServer(mux, keychain.NewAuthInterceptor(db), cfg.VCMoodleServer, keychainService)
 	if err != nil {
 		serviceutil.Fatal("init vcmoodle server", err)
 	}
-	err = InitVCSis(mux, verify, cfg.VCSis, keychain, linker)
+	err = InitVCSis(mux, cfg.VCSis, keychain.NewAuthInterceptor(db), keychainService, linker)
 	if err != nil {
 		serviceutil.Fatal("init vcsis", err)
 	}

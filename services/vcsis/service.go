@@ -14,12 +14,10 @@ import (
 	linkerv1 "vcassist-backend/proto/vcassist/services/linker/v1"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	sisv1 "vcassist-backend/proto/vcassist/services/sis/v1"
-	"vcassist-backend/services/auth/verifier"
+	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/vcsis/db"
 
 	"connectrpc.com/connect"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 
 	_ "modernc.org/sqlite"
@@ -45,6 +43,42 @@ type ServiceOptions struct {
 	BaseUrl    string
 	OAuth      OAuthConfig
 	WeightData WeightData
+}
+
+// Authored by Shengzhi Hu CO 2025
+// provide Credintials takes a request from the frontend that has the powerschool oauth token and stores it in db, this is nessicary for in order to get the email without extra prompting in the proceess of logging in for powerschool
+func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[sisv1.ProvideCredentialRequest]) (*connect.Response[sisv1.ProvideCredentialResponse], error) {
+	studentEmail := keychain.PowerschoolFromContext(ctx)
+
+	client, err := scraper.NewClient(s.baseUrl)
+	if err != nil {
+		return nil, err
+	}
+	token := req.Msg.GetToken().GetToken()
+	expiresAt, err := client.LoginOAuth(ctx, token)
+	if err != nil {
+		return nil, fmt.Errorf("failed to login: %s", err.Error())
+	}
+
+	_, err = s.keychain.SetOAuth(ctx, &connect.Request[keychainv1.SetOAuthRequest]{
+		Msg: &keychainv1.SetOAuthRequest{
+			Namespace: keychainNamespace,
+			Id:        studentEmail,
+			Key: &keychainv1.OAuthKey{
+				Token:      token,
+				RefreshUrl: s.oauth.RefreshUrl,
+				ClientId:   s.oauth.ClientId,
+				ExpiresAt:  expiresAt.Unix(),
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &connect.Response[sisv1.ProvideCredentialResponse]{
+		Msg: &sisv1.ProvideCredentialResponse{},
+	}, nil
 }
 
 func NewService(opts ServiceOptions) Service {
@@ -83,88 +117,6 @@ func NewService(opts ServiceOptions) Service {
 	go s.preloadStudentDataDaemon(context.Background())
 
 	return s
-}
-
-func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[sisv1.GetCredentialStatusRequest]) (*connect.Response[sisv1.GetCredentialStatusResponse], error) {
-	span := trace.SpanFromContext(ctx)
-	profile := verifier.ProfileFromContext(ctx)
-
-	res, err := s.keychain.GetOAuth(ctx, &connect.Request[keychainv1.GetOAuthRequest]{
-		Msg: &keychainv1.GetOAuthRequest{
-			Namespace: keychainNamespace,
-			Id:        profile.Email,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	if res.Msg.GetKey() == nil || res.Msg.GetKey().GetExpiresAt() < timezone.Now().Unix() {
-		oauthFlow, err := s.oauth.GetOAuthFlow()
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "failed to create oauth flow")
-			return nil, err
-		}
-
-		span.SetStatus(codes.Ok, "got expired token")
-		return &connect.Response[sisv1.GetCredentialStatusResponse]{
-			Msg: &sisv1.GetCredentialStatusResponse{
-				Status: &keychainv1.CredentialStatus{
-					Name:     "PowerSchool",
-					Picture:  "",
-					Provided: false,
-					LoginFlow: &keychainv1.CredentialStatus_Oauth{
-						Oauth: oauthFlow,
-					},
-				},
-			},
-		}, nil
-	}
-
-	return &connect.Response[sisv1.GetCredentialStatusResponse]{
-		Msg: &sisv1.GetCredentialStatusResponse{
-			Status: &keychainv1.CredentialStatus{
-				Name:      "PowerSchool",
-				Picture:   "",
-				Provided:  true,
-				LoginFlow: nil,
-			},
-		},
-	}, nil
-}
-
-func (s Service) ProvideCredential(ctx context.Context, req *connect.Request[sisv1.ProvideCredentialRequest]) (*connect.Response[sisv1.ProvideCredentialResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
-
-	client, err := scraper.NewClient(s.baseUrl)
-	if err != nil {
-		return nil, err
-	}
-	token := req.Msg.GetToken().GetToken()
-	expiresAt, err := client.LoginOAuth(ctx, token)
-	if err != nil {
-		return nil, fmt.Errorf("failed to login: %s", err.Error())
-	}
-
-	_, err = s.keychain.SetOAuth(ctx, &connect.Request[keychainv1.SetOAuthRequest]{
-		Msg: &keychainv1.SetOAuthRequest{
-			Namespace: keychainNamespace,
-			Id:        profile.Email,
-			Key: &keychainv1.OAuthKey{
-				Token:      token,
-				RefreshUrl: s.oauth.RefreshUrl,
-				ClientId:   s.oauth.ClientId,
-				ExpiresAt:  expiresAt.Unix(),
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &connect.Response[sisv1.ProvideCredentialResponse]{
-		Msg: &sisv1.ProvideCredentialResponse{},
-	}, nil
 }
 
 func (s Service) getCachedData(ctx context.Context, studentId string) (*sisv1.Data, error) {
@@ -266,26 +218,15 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 }
 
 func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetDataRequest]) (*connect.Response[sisv1.GetDataResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
-	studentId := profile.Email
+	studentEmail := keychain.PowerschoolFromContext(ctx)
 
-	cached, err := s.getCachedData(ctx, studentId)
-	if err == nil {
-		slog.DebugContext(ctx, "student data cache hit", "student_id", studentId)
-		return &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
-			Data: cached,
-		}}, nil
-	} else {
-		slog.WarnContext(ctx, "get cached data", "err", err)
-	}
-
-	data, err := s.scrape(ctx, studentId)
+	data, err := s.scrape(ctx, studentEmail)
 	if err != nil {
 		slog.ErrorContext(ctx, "scrape", "err", err)
 		return nil, err
 	}
 
-	err = s.cacheNewData(ctx, studentId, data)
+	err = s.cacheNewData(ctx, studentEmail, data)
 	if err != nil {
 		slog.WarnContext(ctx, "cache student data response", "err", err)
 	}
@@ -296,15 +237,14 @@ func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetData
 }
 
 func (s Service) RefreshData(ctx context.Context, req *connect.Request[sisv1.RefreshDataRequest]) (*connect.Response[sisv1.RefreshDataResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
-	studentId := profile.Email
+	studentEmail := keychain.PowerschoolFromContext(ctx)
 
-	data, err := s.scrape(ctx, studentId)
+	data, err := s.scrape(ctx, studentEmail)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.cacheNewData(ctx, studentId, data)
+	err = s.cacheNewData(ctx, studentEmail, data)
 	if err != nil {
 		slog.WarnContext(ctx, "cache student data response", "err", err)
 	}
