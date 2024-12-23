@@ -10,7 +10,7 @@ import (
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/proto/vcassist/services/sis/v1/sisv1connect"
-	"vcassist-backend/services/auth/verifier"
+	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/vcsis"
 	vcsisdb "vcassist-backend/services/vcsis/db"
 
@@ -32,8 +32,8 @@ type VCSisConfig struct {
 
 func InitVCSis(
 	mux *http.ServeMux,
-	verify verifier.Verifier,
 	cfg VCSisConfig,
+	keychainIntercepter keychain.AuthInterceptor,
 	keychain keychainv1connect.KeychainServiceClient,
 	linker linkerv1connect.LinkerServiceClient,
 ) error {
@@ -59,20 +59,18 @@ func InitVCSis(
 
 	sisv1connect.SIServiceTracer = telemetry.Tracer("vcsis")
 	mux.Handle(sisv1connect.NewSIServiceHandler(
-		sisv1connect.NewInstrumentedSIServiceClient(
-			vcsis.NewService(
-				vcsis.ServiceOptions{
-					Database:   database,
-					Keychain:   keychain,
-					Linker:     linker,
-					BaseUrl:    cfg.PowerschoolBaseUrl,
-					OAuth:      vcsis.OAuthConfig(cfg.PowerschoolOAuth),
-					WeightData: weights,
-				},
-			),
+		vcsis.NewService(
+			vcsis.ServiceOptions{
+				Database:   database,
+				Keychain:   keychain,
+				Linker:     linker,
+				BaseUrl:    cfg.PowerschoolBaseUrl,
+				OAuth:      vcsis.OAuthConfig(cfg.PowerschoolOAuth),
+				WeightData: weights,
+			},
 		),
 		connect.WithInterceptors(
-			verifier.NewAuthInterceptor(verify),
+			keychainIntercepter,
 		),
 	))
 	return nil

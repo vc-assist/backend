@@ -2,6 +2,7 @@ create table OAuth (
     namespace text not null,
     id int primary key autoincrement,
     token text not null,
+    email text not null,
     refresh_url text not null,
     client_id text not null,
     expires_at integer not null,

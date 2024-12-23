@@ -5,12 +5,6 @@ package vcassist.services.sis.v1;
 import "vcassist/services/sis/v1/data.proto";
 import "vcassist/services/keychain/v1/auth_flow.proto";
 
-// GetCredentialStatus
-message GetCredentialStatusRequest {}
-message GetCredentialStatusResponse {
-  vcassist.services.keychain.v1.CredentialStatus status = 1;
-}
-
 // ProvideCredential
 message ProvideCredentialRequest {
   oneof credential {
@@ -41,7 +35,6 @@ message RefreshDataResponse {
 
 // SIS stands for "school information service"
 service SIService {
-  rpc GetCredentialStatus(GetCredentialStatusRequest) returns (GetCredentialStatusResponse);
   rpc ProvideCredential(ProvideCredentialRequest) returns (ProvideCredentialResponse);
   rpc GetData(GetDataRequest) returns (GetDataResponse);
   rpc RefreshData(RefreshDataRequest) returns (RefreshDataResponse);

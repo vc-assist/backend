@@ -7,7 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
@@ -30,6 +32,10 @@ type Service struct {
 	db     *sql.DB
 	qry    *db.Queries
 	client *resty.Client
+}
+
+type googleUserInfo struct {
+	Email string `json:"email"`
 }
 
 func NewService(ctx context.Context, database *sql.DB) keychainv1connect.KeychainServiceClient {
@@ -139,6 +145,29 @@ func (s Service) refreshAllOAuthKeys(ctx context.Context) error {
 	return nil
 }
 
+func getEmailFromOAuth(ctx context.Context, token string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://openidconnect.googleapis.com/v1/userinfo", nil)
+	if err != nil {
+		return "", fmt.Errorf("getEmailFromOAuth: %w", err)
+	}
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("getEmailFromOAuth: %w", err)
+	}
+	buff, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("getEmail has been wrong")
+	}
+
+	var result googleUserInfo
+	err = json.Unmarshal(buff, &result)
+	if err != nil {
+		slog.Debug("umarshal went wrong")
+	}
+	return result.Email, nil
+}
+
 func (s Service) refreshOAuthDaemon(ctx context.Context) {
 	slog.InfoContext(ctx, "start daemon", "task", "refresh oauth keys every 3 minutes")
 
@@ -173,10 +202,17 @@ func (s Service) deleteOAuthDaemon(ctx context.Context) {
 }
 
 func (s Service) SetOAuth(ctx context.Context, req *connect.Request[keychainv1.SetOAuthRequest]) (*connect.Response[keychainv1.SetOAuthResponse], error) {
-	err := s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
+	toke := req.Msg.GetKey().Token
+	email, err := getEmailFromOAuth(ctx, toke)
+	if err != nil {
+		slog.Debug("email from token is not working")
+		return nil, err
+	}
+	err = s.qry.CreateOAuth(ctx, db.CreateOAuthParams{
 		Namespace:  req.Msg.GetNamespace(),
 		ID:         0,
-		Token:      req.Msg.GetKey().GetToken(),
+		Token:      toke,
+		Email:      email,
 		RefreshUrl: req.Msg.GetKey().GetRefreshUrl(),
 		ClientID:   req.Msg.GetKey().GetClientId(),
 		ExpiresAt:  req.Msg.GetKey().GetExpiresAt(),

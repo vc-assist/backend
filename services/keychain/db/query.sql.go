@@ -11,9 +11,10 @@ import (
 )
 
 const createOAuth = `-- name: CreateOAuth :exec
-insert into OAuth(namespace, id, token, refresh_url, client_id, expires_at) values (?, ?, ?, ?, ?, ?)
+insert into OAuth(namespace, id, token, email, refresh_url, client_id, expires_at) values (?, ?, ?, ?, ?, ?, ?)
 on conflict do update set
     token = EXCLUDED.token,
+    email = EXCLUDED.email,
     refresh_url = EXCLUDED.refresh_url,
     client_id = EXCLUDED.client_id,
     expires_at = EXCLUDED.expires_at
@@ -23,6 +24,7 @@ type CreateOAuthParams struct {
 	Namespace  string
 	ID         int64
 	Token      string
+	Email      string
 	RefreshUrl string
 	ClientID   string
 	ExpiresAt  int64
@@ -33,6 +35,7 @@ func (q *Queries) CreateOAuth(ctx context.Context, arg CreateOAuthParams) error 
 		arg.Namespace,
 		arg.ID,
 		arg.Token,
+		arg.Email,
 		arg.RefreshUrl,
 		arg.ClientID,
 		arg.ExpiresAt,
@@ -87,6 +90,17 @@ delete from OAuth where expires_at < ?
 func (q *Queries) DeleteOAuthBefore(ctx context.Context, expiresAt int64) error {
 	_, err := q.db.ExecContext(ctx, deleteOAuthBefore, expiresAt)
 	return err
+}
+
+const findEmailFromOauthId = `-- name: FindEmailFromOauthId :one
+select email from OAuth where id = ?
+`
+
+func (q *Queries) FindEmailFromOauthId(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, findEmailFromOauthId, id)
+	var email string
+	err := row.Scan(&email)
+	return email, err
 }
 
 const findIdFromOAuthToken = `-- name: FindIdFromOAuthToken :one
@@ -152,7 +166,7 @@ func (q *Queries) GetOAuth(ctx context.Context, arg GetOAuthParams) (GetOAuthRow
 }
 
 const getOAuthBefore = `-- name: GetOAuthBefore :many
-select namespace, id, token, refresh_url, client_id, expires_at from OAuth where expires_at < ?
+select namespace, id, token, email, refresh_url, client_id, expires_at from OAuth where expires_at < ?
 `
 
 func (q *Queries) GetOAuthBefore(ctx context.Context, expiresAt int64) ([]OAuth, error) {
@@ -168,6 +182,7 @@ func (q *Queries) GetOAuthBefore(ctx context.Context, expiresAt int64) ([]OAuth,
 			&i.Namespace,
 			&i.ID,
 			&i.Token,
+			&i.Email,
 			&i.RefreshUrl,
 			&i.ClientID,
 			&i.ExpiresAt,

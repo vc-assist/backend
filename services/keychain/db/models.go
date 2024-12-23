@@ -12,6 +12,7 @@ type OAuth struct {
 	Namespace  string
 	ID         int64
 	Token      string
+	Email      string
 	RefreshUrl string
 	ClientID   string
 	ExpiresAt  int64

@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"strings"
 	"time"
-	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	vcmoodlev1 "vcassist-backend/proto/vcassist/services/vcmoodle/v1"
+	"vcassist-backend/services/keychain"
 	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
 
@@ -39,57 +39,6 @@ func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) 
 		userDataCache:   expirable.NewLRU[string, []*vcmoodlev1.Course](2048, nil, time.Hour*12),
 		sessionCache:    newSessionCache(keychain),
 	}
-}
-
-func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcmoodlev1.GetAuthStatusResponse], error) {
-	profile := 
-
-	existing, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
-		Msg: &keychainv1.GetUsernamePasswordRequest{
-			Namespace: keychainNamespace,
-			Id:        profile.Email,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &connect.Response[vcmoodlev1.GetAuthStatusResponse]{
-		Msg: &vcmoodlev1.GetAuthStatusResponse{
-			Provided: existing.Msg.GetKey() != nil,
-		},
-	}, nil
-}
-
-func (s Service) ProvideUsernamePassword(ctx context.Context, req *connect.Request[vcmoodlev1.ProvideUsernamePasswordRequest]) (*connect.Response[vcmoodlev1.ProvideUsernamePasswordResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
-
-	_, err := s.keychain.SetUsernamePassword(ctx, &connect.Request[keychainv1.SetUsernamePasswordRequest]{
-		Msg: &keychainv1.SetUsernamePasswordRequest{
-			Namespace: keychainNamespace,
-			Id:        profile.Email,
-			Key: &keychainv1.UsernamePasswordKey{
-				Username: req.Msg.GetUsername(),
-				Password: req.Msg.GetPassword(),
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// client, err := core.NewClient(ctx, core.ClientOptions{
-	// 	BaseUrl: baseUrl,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// err = client.LoginUsernamePassword(ctx, req.Msg.GetUsername(), req.Msg.GetPassword())
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	return &connect.Response[vcmoodlev1.ProvideUsernamePasswordResponse]{Msg: &vcmoodlev1.ProvideUsernamePasswordResponse{}}, nil
 }
 
 func (s Service) getUserCourses(ctx context.Context, email string) ([]db.Course, error) {
@@ -130,15 +79,9 @@ func (s Service) getUserCourses(ctx context.Context, email string) ([]db.Course,
 }
 
 func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1.GetCoursesRequest]) (*connect.Response[vcmoodlev1.GetCoursesResponse], error) {
-	return &connect.Response[vcmoodlev1.GetCoursesResponse]{
-		Msg: &vcmoodlev1.GetCoursesResponse{
-			Courses: []*vcmoodlev1.Course{},
-		},
-	}, nil
+	moodleUser := keychain.UsernamePasswordFromContext(ctx)
 
-	profile := verifier.ProfileFromContext(ctx)
-
-	cached, hit := s.userDataCache.Get(profile.Email)
+	cached, hit := s.userDataCache.Get(moodleUser.Username)
 	if hit {
 		return &connect.Response[vcmoodlev1.GetCoursesResponse]{
 			Msg: &vcmoodlev1.GetCoursesResponse{
@@ -147,7 +90,7 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 		}, nil
 	}
 
-	dbCourses, err := s.getUserCourses(ctx, profile.Email)
+	dbCourses, err := s.getUserCourses(ctx, moodleUser.Username)
 	if err != nil {
 		return nil, fmt.Errorf("getUserCourses: %w", err)
 	}
@@ -156,9 +99,9 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 		return nil, err
 	}
 
-	evicted := s.userDataCache.Add(profile.Email, outCourses)
+	evicted := s.userDataCache.Add(moodleUser.Username, outCourses)
 	if evicted {
-		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", profile.Email)
+		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", moodleUser.Username)
 	}
 
 	return &connect.Response[vcmoodlev1.GetCoursesResponse]{
@@ -168,16 +111,11 @@ func (s Service) GetCourses(ctx context.Context, req *connect.Request[vcmoodlev1
 	}, nil
 }
 
+// add checking for cases where they enter their moodle login instead of warriorlife
 func (s Service) RefreshCourses(ctx context.Context, req *connect.Request[vcmoodlev1.RefreshCoursesRequest]) (*connect.Response[vcmoodlev1.RefreshCoursesResponse], error) {
-	return &connect.Response[vcmoodlev1.RefreshCoursesResponse]{
-		Msg: &vcmoodlev1.RefreshCoursesResponse{
-			Courses: []*vcmoodlev1.Course{},
-		},
-	}, nil
 
-	profile := verifier.ProfileFromContext(ctx)
-
-	dbCourses, err := s.getUserCourses(ctx, profile.Email)
+	moodleUser := keychain.UsernamePasswordFromContext(ctx)
+	dbCourses, err := s.getUserCourses(ctx, moodleUser.Username)
 	if err != nil {
 		return nil, fmt.Errorf("getUserCourses: %w", err)
 	}
@@ -186,9 +124,9 @@ func (s Service) RefreshCourses(ctx context.Context, req *connect.Request[vcmood
 		return nil, err
 	}
 
-	evicted := s.userDataCache.Add(profile.Email, outCourses)
+	evicted := s.userDataCache.Add(moodleUser.Username, outCourses)
 	if evicted {
-		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", profile.Email)
+		slog.WarnContext(ctx, "courses cache could not be added: evicted", "email", moodleUser.Username)
 	}
 
 	return &connect.Response[vcmoodlev1.RefreshCoursesResponse]{
@@ -211,9 +149,9 @@ func (s Service) GetChapterContent(ctx context.Context, req *connect.Request[vcm
 }
 
 func (s Service) GetFileContent(ctx context.Context, req *connect.Request[vcmoodlev1.GetFileContentRequest]) (*connect.Response[vcmoodlev1.GetFileContentResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
+	moodleUser := keychain.UsernamePasswordFromContext(ctx)
 
-	client, err := s.sessionCache.Get(ctx, profile.Email)
+	client, err := s.sessionCache.Get(ctx, moodleUser.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -236,15 +174,9 @@ func (s Service) GetFileContent(ctx context.Context, req *connect.Request[vcmood
 }
 
 func (s Service) GetSession(ctx context.Context, req *connect.Request[vcmoodlev1.GetSessionRequest]) (*connect.Response[vcmoodlev1.GetSessionResponse], error) {
-	return &connect.Response[vcmoodlev1.GetSessionResponse]{
-		Msg: &vcmoodlev1.GetSessionResponse{
-			Cookies: "",
-		},
-	}, nil
 
-	profile := verifier.ProfileFromContext(ctx)
-
-	client, err := s.sessionCache.Get(ctx, profile.Email)
+	moodleUser := keychain.UsernamePasswordFromContext(ctx)
+	client, err := s.sessionCache.Get(ctx, moodleUser.Username)
 	if err != nil {
 		return nil, err
 	}

@@ -13,9 +13,10 @@ select token, refresh_url, client_id, expires_at from OAuth where
 namespace = ? and id = ?;
 
 -- name: CreateOAuth :exec
-insert into OAuth(namespace, id, token, refresh_url, client_id, expires_at) values (?, ?, ?, ?, ?, ?)
+insert into OAuth(namespace, id, token, email, refresh_url, client_id, expires_at) values (?, ?, ?, ?, ?, ?, ?)
 on conflict do update set
     token = EXCLUDED.token,
+    email = EXCLUDED.email,
     refresh_url = EXCLUDED.refresh_url,
     client_id = EXCLUDED.client_id,
     expires_at = EXCLUDED.expires_at;
@@ -38,3 +39,6 @@ on conflict do nothing;
 
 -- name: FindSessionToken :one
 select * from SessionToken where token = ?;
+
+-- name: FindEmailFromOauthId :one 
+select email from OAuth where id = ?;
