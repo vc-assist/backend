@@ -15,6 +15,9 @@ type API interface {
 	// ReportWarning reports a scenario that does not necessarily indicate brokenness, but may be subject to investigation
 	ReportWarning(id string, params ...any)
 
+	// ReportDebug reports some debug information that will be ignored in production
+	ReportDebug(message string, params ...any)
+
 	// ReportCount reports the current count of a specific event at the current time, these counts should
 	// not be summed but interpreted as points of data over time.
 	ReportCount(id string, count int64)
@@ -38,6 +41,10 @@ func (s ScopedAPI) ReportBroken(id string, params ...any) {
 
 func (s ScopedAPI) ReportWarning(id string, params ...any) {
 	s.inner.ReportWarning(fmt.Sprintf("%s:%s", s.namespace, id), params...)
+}
+
+func (s ScopedAPI) ReportDebug(message string, params ...any) {
+	s.inner.ReportDebug(fmt.Sprintf("[%s] %s", s.namespace, message), params...)
 }
 
 func (s ScopedAPI) ReportCount(id string, count int64) {

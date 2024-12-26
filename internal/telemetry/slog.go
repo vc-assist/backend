@@ -30,6 +30,12 @@ func (s SlogAPI) ReportWarning(id string, params ...any) {
 	slog.Warn("warning", remainingPairs...)
 }
 
+func (s SlogAPI) ReportDebug(message string, params ...any) {
+	remainingPairs := []any{}
+	s.formatParams(&remainingPairs, params)
+	slog.Debug(message, remainingPairs...)
+}
+
 func (s SlogAPI) ReportCount(id string, count int64) {
 	slog.Info("count", "id", id, "n", count)
 }

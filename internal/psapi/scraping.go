@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,17 +26,16 @@ var homeworkPassesKeywords = []string{
 }
 var periodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 
-func toPbCourses(ctx context.Context, input []powerschool.CourseData) []*powerschoolv1.CourseData {
+func (impl Implementation) toPbCourses(input []powerschool.CourseData) []*powerschoolv1.CourseData {
 	courses := make([]*powerschoolv1.CourseData, len(input))
 	for i, course := range input {
 		currentDay := ""
 		matches := periodRegex.FindStringSubmatch(course.Period)
 		if len(matches) < 3 {
-			slog.WarnContext(
-				ctx, "period regex",
-				"period", course.Period,
-				"matches", matches,
-				"err", "not enough matches",
+			impl.tel.ReportWarning(
+				report_scraper_postprocess,
+				fmt.Errorf("failed to parse period: not enough matches"),
+				matches,
 			)
 		} else {
 			currentDay = matches[2]
@@ -48,12 +46,21 @@ func toPbCourses(ctx context.Context, input []powerschool.CourseData) []*powersc
 		for _, term := range course.Terms {
 			start, err := powerschool.DecodeTimestamp(term.Start)
 			if err != nil {
-				slog.WarnContext(ctx, "failed to parse term start time", "time", term.Start, "err", err)
+				impl.tel.ReportWarning(
+					report_scraper_postprocess,
+					fmt.Errorf("failed to parse term start time: %w", err),
+					term.Start,
+				)
 				continue
 			}
+
 			end, err := powerschool.DecodeTimestamp(term.End)
 			if err != nil {
-				slog.WarnContext(ctx, "failed to parse term end time", "time", term.End, "err", err)
+				impl.tel.ReportWarning(
+					report_scraper_postprocess,
+					fmt.Errorf("failed to parse term end time: %w", err),
+					term.End,
+				)
 				continue
 			}
 
@@ -64,6 +71,7 @@ func toPbCourses(ctx context.Context, input []powerschool.CourseData) []*powersc
 		}
 
 		homeworkPasses := 0
+		categories := make(map[string]struct{})
 		var assignments []*powerschoolv1.AssignmentData
 		for _, assign := range course.Assignments {
 			if textutil.MatchName(assign.Title, homeworkPassesKeywords) && assign.PointsEarned != nil {
@@ -73,13 +81,14 @@ func toPbCourses(ctx context.Context, input []powerschool.CourseData) []*powersc
 
 			dueDate, err := powerschool.DecodeTimestamp(assign.DueDate)
 			if err != nil {
-				slog.WarnContext(
-					ctx, "failed to parse assignment due date",
-					"due_date", assign.DueDate,
-					"err", err,
+				impl.tel.ReportWarning(
+					report_scraper_postprocess,
+					fmt.Errorf("failed to parse assignment due date: %w", err),
+					assign.DueDate,
 				)
 			}
 
+			categories[assign.Category] = struct{}{}
 			assignments = append(assignments, &powerschoolv1.AssignmentData{
 				Title:          assign.Title,
 				Category:       assign.Category,
@@ -114,7 +123,7 @@ func toPbCourses(ctx context.Context, input []powerschool.CourseData) []*powersc
 	return courses
 }
 
-func patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []powerschool.CourseMeeting) {
+func (impl Implementation) patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []powerschool.CourseMeeting) {
 	if len(out) == 0 {
 		return
 	}
@@ -127,19 +136,19 @@ func patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []powerschool.
 
 			start, err := powerschool.DecodeTimestamp(courseMeeting.Start)
 			if err != nil {
-				slog.Warn(
-					"failed to parse start date of course meeting",
-					"date", courseMeeting.Start,
-					"err", err,
+				impl.tel.ReportWarning(
+					report_scraper_postprocess,
+					fmt.Errorf("failed to parse start date of CourseMeeting: %w", err),
+					courseMeeting.Start,
 				)
 				continue
 			}
 			stop, err := powerschool.DecodeTimestamp(courseMeeting.Stop)
 			if err != nil {
-				slog.Warn(
-					"failed to parse stop date of course meeting",
-					"date", courseMeeting.Stop,
-					"err", err,
+				impl.tel.ReportWarning(
+					report_scraper_postprocess,
+					fmt.Errorf("failed to parse stop date of CourseMeeting: %w", err),
+					courseMeeting.Stop,
 				)
 				continue
 			}
@@ -152,69 +161,76 @@ func patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []powerschool.
 	}
 }
 
-func toPbSchools(input []powerschool.SchoolData) []*powerschoolv1.SchoolData {
-	schools := make([]*powerschoolv1.SchoolData, len(input))
-	for i, school := range input {
-		schools[i] = &powerschoolv1.SchoolData{
-			Name:          school.Name,
-			Fax:           school.Fax,
-			Phone:         school.Phone,
-			Email:         school.Email,
-			StreetAddress: school.StreetAddress,
-			City:          school.City,
-			State:         school.State,
-			Zip:           school.Zip,
-			Country:       school.Country,
-		}
-	}
-	return schools
-}
+// func toPbSchools(input []powerschool.SchoolData) []*powerschoolv1.SchoolData {
+// 	schools := make([]*powerschoolv1.SchoolData, len(input))
+// 	for i, school := range input {
+// 		schools[i] = &powerschoolv1.SchoolData{
+// 			Name:          school.Name,
+// 			Fax:           school.Fax,
+// 			Phone:         school.Phone,
+// 			Email:         school.Email,
+// 			StreetAddress: school.StreetAddress,
+// 			City:          school.City,
+// 			State:         school.State,
+// 			Zip:           school.Zip,
+// 			Country:       school.Country,
+// 		}
+// 	}
+// 	return schools
+// }
 
-func toSisBulletins(input []powerschool.Bulletin) []*powerschoolv1.Bulletin {
-	bulletins := make([]*powerschoolv1.Bulletin, len(input))
-	for i, bulletin := range input {
-		start, err := powerschool.DecodeBulletinTimestamp(bulletin.StartDate)
-		if err != nil {
-			slog.Warn(
-				"failed to parse bulletin start time",
-				"time", bulletin.StartDate,
-				"err", err,
-			)
-			continue
-		}
-		stop, err := powerschool.DecodeBulletinTimestamp(bulletin.EndDate)
-		if err != nil {
-			slog.Warn(
-				"failed to parse bulletin end time",
-				"time", bulletin.EndDate,
-				"err", err,
-			)
-			continue
-		}
+// func toPbBulletins(input []powerschool.Bulletin) []*powerschoolv1.Bulletin {
+// 	bulletins := make([]*powerschoolv1.Bulletin, len(input))
+// 	for i, bulletin := range input {
+// 		start, err := powerschool.DecodeBulletinTimestamp(bulletin.StartDate)
+// 		if err != nil {
+// 			slog.Warn(
+// 				"failed to parse bulletin start time",
+// 				"time", bulletin.StartDate,
+// 				"err", err,
+// 			)
+// 			continue
+// 		}
+// 		stop, err := powerschool.DecodeBulletinTimestamp(bulletin.EndDate)
+// 		if err != nil {
+// 			slog.Warn(
+// 				"failed to parse bulletin end time",
+// 				"time", bulletin.EndDate,
+// 				"err", err,
+// 			)
+// 			continue
+// 		}
+//
+// 		bulletins[i] = &powerschoolv1.Bulletin{
+// 			Title:     bulletin.Title,
+// 			Body:      bulletin.Body,
+// 			StartDate: start.Unix(),
+// 			EndDate:   stop.Unix(),
+// 		}
+// 	}
+// 	return bulletins
+// }
 
-		bulletins[i] = &powerschoolv1.Bulletin{
-			Title:     bulletin.Title,
-			Body:      bulletin.Body,
-			StartDate: start.Unix(),
-			EndDate:   stop.Unix(),
-		}
-	}
-	return bulletins
-}
-
-func toPbData(
-	ctx context.Context,
+func (impl Implementation) toPbData(
 	profile powerschool.StudentProfile,
 	data *powerschool.GetStudentDataResponse,
 	courseMeetings []powerschool.CourseMeeting,
 ) *powerschoolv1.DataResponse {
 	gpa, err := strconv.ParseFloat(profile.CurrentGpa, 32)
 	if err != nil {
-		slog.WarnContext(ctx, "parse gpa", "gpa", profile.CurrentGpa, "err", err)
+		impl.tel.ReportBroken(
+			report_scraper_postprocess,
+			fmt.Errorf("parse gpa: %w", err),
+			profile.CurrentGpa,
+		)
 	}
 
 	if len(data.Student.Courses) == 0 {
-		slog.WarnContext(ctx, "student data unavailable, only returning profile...")
+		impl.tel.ReportBroken(
+			report_scraper_postprocess,
+			fmt.Errorf("student courses list is empty, only returning profile"),
+		)
+
 		return &powerschoolv1.DataResponse{
 			Profile: &powerschoolv1.StudentProfile{
 				CurrentGpa: float32(gpa),
@@ -226,8 +242,8 @@ func toPbData(
 		}
 	}
 
-	courses := toPbCourses(ctx, data.Student.Courses)
-	patchPbCourseMeetings(courses, courseMeetings)
+	courses := impl.toPbCourses(data.Student.Courses)
+	impl.patchPbCourseMeetings(courses, courseMeetings)
 	// schools := toSisSchools(profile.Schools)
 	// bulletins := toSisBulletins(profile.Bulletins)
 
@@ -288,7 +304,7 @@ func (impl Implementation) scrapeUser(ctx context.Context, client *powerschool.C
 	}
 
 	for _, c := range studentData.Student.Courses {
-		slog.Debug("student course", "name", c.Name)
+		impl.tel.ReportDebug("student course", c.Name)
 	}
 
 	guids := make([]string, len(studentData.Student.Courses))
@@ -297,17 +313,23 @@ func (impl Implementation) scrapeUser(ctx context.Context, client *powerschool.C
 	}
 	start, stop := timezone.GetCurrentWeek(timezone.Now())
 
-	slog.Debug("powerschool CourseMeeting range", "start", start, "stop", stop)
-	res, err := client.GetCourseMeetingList(ctx, powerschool.GetCourseMeetingListRequest{
+	impl.tel.ReportDebug(
+		"powerschool CourseMeeting range",
+		fmt.Sprintf("start: %v", start),
+		fmt.Sprintf("stop: %v", stop),
+	)
+
+	req := powerschool.GetCourseMeetingListRequest{
 		CourseGuids: guids,
 		Start:       start.Format(time.RFC3339),
 		Stop:        stop.Format(time.RFC3339),
-	})
+	}
+	res, err := client.GetCourseMeetingList(ctx, req)
 	if err != nil {
-		slog.WarnContext(
-			ctx,
-			"fetch course meetings",
-			"err", err,
+		impl.tel.ReportBroken(
+			report_scraper_ps_request,
+			fmt.Errorf("GetCourseMeetingList: %w", err),
+			req,
 		)
 	}
 
@@ -320,7 +342,7 @@ func (impl Implementation) scrapeUser(ctx context.Context, client *powerschool.C
 	// 	span.SetStatus(codes.Error, "failed to get student photo")
 	// }
 
-	return toPbData(ctx, psStudent, studentData, res.Meetings), nil
+	return impl.toPbData(psStudent, studentData, res.Meetings), nil
 }
 
 // ScrapeAll runs scraping for all users' courses.

@@ -13,12 +13,13 @@ type WeightsAPI interface {
 
 // Implementation implements service.PowerschoolAPI
 type Implementation struct {
-	db  *db.Queries
-	tel telemetry.API
+	db      *db.Queries
+	tel     telemetry.API
+	weights WeightsAPI
 }
 
-func NewImplementation(db *db.Queries) Implementation {
-	return Implementation{db: db}
+func NewImplementation(db *db.Queries, weights WeightsAPI) Implementation {
+	return Implementation{db: db, weights: weights}
 }
 
 const (
@@ -26,6 +27,8 @@ const (
 
 	report_scraper_new_client  = "scraper.new-client"
 	report_scraper_login_oauth = "scraper.login-oauth"
+	report_scraper_ps_request  = "scraper.powerschool-request"
+	report_scraper_postprocess = "scraper.post-process"
 
 	report_db_query = "db.query"
 
