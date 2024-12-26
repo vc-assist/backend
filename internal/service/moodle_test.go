@@ -18,7 +18,7 @@ func TestNormalizeMoodleUsername(t *testing.T) {
 	}
 
 	for _, row := range table {
-		result := NormalizeMoodleUsername(row.input)
+		result := normalizeMoodleUsername(row.input)
 		require.Equal(t, row.expected, result)
 	}
 }

@@ -11,8 +11,8 @@ message RefreshResponse {}
 // Data
 message DataRequest {}
 message DataResponse {
+  StudentProfile profile = 1;
   // currently unused
-  // StudentProfile profile = 1;
   // repeated SchoolData schools = 2;
   // repeated Bulletin bulletins = 3;
   repeated CourseData courses = 4;

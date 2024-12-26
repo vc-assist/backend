@@ -99,6 +99,13 @@ export class LessonPlansResponse_Chapter extends Message<LessonPlansResponse_Cha
    */
   content?: string;
 
+  /**
+   * the url to the moodle page this chapter is on
+   *
+   * @generated from field: string url = 4;
+   */
+  url = "";
+
   constructor(data?: PartialMessage<LessonPlansResponse_Chapter>) {
     super();
     proto3.util.initPartial(data, this);
@@ -110,6 +117,7 @@ export class LessonPlansResponse_Chapter extends Message<LessonPlansResponse_Cha
     { no: 1, name: "id", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "dates", kind: "message", T: Timestamp, repeated: true },
     { no: 3, name: "content", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 4, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LessonPlansResponse_Chapter {

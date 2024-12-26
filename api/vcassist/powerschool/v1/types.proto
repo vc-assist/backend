@@ -71,9 +71,10 @@ message Bulletin {
 }
 
 message StudentProfile {
-  string guid = 1;
+  // commented out fields are currently unused
+  // string guid = 1;
   float current_gpa = 2;
-  string name = 3;
-  bytes photo = 4;
+  // string name = 3;
+  // bytes photo = 4;
 }
 

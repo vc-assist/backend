@@ -9,10 +9,8 @@ import (
 	"vcassist-backend/lib/oauth"
 	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/telemetry"
-	"vcassist-backend/lib/timezone"
 
 	"github.com/go-resty/resty/v2"
-	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/time/rate"
 )
 
@@ -51,14 +49,14 @@ func (c *Client) SetRestyInstrumentOutput(out restyutil.InstrumentOutput) {
 	restyutil.InstrumentClient(c.http, tracer, out)
 }
 
-func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.Time, err error) {
+func (c *Client) LoginOAuth(ctx context.Context, token string) error {
 	ctx, span := tracer.Start(ctx, "LoginOAuth")
 	defer span.End()
 
 	var openidToken oauth.OpenIdToken
-	err = json.Unmarshal([]byte(token), &openidToken)
+	err := json.Unmarshal([]byte(token), &openidToken)
 	if err != nil {
-		return timezone.Now(), err
+		return err
 	}
 
 	c.http.
@@ -70,15 +68,7 @@ func (c *Client) LoginOAuth(ctx context.Context, token string) (expiresAt time.T
 		SetHeader("profileUri", openidToken.IdToken).
 		SetHeader("ServerURL", c.http.BaseURL)
 
-	now := timezone.Now()
-	expiresAt = now.Add(time.Second * time.Duration(openidToken.ExpiresIn))
-
-	span.SetAttributes(
-		attribute.String("now", now.Format(time.ANSIC)),
-		attribute.String("expiresAt", expiresAt.Format(time.ANSIC)),
-	)
-
-	return expiresAt, nil
+	return nil
 }
 
 func DecodeBulletinTimestamp(tstr string) (time.Time, error) {

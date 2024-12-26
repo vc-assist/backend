@@ -7,44 +7,23 @@ import (
 	"strings"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
 	publicv1 "vcassist-backend/api/vcassist/public/v1"
-	servicedb "vcassist-backend/internal/service/db"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 
 	"connectrpc.com/connect"
 )
 
-// MoodleScrapingAPI describes all the methods that affect the information moodle scrapes and stores. It is
-// effectively the "write" API.
+// MoodleAPI describes all the moodle scraping methods (no scraping logic is in the service so the
+// service's logic can be tested individually)
 //
 // note: there should not be any cron jobs running in here, cron jobs should only exist on the very top level
-// (whatever uses Service)
-type MoodleScrapingAPI interface {
-	// ScrapeAll performs moodle scraping for all courses using the admin account, it also does updates
-	// for the "user" information for all the "users".
-	ScrapeAll(ctx context.Context) error
-
+type MoodleAPI interface {
 	// ScrapeUser updates the "user" information for a specific user.
-	ScrapeUser(ctx context.Context, username string) error
+	ScrapeUser(ctx context.Context, accountId int64) error
 
-	// AddUserAccount adds a "user" account (and tests if the credentials are valid)
-	// for which, only the information available under "QueryUser..." methods need to be scraped.
-	//
-	// note: It should NOT automatically call "ScrapeUser", this allows for a user to exist
-	// but their information not be populated, in that case, simply return the zero value.
-	AddUserAccount(ctx context.Context, username, password string) error
+	// TestLogin tests if the user login information is correct.
+	TestLogin(ctx context.Context, username, password string) error
 
-	// RemoveUserAccount removes a "user" account from scraping.
-	RemoveUserAccount(ctx context.Context, username string) error
-}
-
-// MoodleQueryAPI describes all the methods that query the information moodle stores. It is effectively the
-// "read" API.
-//
-// This also implies that the scraping API has the responsibility of ensuring that QueryData will always return
-// some data (or a fatal error).
-//
-// note: there should not be any cron jobs running in here, cron jobs should only exist on the very top level
-// (whatever uses Service)
-type MoodleQueryAPI interface {
 	// QueryLessonPlans transforms the cached moodle data into a *moodlev1.LessonPlansResponse
 	// given a list of course ids.
 	QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodlev1.LessonPlansResponse, error)
@@ -53,12 +32,14 @@ type MoodleQueryAPI interface {
 	QueryChapterContent(ctx context.Context, chapterId int64) (string, error)
 
 	// QueryUserCourseIds returns the ids for the moodle courses available to a given user's account.
-	QueryUserCourseIds(ctx context.Context, username string) ([]int64, error)
+	QueryUserCourseIds(ctx context.Context, accountId int64) ([]int64, error)
 }
 
 const email_suffix = "@warriorlife.net"
 
-func NormalizeMoodleUsername(moodleUsername string) string {
+// this removes potential formatting inconsistencies from user input (extra spaces,
+// capitalization, adding @warriorlife.net to the end of the username)
+func normalizeMoodleUsername(moodleUsername string) string {
 	username := moodleUsername
 	username = strings.Trim(username, " \n\t")
 	username = strings.ToLower(username)
@@ -70,35 +51,14 @@ func NormalizeMoodleUsername(moodleUsername string) string {
 
 // LoginMoodle implements the protobuf method.
 func (s MoodleService) LoginMoodle(ctx context.Context, req *connect.Request[publicv1.LoginMoodleRequest]) (*connect.Response[publicv1.LoginMoodleResponse], error) {
-	// this removes potential formatting inconsistencies from user input
-	username := NormalizeMoodleUsername(req.Msg.GetUsername())
+	username := normalizeMoodleUsername(req.Msg.GetUsername())
 	password := req.Msg.GetPassword()
 
-	err := s.scraping.AddUserAccount(ctx, username, password)
+	err := s.api.TestLogin(ctx, username, password)
 	if err != nil {
 		if !strings.Contains(err.Error(), "invalid username or password") {
-			s.tel.ReportBroken(REPORT_MOODLE_SCRAPING_LOGIN, err, username, password)
-			return nil, err
+			s.tel.ReportBroken(report_moodle_login, err, username, password)
 		}
-		return nil, err
-	}
-
-	failed := true
-	defer func() {
-		// this works because this is a closure
-		// see: https://go.dev/tour/moretypes/25
-		if !failed {
-			return
-		}
-		err = s.scraping.RemoveUserAccount(ctx, username)
-		if err != nil {
-			s.tel.ReportBroken(REPORT_MOODLE_SCRAPING_REMOVE_USER, err, username)
-		}
-	}()
-
-	err = s.scraping.ScrapeUser(ctx, username)
-	if err != nil {
-		s.tel.ReportBroken(REPORT_MOODLE_SCRAPING_SCRAPE_USER, err, username, password)
 		return nil, err
 	}
 
@@ -107,17 +67,17 @@ func (s MoodleService) LoginMoodle(ctx context.Context, req *connect.Request[pub
 
 	moodleAccountId, err := tx.SetMoodleAccount(ctx, username)
 	if err != nil {
-		s.tel.ReportBroken(REPORT_DB_QUERY, err, "SetMoodleAccount", username, password)
+		s.tel.ReportBroken(report_db_query, err, "SetMoodleAccount", username, password)
 		return nil, err
 	}
 
 	token, err := s.rand.GenerateToken()
 	if err != nil {
-		s.tel.ReportBroken(REPORT_RAND_TOKEN_GENERATION, err)
+		s.tel.ReportBroken(report_rand_token_generation, err)
 		return nil, err
 	}
 
-	err = tx.CreateMoodleToken(ctx, servicedb.CreateMoodleTokenParams{
+	err = tx.CreateMoodleToken(ctx, db.CreateMoodleTokenParams{
 		Token: token,
 		MoodleAccountID: sql.NullInt64{
 			Int64: moodleAccountId,
@@ -125,12 +85,24 @@ func (s MoodleService) LoginMoodle(ctx context.Context, req *connect.Request[pub
 		},
 	})
 	if err != nil {
-		s.tel.ReportBroken(REPORT_DB_QUERY, err, "CreateMoodleToken", moodleAccountId, token)
+		s.tel.ReportBroken(report_db_query, err, "CreateMoodleToken", moodleAccountId, token)
 		return nil, err
 	}
 
 	commit()
-	failed = false
+
+	err = s.api.ScrapeUser(ctx, moodleAccountId)
+	if err != nil {
+		s.tel.ReportBroken(report_moodle_scrape_user, err, username, password)
+		return nil, err
+	}
+
+	userCount, err := s.db.GetMoodleUserCount(ctx)
+	if err != nil {
+		s.tel.ReportBroken(report_db_query, err, "GetMoodleUserCount")
+	} else {
+		s.tel.ReportCount(report_moodle_user_count, userCount)
+	}
 
 	return &connect.Response[publicv1.LoginMoodleResponse]{
 		Msg: &publicv1.LoginMoodleResponse{
@@ -139,31 +111,18 @@ func (s MoodleService) LoginMoodle(ctx context.Context, req *connect.Request[pub
 	}, nil
 }
 
-// ScrapeAllMoodle exposes a public method to update all the moodle data (including the users)
-// which an be run on a cron job
-//
-// note: cron job point
-func (s MoodleService) ScrapeAllMoodle(ctx context.Context) error {
-	err := s.scraping.ScrapeAll(ctx)
-	if err != nil {
-		s.tel.ReportBroken(REPORT_MOODLE_SCRAPING_SCRAPE_ALL, err)
-		return err
-	}
-	return nil
-}
-
 var unauthorizedError = fmt.Errorf("unauthorized")
 
 // Refresh implements the protobuf method.
 func (s MoodleService) Refresh(ctx context.Context, req *connect.Request[moodlev1.RefreshRequest]) (*connect.Response[moodlev1.RefreshResponse], error) {
-	username, ok := ctx.Value(s.ctxKey).(string)
+	acc, ok := ctx.Value(s.ctxKey).(db.GetMoodleAccountFromTokenRow)
 	if !ok {
 		return nil, unauthorizedError
 	}
 
-	err := s.scraping.ScrapeUser(ctx, username)
+	err := s.api.ScrapeUser(ctx, acc.ID)
 	if err != nil {
-		s.tel.ReportBroken(REPORT_MOODLE_SCRAPING_SCRAPE_USER, err, username)
+		s.tel.ReportBroken(report_moodle_scrape_user, err, acc.ID)
 		return nil, err
 	}
 
@@ -174,20 +133,20 @@ func (s MoodleService) Refresh(ctx context.Context, req *connect.Request[moodlev
 
 // LessonPlans implements the protobuf method.
 func (s MoodleService) LessonPlans(ctx context.Context, req *connect.Request[moodlev1.LessonPlansRequest]) (*connect.Response[moodlev1.LessonPlansResponse], error) {
-	username, ok := ctx.Value(s.ctxKey).(string)
+	acc, ok := ctx.Value(s.ctxKey).(db.GetMoodleAccountFromTokenRow)
 	if !ok {
 		return nil, unauthorizedError
 	}
 
-	courseIds, err := s.query.QueryUserCourseIds(ctx, username)
+	courseIds, err := s.api.QueryUserCourseIds(ctx, acc.ID)
 	if err != nil {
-		s.tel.ReportBroken(REPORT_MOODLE_QUERY_USER_COURSE_IDS, err, username)
+		s.tel.ReportBroken(report_moodle_query_user_course_ids, err, acc.ID)
 		return nil, err
 	}
 
-	lessonPlans, err := s.query.QueryLessonPlans(ctx, courseIds)
+	lessonPlans, err := s.api.QueryLessonPlans(ctx, courseIds)
 	if err != nil {
-		s.tel.ReportBroken(REPORT_MOODLE_QUERY_LESSON_PLANS, err, username, courseIds)
+		s.tel.ReportBroken(report_moodle_query_lesson_plans, err, acc.ID, courseIds)
 		return nil, err
 	}
 
@@ -198,15 +157,15 @@ func (s MoodleService) LessonPlans(ctx context.Context, req *connect.Request[moo
 
 // ChapterContent implements the protobuf method.
 func (s MoodleService) ChapterContent(ctx context.Context, req *connect.Request[moodlev1.ChapterContentRequest]) (*connect.Response[moodlev1.ChapterContentResponse], error) {
-	_, ok := ctx.Value(s.ctxKey).(string)
+	_, ok := ctx.Value(s.ctxKey).(db.GetMoodleAccountFromTokenRow)
 	if !ok {
 		return nil, unauthorizedError
 	}
 
 	chapterId := req.Msg.GetId()
-	content, err := s.query.QueryChapterContent(ctx, chapterId)
+	content, err := s.api.QueryChapterContent(ctx, chapterId)
 	if err != nil {
-		s.tel.ReportBroken(REPORT_MOODLE_QUERY_CHAPTER_CONTENT, err, chapterId)
+		s.tel.ReportBroken(report_moodle_query_chapter_content, err, chapterId)
 		return nil, err
 	}
 
@@ -215,4 +174,17 @@ func (s MoodleService) ChapterContent(ctx context.Context, req *connect.Request[
 			Content: content,
 		},
 	}, nil
+}
+
+// NewMoodleAuthInterceptor creates a struct that implements connect.Interceptor which will check the Authorization
+// header if a valid token has been provided and return the moodle account associated with the token.
+func NewMoodleAuthInterceptor(ctxKey any, db *db.Queries, tel telemetry.API) genericAuthInterceptor {
+	return newGenericAuthInterceptor(func(ctx context.Context, token string) (context.Context, error) {
+		acc, err := db.GetMoodleAccountFromToken(ctx, token)
+		if err != nil {
+			tel.ReportBroken(report_db_query, err, "GetMoodleAccountFromToken", token)
+			return nil, err
+		}
+		return context.WithValue(ctx, ctxKey, acc), nil
+	})
 }

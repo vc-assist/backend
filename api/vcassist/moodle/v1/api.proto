@@ -13,6 +13,8 @@ message LessonPlansResponse {
     repeated google.protobuf.Timestamp dates = 2;
     // the content will be not null if the lesson plan is today's lesson plan
     optional string content = 3;
+    // the url to the moodle page this chapter is on
+    string url = 4;
   }
   message Course {
     int64 id = 1;
