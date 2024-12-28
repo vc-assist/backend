@@ -12,6 +12,7 @@ import (
 
 type AuthSmtpConfig struct {
 	Server       string `json:"server"`
+	Username     string `json:"username"`
 	Port         int    `json:"port"`
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`

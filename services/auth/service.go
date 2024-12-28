@@ -27,6 +27,7 @@ var tracer = telemetry.Tracer("vcassist.services.auth")
 
 type SmtpConfig struct {
 	Server       string
+	Username     string
 	Port         int
 	EmailAddress string
 	Password     string
@@ -101,7 +102,7 @@ If you don't recognize this account, please ignore this email.`, code)
 
 	err := mail.Send(
 		fmt.Sprintf("%s:%d", s.config.Smtp.Server, s.config.Smtp.Port),
-		smtp.PlainAuth("", s.config.Smtp.EmailAddress, s.config.Smtp.Password, s.config.Smtp.Server),
+		smtp.PlainAuth("", s.config.Smtp.Username, s.config.Smtp.Password, s.config.Smtp.Server),
 	)
 	if err != nil && strings.Contains(err.Error(), "server doesn't support AUTH") {
 		err = mail.Send(fmt.Sprintf("%s:%d", s.config.Smtp.Server, s.config.Smtp.Port), nil)
