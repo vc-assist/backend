@@ -45,7 +45,7 @@ func NewService(keychain keychainv1connect.KeychainServiceClient, data *sql.DB) 
 func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcmoodlev1.GetAuthStatusRequest]) (*connect.Response[vcmoodlev1.GetAuthStatusResponse], error) {
 	profile := verifier.ProfileFromContext(ctx)
 
-	existing, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
+	_, err := s.keychain.GetUsernamePassword(ctx, &connect.Request[keychainv1.GetUsernamePasswordRequest]{
 		Msg: &keychainv1.GetUsernamePasswordRequest{
 			Namespace: keychainNamespace,
 			Id:        profile.Email,
@@ -57,7 +57,8 @@ func (s Service) GetAuthStatus(ctx context.Context, req *connect.Request[vcmoodl
 
 	return &connect.Response[vcmoodlev1.GetAuthStatusResponse]{
 		Msg: &vcmoodlev1.GetAuthStatusResponse{
-			Provided: existing.Msg.GetKey() != nil,
+			// Provided: existing.Msg.GetKey() != nil,
+			Provided: true,
 		},
 	}, nil
 }

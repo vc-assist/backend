@@ -112,7 +112,7 @@ func (s Service) GetCredentialStatus(ctx context.Context, req *connect.Request[s
 				Status: &keychainv1.CredentialStatus{
 					Name:     "PowerSchool",
 					Picture:  "",
-					Provided: false,
+					Provided: true,
 					LoginFlow: &keychainv1.CredentialStatus_Oauth{
 						Oauth: oauthFlow,
 					},
@@ -266,32 +266,32 @@ func (s Service) scrape(ctx context.Context, studentId string) (*sisv1.Data, err
 }
 
 func (s Service) GetData(ctx context.Context, req *connect.Request[sisv1.GetDataRequest]) (*connect.Response[sisv1.GetDataResponse], error) {
-	profile := verifier.ProfileFromContext(ctx)
-	studentId := profile.Email
+	// profile := verifier.ProfileFromContext(ctx)
+	// studentId := profile.Email
 
-	cached, err := s.getCachedData(ctx, studentId)
-	if err == nil {
-		slog.DebugContext(ctx, "student data cache hit", "student_id", studentId)
-		return &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
-			Data: cached,
-		}}, nil
-	} else {
-		slog.WarnContext(ctx, "get cached data", "err", err)
-	}
+	// cached, err := s.getCachedData(ctx, studentId)
+	// if err == nil {
+	// 	slog.DebugContext(ctx, "student data cache hit", "student_id", studentId)
+	// 	return &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
+	// 		Data: cached,
+	// 	}}, nil
+	// } else {
+	// 	slog.WarnContext(ctx, "get cached data", "err", err)
+	// }
 
-	data, err := s.scrape(ctx, studentId)
-	if err != nil {
-		slog.ErrorContext(ctx, "scrape", "err", err)
-		return nil, err
-	}
+	// data, err := s.scrape(ctx, studentId)
+	// if err != nil {
+	// 	slog.ErrorContext(ctx, "scrape", "err", err)
+	// 	return nil, err
+	// }
 
-	err = s.cacheNewData(ctx, studentId, data)
-	if err != nil {
-		slog.WarnContext(ctx, "cache student data response", "err", err)
-	}
+	// err = s.cacheNewData(ctx, studentId, data)
+	// if err != nil {
+	// 	slog.WarnContext(ctx, "cache student data response", "err", err)
+	// }
 
 	return &connect.Response[sisv1.GetDataResponse]{Msg: &sisv1.GetDataResponse{
-		Data: data,
+		Data: generateMockData(),
 	}}, nil
 }
 

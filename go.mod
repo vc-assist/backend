@@ -10,6 +10,7 @@ require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/antzucaro/matchr v0.0.0-20221106193745-7bed6ef61ef9
+	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/go-resty/resty/v2 v2.13.1
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
