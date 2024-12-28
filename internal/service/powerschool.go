@@ -45,7 +45,7 @@ func (s PowerschoolService) LoginPowerschool(ctx context.Context, req *connect.R
 	tx, discard, commit := s.makeTx()
 	defer discard()
 
-	psAccountId, err := tx.SetPSAccount(ctx, email)
+	psAccountId, err := tx.AddPSAccount(ctx, email)
 	if err != nil {
 		s.tel.ReportBroken(report_db_query, err, "SetPSCred")
 		return nil, err

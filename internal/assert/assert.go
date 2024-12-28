@@ -1,15 +1,13 @@
 package assert
 
-import "fmt"
-
-func NotNil(value any, valueName string) {
+func NotNil(value any) {
 	if value == nil {
-		panic(fmt.Sprintf("%s was nil", valueName))
+		panic("expected value to be not nil")
 	}
 }
 
-// func Eq(value, mustBe any, valueName string) {
-// 	if value != mustBe {
-// 		panic(fmt.Sprintf("%v (%s) was not equal to %v", value, valueName, mustBe))
-// 	}
-// }
+func NotEmptyStr(str string) {
+	if str == "" {
+		panic("expected string to be non-empty")
+	}
+}

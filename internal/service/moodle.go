@@ -65,9 +65,9 @@ func (s MoodleService) LoginMoodle(ctx context.Context, req *connect.Request[pub
 	tx, discard, commit := s.makeTx()
 	defer discard()
 
-	moodleAccountId, err := tx.SetMoodleAccount(ctx, username)
+	moodleAccountId, err := tx.AddMoodleAccount(ctx, username)
 	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "SetMoodleAccount", username, password)
+		s.tel.ReportBroken(report_db_query, err, "AddMoodleAccount", username, password)
 		return nil, err
 	}
 

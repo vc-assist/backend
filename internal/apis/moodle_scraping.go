@@ -1,4 +1,4 @@
-package moodleapi
+package apis
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link string) (string, error) {
+func moodleResolveWorkaroundLink(ctx context.Context, client view.Client, link string) (string, error) {
 	if !strings.Contains(link, client.Core.Http.BaseURL) ||
 		!(strings.Contains(link, "/mod/url") || strings.Contains(link, "/mod/resource")) {
 		return link, nil
@@ -47,13 +47,13 @@ func scrapeThroughWorkaroundLink(ctx context.Context, client view.Client, link s
 	return "", err
 }
 
-type scrapeAllReq struct {
+type moodleScrapeAllReq struct {
 	client view.Client
 	db     *db.Queries
 	wg     *sync.WaitGroup
 }
 
-func (r scrapeAllReq) scrapeChapter(ctx context.Context, chapter view.Chapter, courseId, sectionIdx, resourceIdx int64) {
+func (r moodleScrapeAllReq) scrapeChapter(ctx context.Context, chapter view.Chapter, courseId, sectionIdx, resourceIdx int64) {
 	slog.DebugContext(ctx, "scraping chapter", "name", chapter.Name, "url", chapter.Url)
 
 	content, err := r.client.ChapterContent(ctx, chapter)
@@ -81,7 +81,7 @@ func (r scrapeAllReq) scrapeChapter(ctx context.Context, chapter view.Chapter, c
 	}
 }
 
-func (r scrapeAllReq) scrapeBook(ctx context.Context, resource view.Resource, courseId, sectionIdx, resourceIdx int64) {
+func (r moodleScrapeAllReq) scrapeBook(ctx context.Context, resource view.Resource, courseId, sectionIdx, resourceIdx int64) {
 	slog.DebugContext(ctx, "scraping book", "name", resource.Name, "url", resource.Url)
 
 	chapterList, err := r.client.Chapters(ctx, resource)
@@ -99,7 +99,7 @@ func (r scrapeAllReq) scrapeBook(ctx context.Context, resource view.Resource, co
 	}
 }
 
-func (r scrapeAllReq) handleResource(ctx context.Context, resource view.Resource, resourceIdx, sectionIdx, courseId int64) {
+func (r moodleScrapeAllReq) handleResource(ctx context.Context, resource view.Resource, resourceIdx, sectionIdx, courseId int64) {
 	var id int64
 	var urlStr string
 	var err error
@@ -123,7 +123,7 @@ func (r scrapeAllReq) handleResource(ctx context.Context, resource view.Resource
 
 	switch resource.Type {
 	case view.RESOURCE_GENERIC:
-		realLink, err := scrapeThroughWorkaroundLink(ctx, r.client, urlStr)
+		realLink, err := moodleResolveWorkaroundLink(ctx, r.client, urlStr)
 		if err == nil {
 			slog.DebugContext(ctx, "scraped through workaround link", "workaround_url", urlStr, "real_url", realLink)
 			params.Url = realLink
@@ -134,7 +134,7 @@ func (r scrapeAllReq) handleResource(ctx context.Context, resource view.Resource
 		slog.DebugContext(ctx, "adding generic resource", "idx", sectionIdx, "course_id", courseId, "name", resource.Name)
 		params.Type = int64(db.MOODLE_RESOURCE_GENERIC)
 	case view.RESOURCE_FILE:
-		realLink, err := scrapeThroughWorkaroundLink(ctx, r.client, urlStr)
+		realLink, err := moodleResolveWorkaroundLink(ctx, r.client, urlStr)
 		if err == nil {
 			slog.DebugContext(ctx, "scraped through workaround link", "workaround_url", urlStr, "real_url", realLink)
 			params.Url = realLink
@@ -167,7 +167,7 @@ func (r scrapeAllReq) handleResource(ctx context.Context, resource view.Resource
 	}
 }
 
-func (r scrapeAllReq) scrapeSection(ctx context.Context, section view.Section, sectionIdx, courseId int64) error {
+func (r moodleScrapeAllReq) scrapeSection(ctx context.Context, section view.Section, sectionIdx, courseId int64) error {
 	slog.DebugContext(ctx, "scraping section", "idx", sectionIdx, "course_id", courseId)
 
 	err := r.db.AddMoodleSection(ctx, db.AddMoodleSectionParams{
@@ -194,7 +194,7 @@ func (r scrapeAllReq) scrapeSection(ctx context.Context, section view.Section, s
 	return nil
 }
 
-func (r scrapeAllReq) scrapeCourse(ctx context.Context, course view.Course) {
+func (r moodleScrapeAllReq) scrapeCourse(ctx context.Context, course view.Course) {
 	id, err := course.Id()
 	if err != nil {
 		slog.WarnContext(ctx, "failed to parse course id", "id", id, "name", course.Name)
@@ -225,7 +225,7 @@ func (r scrapeAllReq) scrapeCourse(ctx context.Context, course view.Course) {
 	}
 }
 
-func (r scrapeAllReq) scrapeDashboard(ctx context.Context) {
+func (r moodleScrapeAllReq) scrapeDashboard(ctx context.Context) {
 	slog.DebugContext(ctx, "scraping dashboard")
 
 	courseList, err := r.client.Courses(ctx)
@@ -264,37 +264,37 @@ func createMoodleClient(username, password string) (view.Client, error) {
 	return client, nil
 }
 
-func (impl Implementation) scrapeAllMoodle(ctx context.Context) error {
-	client, err := createMoodleClient(impl.adminUser, impl.adminPass)
+func (m MoodleImpl) scrapeAllMoodle(ctx context.Context) error {
+	client, err := createMoodleClient(m.adminUser, m.adminPass)
 	if err != nil {
 		return err
 	}
 
-	tx, discard, commit := impl.makeTx()
+	tx, discard, commit := m.makeTx()
 	defer discard()
 
 	err = tx.DeleteAllMoodleChapters(ctx)
 	if err != nil {
-		impl.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleChapters")
+		m.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleChapters")
 		return err
 	}
 	err = tx.DeleteAllMoodleResources(ctx)
 	if err != nil {
-		impl.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleResources")
+		m.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleResources")
 		return err
 	}
 	err = tx.DeleteAllMoodleSections(ctx)
 	if err != nil {
-		impl.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleSections")
+		m.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleSections")
 		return err
 	}
 	err = tx.DeleteAllMoodleCourses(ctx)
 	if err != nil {
-		impl.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleCourses")
+		m.tel.ReportBroken(report_db_query, err, "DeleteAllMoodleCourses")
 		return err
 	}
 
-	r := scrapeAllReq{
+	r := moodleScrapeAllReq{
 		client: client,
 		db:     tx,
 		wg:     &sync.WaitGroup{},
@@ -306,8 +306,8 @@ func (impl Implementation) scrapeAllMoodle(ctx context.Context) error {
 	return nil
 }
 
-func (impl Implementation) scrapeAllMoodleUsers(ctx context.Context) error {
-	tx, discard, commit := impl.makeTx()
+func (m MoodleImpl) scrapeAllMoodleUsers(ctx context.Context) error {
+	tx, discard, commit := m.makeTx()
 	defer discard()
 
 	accounts, err := tx.GetAllMoodleAccounts(ctx)
@@ -319,7 +319,7 @@ func (impl Implementation) scrapeAllMoodleUsers(ctx context.Context) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			impl.scrapeUser(ctx, acc.ID, acc.Username, acc.Password)
+			m.scrapeUser(ctx, acc.ID, acc.Username, acc.Password)
 		}()
 	}
 	wg.Wait()
@@ -331,33 +331,33 @@ func (impl Implementation) scrapeAllMoodleUsers(ctx context.Context) error {
 
 // ScrapeAll uses the admin account to scrape all the courses, but also
 // updates all user specific information like moodle_user_course
-func (impl Implementation) ScrapeAll(ctx context.Context) error {
-	err := impl.scrapeAllMoodle(ctx)
+func (m MoodleImpl) ScrapeAll(ctx context.Context) error {
+	err := m.scrapeAllMoodle(ctx)
 	if err != nil {
 		return err
 	}
-	return impl.scrapeAllMoodleUsers(ctx)
+	return m.scrapeAllMoodleUsers(ctx)
 }
 
-func (impl Implementation) scrapeUser(ctx context.Context, accountId int64, username, password string) error {
+func (m MoodleImpl) scrapeUser(ctx context.Context, accountId int64, username, password string) error {
 	client, err := createMoodleClient(username, password)
 	if err != nil {
-		impl.tel.ReportBroken(report_impl_user_login, err, username, password)
+		m.tel.ReportBroken(report_moodle_user_login, err, username, password)
 		return err
 	}
 	courses, err := client.Courses(ctx)
 	if err != nil {
-		impl.tel.ReportBroken(report_impl_scrape_user_courses, err, username, password)
+		m.tel.ReportBroken(report_moodle_scrape_user_courses, err, username, password)
 		return err
 	}
 
-	tx, discard, commit := impl.makeTx()
+	tx, discard, commit := m.makeTx()
 	defer discard()
 
 	for _, c := range courses {
 		courseId, err := c.Id()
 		if err != nil {
-			impl.tel.ReportBroken(report_impl_courseid_parse, err, c.Url)
+			m.tel.ReportBroken(report_moodle_courseid_parse, err, c.Url)
 			continue
 		}
 		err = tx.AddMoodleUserCourse(ctx, db.AddMoodleUserCourseParams{
@@ -365,7 +365,7 @@ func (impl Implementation) scrapeUser(ctx context.Context, accountId int64, user
 			CourseID:  courseId,
 		})
 		if err != nil {
-			impl.tel.ReportBroken(report_db_query, err, "AddUserCourse", accountId, courseId)
+			m.tel.ReportBroken(report_db_query, err, "AddUserCourse", accountId, courseId)
 			return err
 		}
 	}
@@ -375,13 +375,13 @@ func (impl Implementation) scrapeUser(ctx context.Context, accountId int64, user
 }
 
 // ScrapeUser implements the interface method.
-func (impl Implementation) ScrapeUser(ctx context.Context, accountId int64) error {
-	user, err := impl.db.GetMoodleAccountFromId(ctx, accountId)
+func (m MoodleImpl) ScrapeUser(ctx context.Context, accountId int64) error {
+	user, err := m.db.GetMoodleAccountFromId(ctx, accountId)
 	if err != nil {
-		impl.tel.ReportBroken(report_db_query, err, "GetMoodleAccountFromUsername")
+		m.tel.ReportBroken(report_db_query, err, "GetMoodleAccountFromId")
 		return err
 	}
-	err = impl.scrapeUser(ctx, accountId, user.Username, user.Password)
+	err = m.scrapeUser(ctx, accountId, user.Username, user.Password)
 	if err != nil {
 		return err
 	}

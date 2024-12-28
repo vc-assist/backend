@@ -54,9 +54,15 @@ type coreAPIs struct {
 }
 
 // NewCoreAPIs initializes a collection of common APIs all services need to run.
-func NewCoreAPIs(db *db.Queries, makeTx MakeTx, options ...CoreAPIsOption) coreAPIs {
-	assert.NotNil(db, "db")
-	assert.NotNil(makeTx, "makeTx")
+func NewCoreAPIs(
+	db *db.Queries,
+	makeTx MakeTx,
+	tel telemetry.API,
+	options ...CoreAPIsOption,
+) coreAPIs {
+	assert.NotNil(db)
+	assert.NotNil(makeTx)
+	assert.NotNil(makeTx)
 
 	cfg := coreAPIsConfig{}
 	for _, opt := range options {
@@ -67,23 +73,17 @@ func NewCoreAPIs(db *db.Queries, makeTx MakeTx, options ...CoreAPIsOption) coreA
 		db:     db,
 		makeTx: makeTx,
 		rand:   defaultRandomAPI{},
-		tel:    telemetry.SlogAPI{},
+		tel:    telemetry.NewScopedAPI("service", tel),
 	}
 	if cfg.rand != nil {
 		apis.rand = cfg.rand
 	}
-	if cfg.tel != nil {
-		apis.tel = cfg.tel
-	}
-
-	apis.tel = telemetry.NewScopedAPI("service", apis.tel)
 
 	return apis
 }
 
 type coreAPIsConfig struct {
 	rand RandomAPI
-	tel  telemetry.API
 }
 
 type CoreAPIsOption func(cfg *coreAPIsConfig)
@@ -91,12 +91,6 @@ type CoreAPIsOption func(cfg *coreAPIsConfig)
 func WithCustomRandomAPI(rand RandomAPI) CoreAPIsOption {
 	return func(cfg *coreAPIsConfig) {
 		cfg.rand = rand
-	}
-}
-
-func WithCustomTelemetryAPI(tel telemetry.API) CoreAPIsOption {
-	return func(cfg *coreAPIsConfig) {
-		cfg.tel = tel
 	}
 }
 
@@ -128,8 +122,8 @@ func NewPublicService(coreAPIs coreAPIs) PublicService {
 
 // NewMoodleService creates a MoodleService
 func NewMoodleService(coreAPIs coreAPIs, api MoodleAPI, ctxKey any) MoodleService {
-	assert.NotNil(api, "moodle scraping API implementation")
-	assert.NotNil(ctxKey, "moodle ctx key")
+	assert.NotNil(api)
+	assert.NotNil(ctxKey)
 
 	return MoodleService{
 		coreAPIs: coreAPIs,
@@ -140,8 +134,8 @@ func NewMoodleService(coreAPIs coreAPIs, api MoodleAPI, ctxKey any) MoodleServic
 
 // NewPowerschoolService creates a PowerschoolService
 func NewPowerschoolService(coreAPIs coreAPIs, api PowerschoolAPI, ctxKey any) PowerschoolService {
-	assert.NotNil(api, "powerschool scraping API implementation")
-	assert.NotNil(ctxKey, "powerschool ctx key")
+	assert.NotNil(api)
+	assert.NotNil(ctxKey)
 
 	return PowerschoolService{
 		coreAPIs: coreAPIs,

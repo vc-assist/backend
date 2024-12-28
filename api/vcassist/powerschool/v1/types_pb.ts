@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 
 /**
  * @generated from message vcassist.powerschool.v1.AssignmentData
@@ -196,9 +196,9 @@ export class AssignmentCategory extends Message<AssignmentCategory> {
  */
 export class GradeSnapshot extends Message<GradeSnapshot> {
   /**
-   * @generated from field: int64 time = 1;
+   * @generated from field: google.protobuf.Timestamp time = 1;
    */
-  time = protoInt64.zero;
+  time?: Timestamp;
 
   /**
    * this is a value from 0-100
@@ -215,7 +215,7 @@ export class GradeSnapshot extends Message<GradeSnapshot> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "vcassist.powerschool.v1.GradeSnapshot";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "time", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 1, name: "time", kind: "message", T: Timestamp },
     { no: 2, name: "value", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
   ]);
 
@@ -490,24 +490,15 @@ export class Bulletin extends Message<Bulletin> {
  */
 export class StudentProfile extends Message<StudentProfile> {
   /**
-   * @generated from field: string guid = 1;
-   */
-  guid = "";
-
-  /**
+   * commented out fields are currently unused
+   * string guid = 1;
+   *
+   * string name = 3;
+   * bytes photo = 4;
+   *
    * @generated from field: float current_gpa = 2;
    */
   currentGpa = 0;
-
-  /**
-   * @generated from field: string name = 3;
-   */
-  name = "";
-
-  /**
-   * @generated from field: bytes photo = 4;
-   */
-  photo = new Uint8Array(0);
 
   constructor(data?: PartialMessage<StudentProfile>) {
     super();
@@ -517,10 +508,7 @@ export class StudentProfile extends Message<StudentProfile> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "vcassist.powerschool.v1.StudentProfile";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "guid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "current_gpa", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "photo", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StudentProfile {

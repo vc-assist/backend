@@ -1,4 +1,4 @@
--- *** GENERIC ***
+-- *** ACCOUNTS ***
 
 -- stores a certain user's moodle account
 create table moodle_account (
@@ -23,36 +23,12 @@ create table token (
     -- only one of these should be defined
     moodle_account_id integer,
     powerschool_account_id integer,
-    foreign key (moodle_account_id) references moodle_account(id),
+    foreign key (moodle_account_id) references moodle_account(id)
+        on update cascade
+        on delete cascade,
     foreign key (powerschool_account_id) references powerschool_account(id)
-);
-
--- starts a series on a certain date
--- here's an example of the relationship of this to gradesnapshot
--- 
--- gradesnapshot_series(id = 0, powerschool/course_id = ..., start_time = 12/20/2020)
---   * gradesnapshot(series_id = 0, value = 90) <- date: 12/20/2020
---   * gradesnapshot(series_id = 0, value = 90) <- date: 12/21/2020
---   * gradesnapshot(series_id = 0, value = 95) <- date: 12/22/2020
---   * gradesnapshot(series_id = 0, value = 92) <- date: 12/23/2020
---
--- why: this is because storing time series data tends to take up a lot of space, so we'll
--- attempt to reduce the number of fields duplicated over the time dimension
--- (imagine storing powerschool/course_id for every snapshot row, that's a lot of wasted space)
-create table gradesnapshot_series (
-    id integer not null primary key autoincrement,
-    powerschool_account_id integer not null,
-    course_id text not null,
-    start_time datetime not null,
-    unique (powerschool_account_id, course_id, start_time),
-    foreign key (powerschool_account_id) references powerschool_account(id)
-);
-
--- stores a single grade snapshot, see gradesnapshot_series for more information
-create table gradesnapshot (
-    series_id integer not null,
-    value real not null,
-    foreign key (series_id) references gradesnapshot_series
+        on update cascade
+        on delete cascade
 );
 
 
@@ -71,6 +47,8 @@ create table moodle_section (
 
     primary key (course_id, idx),
     foreign key (course_id) references moodle_course(id)
+        on update cascade
+        on delete cascade
 );
 
 create table moodle_resource (
@@ -96,8 +74,12 @@ create table moodle_resource (
     display_content text not null,
 
     primary key (course_id, section_idx, idx),
-    foreign key (course_id, section_idx) references moodle_section(course_id, idx),
+    foreign key (course_id, section_idx) references moodle_section(course_id, idx)
+        on update cascade
+        on delete cascade,
     foreign key (course_id) references moodle_course(id)
+        on update cascade
+        on delete cascade
 );
 
 create table moodle_chapter (
@@ -110,13 +92,19 @@ create table moodle_chapter (
     content_html text not null,
 
     foreign key (course_id, section_idx, resource_idx) references moodle_resource(course_id, section_idx, idx)
+        on update cascade
+        on delete cascade
 );
 
 create table moodle_user_course (
     account_id integer not null,
     course_id integer not null,
-    foreign key (account_id) references moodle_account(id),
-    foreign key (course_id) references moodle_course(id),
+    foreign key (account_id) references moodle_account(id)
+        on update cascade
+        on delete cascade,
+    foreign key (course_id) references moodle_course(id)
+        on update cascade
+        on delete cascade,
     unique (account_id, course_id)
 );
 
@@ -128,4 +116,67 @@ create table powerschool_data_cache (
     account_id integer not null primary key,
     data blob not null,
     foreign key (account_id) references powerschool_account(id)
+        on update cascade
+        on delete cascade
 );
+
+
+
+-- *** WEIGHTS SPECIFIC ***
+
+create table weight_course (
+    id integer not null primary key autoincrement,
+    actual_course_id text not null unique,
+    actual_course_name text not null
+);
+
+create table weight_category (
+    weight_course_id integer not null,
+    category_name text not null,
+    -- weight is a float from 0-1
+    weight real not null,
+    primary key (weight_course_id, category_name),
+    foreign key (weight_course_id) references weight_course(id)
+        on update cascade
+        on delete cascade
+);
+
+
+
+-- *** SNAPSHOT SPECIFIC ***
+
+-- starts a series on a certain date
+-- here's an example of the relationship of this to gradesnapshot
+-- 
+-- gradesnapshot_series(id = 0, powerschool/course_id = ..., start_time = 12/20/2020)
+--   * gradesnapshot(series_id = 0, value = 90) <- date: 12/20/2020
+--   * gradesnapshot(series_id = 0, value = 90) <- date: 12/21/2020
+--   * gradesnapshot(series_id = 0, value = 95) <- date: 12/22/2020
+--   * gradesnapshot(series_id = 0, value = 92) <- date: 12/23/2020
+--
+-- why: this is because storing time series data tends to take up a lot of space, so we'll
+-- attempt to reduce the number of fields duplicated over the time dimension
+-- (imagine storing powerschool/course_id for every snapshot row, that's a lot of wasted space)
+create table gradesnapshot_series (
+    id integer not null primary key autoincrement,
+    powerschool_account_id integer not null,
+    course_id text not null,
+    start_time datetime not null,
+    unique (powerschool_account_id, course_id, start_time),
+    foreign key (powerschool_account_id) references powerschool_account(id)
+        on update cascade
+        on delete cascade
+);
+
+-- stores a single grade snapshot, see gradesnapshot_series for more information
+-- 
+-- note: the "id" for this row is just the built in sqlite "rowid" field which can be used
+-- with "order by" in a select to ensure that the snapshots are queried in order
+create table gradesnapshot (
+    series_id integer not null,
+    value real not null,
+    foreign key (series_id) references gradesnapshot_series(id)
+        on update cascade
+        on delete cascade
+);
+

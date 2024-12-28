@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { CourseData } from "./types_pb.js";
+import { CourseData, StudentProfile } from "./types_pb.js";
 
 /**
  * Refresh
@@ -109,8 +109,12 @@ export class DataRequest extends Message<DataRequest> {
  */
 export class DataResponse extends Message<DataResponse> {
   /**
+   * @generated from field: vcassist.powerschool.v1.StudentProfile profile = 1;
+   */
+  profile?: StudentProfile;
+
+  /**
    * currently unused
-   * StudentProfile profile = 1;
    * repeated SchoolData schools = 2;
    * repeated Bulletin bulletins = 3;
    *
@@ -126,6 +130,7 @@ export class DataResponse extends Message<DataResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "vcassist.powerschool.v1.DataResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "profile", kind: "message", T: StudentProfile },
     { no: 4, name: "courses", kind: "message", T: CourseData, repeated: true },
   ]);
 
