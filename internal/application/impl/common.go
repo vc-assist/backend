@@ -1,7 +1,7 @@
-package apis
+package impl
 
 import (
-	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/components/db"
 
 	"github.com/go-resty/resty/v2"
 )

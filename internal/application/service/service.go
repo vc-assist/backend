@@ -3,9 +3,9 @@ package service
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"vcassist-backend/internal/assert"
-	"vcassist-backend/internal/db"
-	"vcassist-backend/internal/telemetry"
+	"vcassist-backend/internal/components/assert"
+	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/components/telemetry"
 )
 
 // RandomAPI is an abstraction over any code that potentially generates random values.

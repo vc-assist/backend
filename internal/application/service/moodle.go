@@ -7,8 +7,8 @@ import (
 	"strings"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
 	publicv1 "vcassist-backend/api/vcassist/public/v1"
-	"vcassist-backend/internal/db"
-	"vcassist-backend/internal/telemetry"
+	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/components/telemetry"
 
 	"connectrpc.com/connect"
 )

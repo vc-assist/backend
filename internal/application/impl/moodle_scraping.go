@@ -1,4 +1,4 @@
-package apis
+package impl
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/components/db"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 
@@ -264,7 +264,7 @@ func createMoodleClient(username, password string) (view.Client, error) {
 	return client, nil
 }
 
-func (m MoodleImpl) scrapeAllMoodle(ctx context.Context) error {
+func (m Moodle) scrapeAllMoodle(ctx context.Context) error {
 	client, err := createMoodleClient(m.adminUser, m.adminPass)
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (m MoodleImpl) scrapeAllMoodle(ctx context.Context) error {
 	return nil
 }
 
-func (m MoodleImpl) scrapeAllMoodleUsers(ctx context.Context) error {
+func (m Moodle) scrapeAllMoodleUsers(ctx context.Context) error {
 	tx, discard, commit := m.makeTx()
 	defer discard()
 
@@ -331,7 +331,7 @@ func (m MoodleImpl) scrapeAllMoodleUsers(ctx context.Context) error {
 
 // ScrapeAll uses the admin account to scrape all the courses, but also
 // updates all user specific information like moodle_user_course
-func (m MoodleImpl) ScrapeAll(ctx context.Context) error {
+func (m Moodle) ScrapeAll(ctx context.Context) error {
 	err := m.scrapeAllMoodle(ctx)
 	if err != nil {
 		return err
@@ -339,7 +339,7 @@ func (m MoodleImpl) ScrapeAll(ctx context.Context) error {
 	return m.scrapeAllMoodleUsers(ctx)
 }
 
-func (m MoodleImpl) scrapeUser(ctx context.Context, accountId int64, username, password string) error {
+func (m Moodle) scrapeUser(ctx context.Context, accountId int64, username, password string) error {
 	client, err := createMoodleClient(username, password)
 	if err != nil {
 		m.tel.ReportBroken(report_moodle_user_login, err, username, password)
@@ -375,7 +375,7 @@ func (m MoodleImpl) scrapeUser(ctx context.Context, accountId int64, username, p
 }
 
 // ScrapeUser implements the interface method.
-func (m MoodleImpl) ScrapeUser(ctx context.Context, accountId int64) error {
+func (m Moodle) ScrapeUser(ctx context.Context, accountId int64) error {
 	user, err := m.db.GetMoodleAccountFromId(ctx, accountId)
 	if err != nil {
 		m.tel.ReportBroken(report_db_query, err, "GetMoodleAccountFromId")

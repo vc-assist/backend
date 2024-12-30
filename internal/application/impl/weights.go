@@ -1,32 +1,32 @@
-package apis
+package impl
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"slices"
-	"vcassist-backend/internal/assert"
-	"vcassist-backend/internal/db"
-	"vcassist-backend/internal/telemetry"
+	"vcassist-backend/internal/components/assert"
+	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/components/telemetry"
 
 	"github.com/antzucaro/matchr"
 )
 
-type WeightsImpl struct {
+type Weights struct {
 	db  *db.Queries
 	tel telemetry.API
 }
 
-func NewWeightsImpl(db *db.Queries, tel telemetry.API) WeightsImpl {
+func NewWeights(db *db.Queries, tel telemetry.API) Weights {
 	assert.NotNil(db)
 	assert.NotNil(tel)
 
 	tel = telemetry.NewScopedAPI("apis", tel)
 
-	return WeightsImpl{db: db, tel: tel}
+	return Weights{db: db, tel: tel}
 }
 
-func (w WeightsImpl) GetWeights(ctx context.Context, courseId string, categories []string) ([]float32, error) {
+func (w Weights) GetWeights(ctx context.Context, courseId string, categories []string) ([]float32, error) {
 	dbCategories, err := w.db.GetWeightCourseCategories(ctx, courseId)
 	if err == sql.ErrNoRows {
 		w.tel.ReportBroken(report_weights_find_course, courseId, categories)
@@ -108,7 +108,7 @@ func (w WeightsImpl) GetWeights(ctx context.Context, courseId string, categories
 	return values, nil
 }
 
-func (w WeightsImpl) AddCourse(ctx context.Context, courseId, courseName string) (int64, error) {
+func (w Weights) AddCourse(ctx context.Context, courseId, courseName string) (int64, error) {
 	param := db.AddWeightCourseParams{
 		ActualCourseID:   courseId,
 		ActualCourseName: courseName,
@@ -122,7 +122,7 @@ func (w WeightsImpl) AddCourse(ctx context.Context, courseId, courseName string)
 	return id, nil
 }
 
-func (w WeightsImpl) AddCategory(ctx context.Context, weightCourseId int64, categoryName string, weight float64) error {
+func (w Weights) AddCategory(ctx context.Context, weightCourseId int64, categoryName string, weight float64) error {
 	param := db.AddWeightCategoryParams{
 		WeightCourseID: weightCourseId,
 		CategoryName:   categoryName,

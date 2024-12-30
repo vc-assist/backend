@@ -1,4 +1,4 @@
-package apis
+package impl
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 	powerschoolv1 "vcassist-backend/api/vcassist/powerschool/v1"
-	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/components/db"
 	"vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/textutil"
 	"vcassist-backend/lib/timezone"
@@ -77,7 +77,7 @@ var psHomeworkPassKeywords = []string{
 }
 var psPeriodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 
-func (p PowerschoolImpl) toPbCourses(ctx context.Context, accountId int64, input []powerschool.CourseData) []*powerschoolv1.CourseData {
+func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []powerschool.CourseData) []*powerschoolv1.CourseData {
 	courses := make([]*powerschoolv1.CourseData, len(input))
 	for i, course := range input {
 		currentDay := ""
@@ -213,7 +213,7 @@ func (p PowerschoolImpl) toPbCourses(ctx context.Context, accountId int64, input
 	return courses
 }
 
-func (p PowerschoolImpl) patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []powerschool.CourseMeeting) {
+func (p Powerschool) patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []powerschool.CourseMeeting) {
 	if len(out) == 0 {
 		return
 	}
@@ -251,7 +251,7 @@ func (p PowerschoolImpl) patchPbCourseMeetings(out []*powerschoolv1.CourseData, 
 	}
 }
 
-func (p PowerschoolImpl) toPbData(
+func (p Powerschool) toPbData(
 	ctx context.Context,
 	accountId int64,
 	profile powerschool.StudentProfile,
@@ -305,7 +305,7 @@ func (p PowerschoolImpl) toPbData(
 // that it is a string with a distinction marker
 const ps_distinction_marker = "​"
 
-func (p PowerschoolImpl) applyDisambiguation(courseData []powerschool.CourseData) {
+func (p Powerschool) applyDisambiguation(courseData []powerschool.CourseData) {
 	for i, src := range courseData {
 		if strings.HasSuffix(src.Name, ps_distinction_marker) {
 			continue
@@ -334,7 +334,7 @@ func (p PowerschoolImpl) applyDisambiguation(courseData []powerschool.CourseData
 
 const powerschool_base_url = "https://vcsnet.powerschool.com"
 
-func (p PowerschoolImpl) createPSClient(ctx context.Context, token string) (*powerschool.Client, error) {
+func (p Powerschool) createPSClient(ctx context.Context, token string) (*powerschool.Client, error) {
 	client, err := powerschool.NewClient(powerschool_base_url)
 	if err != nil {
 		p.tel.ReportBroken(report_ps_new_client, err, powerschool_base_url)
@@ -348,7 +348,7 @@ func (p PowerschoolImpl) createPSClient(ctx context.Context, token string) (*pow
 	return client, nil
 }
 
-func (p PowerschoolImpl) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) error {
+func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) error {
 	client, err := p.createPSClient(ctx, acc.Token)
 	if err != nil {
 		return err
@@ -433,7 +433,7 @@ func (p PowerschoolImpl) scrapeUser(ctx context.Context, acc db.PowerschoolAccou
 }
 
 // ScrapeUser implements its corresponding interface method.
-func (p PowerschoolImpl) ScrapeUser(ctx context.Context, accountId int64) error {
+func (p Powerschool) ScrapeUser(ctx context.Context, accountId int64) error {
 	acc, err := p.db.GetPSAccountFromId(ctx, accountId)
 	if err != nil {
 		p.tel.ReportBroken(report_db_query, err, "GetPSAccountFromId", accountId)
@@ -443,7 +443,7 @@ func (p PowerschoolImpl) ScrapeUser(ctx context.Context, accountId int64) error 
 }
 
 // ScrapeAll runs scraping for all users' courses.
-func (p PowerschoolImpl) ScrapeAll(ctx context.Context) error {
+func (p Powerschool) ScrapeAll(ctx context.Context) error {
 	accounts, err := p.db.GetAllPSAccounts(ctx)
 	if err != nil {
 		p.tel.ReportBroken(report_db_query, err, "GetAllPSAccounts")
@@ -461,7 +461,7 @@ func (p PowerschoolImpl) ScrapeAll(ctx context.Context) error {
 }
 
 // QueryData implements its corresponding interface method.
-func (p PowerschoolImpl) QueryData(ctx context.Context, accountId int64) (*powerschoolv1.DataResponse, error) {
+func (p Powerschool) QueryData(ctx context.Context, accountId int64) (*powerschoolv1.DataResponse, error) {
 	cached, err := p.db.GetPSCachedData(ctx, accountId)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("no cached data found, please try again later")
@@ -485,7 +485,7 @@ type googleUserInfo struct {
 }
 
 // GetEmail implements its corresponding interface method.
-func (p PowerschoolImpl) GetEmail(ctx context.Context, token string) (email string, err error) {
+func (p Powerschool) GetEmail(ctx context.Context, token string) (email string, err error) {
 	res, err := defaultClient.R().
 		SetContext(ctx).
 		SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).

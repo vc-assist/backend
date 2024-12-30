@@ -1,31 +1,31 @@
-package apis
+package impl
 
 import (
 	"context"
 	"database/sql"
 	"time"
-	"vcassist-backend/internal/assert"
-	"vcassist-backend/internal/chrono"
-	"vcassist-backend/internal/db"
-	"vcassist-backend/internal/telemetry"
+	"vcassist-backend/internal/components/assert"
+	"vcassist-backend/internal/components/chrono"
+	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/components/telemetry"
 )
 
-type SnapshotImpl struct {
+type Snapshot struct {
 	db     *db.Queries
 	makeTx MakeTx
 	tel    telemetry.API
 	chrono chrono.API
 }
 
-func NewSnapshotImpl(db *db.Queries, makeTx MakeTx, tel telemetry.API) SnapshotImpl {
+func NewSnapshot(db *db.Queries, makeTx MakeTx, tel telemetry.API) Snapshot {
 	assert.NotNil(db)
 	assert.NotNil(makeTx)
 	assert.NotNil(tel)
 
-	return SnapshotImpl{db: db, makeTx: makeTx, tel: tel}
+	return Snapshot{db: db, makeTx: makeTx, tel: tel}
 }
 
-func (s SnapshotImpl) GetSnapshots(ctx context.Context, accountId int64, courseId string) ([]Snapshot, error) {
+func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId string) ([]SnapshotValue, error) {
 	param := db.GetSnapshotSeriesParams{
 		PowerschoolAccountID: accountId,
 		CourseID:             courseId,
@@ -36,7 +36,7 @@ func (s SnapshotImpl) GetSnapshots(ctx context.Context, accountId int64, courseI
 		return nil, err
 	}
 
-	var snapshots []Snapshot
+	var snapshots []SnapshotValue
 	for _, series := range dbSeries {
 		dbSnapshots, err := s.db.GetSnapshotSeriesSnapshots(ctx, series.ID)
 		if err != nil {
@@ -44,7 +44,7 @@ func (s SnapshotImpl) GetSnapshots(ctx context.Context, accountId int64, courseI
 			continue
 		}
 		for _, value := range dbSnapshots {
-			snapshots = append(snapshots, Snapshot{
+			snapshots = append(snapshots, SnapshotValue{
 				Value: float32(value),
 				Time:  series.StartTime,
 			})
@@ -54,7 +54,7 @@ func (s SnapshotImpl) GetSnapshots(ctx context.Context, accountId int64, courseI
 	return snapshots, nil
 }
 
-func (s SnapshotImpl) MakeSnapshot(ctx context.Context, accountId int64, courseId string, value float32) error {
+func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId string, value float32) error {
 	now := s.chrono.Now()
 	startOfToday := time.Date(
 		now.Year(),

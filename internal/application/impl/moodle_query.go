@@ -1,4 +1,4 @@
-package apis
+package impl
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
-	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/components/db"
 	"vcassist-backend/lib/timezone"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -97,7 +97,7 @@ func parseTOCDate(text string) ([]time.Time, error) {
 }
 
 // QueryLessonPlans implements the interface method.
-func (m MoodleImpl) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodlev1.LessonPlansResponse, error) {
+func (m Moodle) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodlev1.LessonPlansResponse, error) {
 	dbCourses, err := m.db.GetMoodleCourses(ctx, courseIds)
 	if err != nil {
 		m.tel.ReportBroken(report_db_query, err, "GetCourses", courseIds)
@@ -234,7 +234,7 @@ func (m MoodleImpl) QueryLessonPlans(ctx context.Context, courseIds []int64) (*m
 }
 
 // QueryChapterContent implements the interface method.
-func (m MoodleImpl) QueryChapterContent(ctx context.Context, chapterId int64) (string, error) {
+func (m Moodle) QueryChapterContent(ctx context.Context, chapterId int64) (string, error) {
 	content, err := m.db.GetMoodleChapterContent(ctx, chapterId)
 	if err != nil {
 		m.tel.ReportBroken(report_db_query, err, "GetChapterContent", chapterId)
@@ -244,7 +244,7 @@ func (m MoodleImpl) QueryChapterContent(ctx context.Context, chapterId int64) (s
 }
 
 // QueryUserCourseIds implements the interface method.
-func (m MoodleImpl) QueryUserCourseIds(ctx context.Context, accountId int64) ([]int64, error) {
+func (m Moodle) QueryUserCourseIds(ctx context.Context, accountId int64) ([]int64, error) {
 	courseIds, err := m.db.GetMoodleUserCourses(ctx, accountId)
 	if err != nil {
 		m.tel.ReportBroken(report_db_query, err, "GetUserCourses", accountId)

@@ -1,13 +1,13 @@
-package apis
+package impl
 
 import (
-	"vcassist-backend/internal/assert"
-	"vcassist-backend/internal/db"
-	"vcassist-backend/internal/telemetry"
+	"vcassist-backend/internal/components/assert"
+	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/components/telemetry"
 )
 
-// MoodleImpl implements service.MoodleAPI
-type MoodleImpl struct {
+// Moodle implements service.MoodleAPI
+type Moodle struct {
 	db        *db.Queries
 	makeTx    MakeTx
 	tel       telemetry.API
@@ -15,12 +15,12 @@ type MoodleImpl struct {
 	adminPass string
 }
 
-func NewMoodleImpl(
+func NewMoodle(
 	db *db.Queries,
 	makeTx MakeTx,
 	tel telemetry.API,
 	adminUser, adminPass string,
-) MoodleImpl {
+) Moodle {
 	assert.NotNil(db)
 	assert.NotNil(makeTx)
 	assert.NotNil(tel)
@@ -29,5 +29,5 @@ func NewMoodleImpl(
 
 	tel = telemetry.NewScopedAPI("apis", tel)
 
-	return MoodleImpl{db: db, makeTx: makeTx, tel: tel}
+	return Moodle{db: db, makeTx: makeTx, tel: tel}
 }
