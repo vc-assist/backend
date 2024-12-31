@@ -1,4 +1,4 @@
-package impl
+package snapshot
 
 import (
 	"context"
@@ -9,6 +9,13 @@ import (
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/components/telemetry"
 )
+
+const (
+	report_db_query = "db.query"
+)
+
+// MakeTx is a function that creates a db transaction
+type MakeTx = func() (tx *db.Queries, discard, commit func())
 
 type Snapshot struct {
 	db     *db.Queries
@@ -25,7 +32,7 @@ func NewSnapshot(db *db.Queries, makeTx MakeTx, tel telemetry.API) Snapshot {
 	return Snapshot{db: db, makeTx: makeTx, tel: tel}
 }
 
-func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId string) ([]SnapshotValue, error) {
+func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId string) (values []float32, times []time.Time, err error) {
 	param := db.GetSnapshotSeriesParams{
 		PowerschoolAccountID: accountId,
 		CourseID:             courseId,
@@ -33,25 +40,22 @@ func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId st
 	dbSeries, err := s.db.GetSnapshotSeries(ctx, param)
 	if err != nil {
 		s.tel.ReportBroken(report_db_query, err, "GetSnapshotSeries", param)
-		return nil, err
+		return nil, nil, err
 	}
 
-	var snapshots []SnapshotValue
 	for _, series := range dbSeries {
 		dbSnapshots, err := s.db.GetSnapshotSeriesSnapshots(ctx, series.ID)
 		if err != nil {
 			s.tel.ReportBroken(report_db_query, err, "GetSnapshotSeriesSnapshots", series.ID)
 			continue
 		}
-		for _, value := range dbSnapshots {
-			snapshots = append(snapshots, SnapshotValue{
-				Value: float32(value),
-				Time:  series.StartTime,
-			})
+		for i, value := range dbSnapshots {
+			values = append(values, float32(value))
+			times = append(times, series.StartTime.Add(time.Duration(i)*24*time.Hour))
 		}
 	}
 
-	return snapshots, nil
+	return values, times, nil
 }
 
 func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId string, value float32) error {

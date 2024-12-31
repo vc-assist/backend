@@ -51,18 +51,18 @@ fragment finalGradeData on FinalGradeType {
   inProgressStatus
 }`
 
-type FinalGrade struct {
+type finalGrade struct {
 	Percent          int  `json:"percent"`
 	InProgressStatus bool `json:"inProgressStatus"`
 }
 
-type TermData struct {
+type termData struct {
 	Start      string     `json:"start"`
 	End        string     `json:"end"`
-	FinalGrade FinalGrade `json:"finalGrade"`
+	FinalGrade finalGrade `json:"finalGrade"`
 }
 
-type AssignmentData struct {
+type assignmentData struct {
 	Title               string   `json:"title"`
 	Category            string   `json:"category"`
 	DueDate             string   `json:"dueDate"`
@@ -76,7 +76,7 @@ type AssignmentData struct {
 	AttributeIncomplete bool     `json:"attributeIncomplete"`
 }
 
-type CourseData struct {
+type courseData struct {
 	Guid             string           `json:"guid"`
 	Name             string           `json:"name"`
 	Period           string           `json:"period"`
@@ -84,24 +84,24 @@ type CourseData struct {
 	TeacherLastName  string           `json:"teacherLastName"`
 	TeacherEmail     string           `json:"teacherEmail"`
 	Room             string           `json:"room"`
-	Assignments      []AssignmentData `json:"assignments"`
-	Terms            []TermData       `json:"terms"`
+	Assignments      []assignmentData `json:"assignments"`
+	Terms            []termData       `json:"terms"`
 }
 
-type GetStudentDataResponse struct {
+type getStudentDataResponse struct {
 	Student struct {
-		Courses []CourseData `json:"sections"`
+		Courses []courseData `json:"sections"`
 	} `json:"student"`
 }
 
-type GetStudentDataRequest struct {
+type getStudentDataRequest struct {
 	Guid string `json:"guid"`
 }
 
-func (c *Client) GetStudentData(ctx context.Context, req GetStudentDataRequest) (*GetStudentDataResponse, error) {
-	res := &GetStudentDataResponse{}
+func (c *client) GetStudentData(ctx context.Context, req getStudentDataRequest) (*getStudentDataResponse, error) {
+	res := &getStudentDataResponse{}
 	err := graphqlQuery(
-		ctx, c.http, "AllStudentData", studentDataQuery,
+		ctx, c, "AllStudentData", studentDataQuery,
 		req, res,
 	)
 	return res, err

@@ -10,20 +10,20 @@ const studentPhotoQuery = `query StudentPhoto($guid: ID!) {
   }
 }`
 
-type GetStudentPhotoRequest struct {
+type getStudentPhotoRequest struct {
 	Guid string `json:"guid"`
 }
 
-type GetStudentPhotoResponse struct {
+type getStudentPhotoResponse struct {
 	StudentPhoto struct {
 		Image string `json:"image"`
 	} `json:"studentPhoto"`
 }
 
-func (c *Client) GetStudentPhoto(ctx context.Context, req GetStudentPhotoRequest) (*GetStudentPhotoResponse, error) {
-	res := &GetStudentPhotoResponse{}
+func (c *client) GetStudentPhoto(ctx context.Context, req getStudentPhotoRequest) (*getStudentPhotoResponse, error) {
+	res := &getStudentPhotoResponse{}
 	err := graphqlQuery(
-		ctx, c.http, "StudentPhoto", studentPhotoQuery,
+		ctx, c, "StudentPhoto", studentPhotoQuery,
 		req, res,
 	)
 	return res, err

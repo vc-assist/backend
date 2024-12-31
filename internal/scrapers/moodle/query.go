@@ -1,4 +1,6 @@
-package impl
+// query.go contains logic for querying scraped data
+
+package moodle
 
 import (
 	"context"
@@ -14,6 +16,10 @@ import (
 	"vcassist-backend/lib/timezone"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	report_query_lesson_plans = "query.lesson-plans"
 )
 
 var referenceMonths = []string{
@@ -41,8 +47,8 @@ func parseMonth(text string) time.Month {
 	return -1
 }
 
-func resolveTOCMonthDay(month time.Month, day int) time.Time {
-	now := timezone.Now()
+func (s Scraper) resolveTOCMonthDay(month time.Month, day int) time.Time {
+	now := s.chrono.Now()
 	year := now.Year()
 
 	if (month >= time.August && month <= time.December) &&
@@ -54,13 +60,13 @@ func resolveTOCMonthDay(month time.Month, day int) time.Time {
 		year++
 	}
 
-	return time.Date(year, month, day, 0, 0, 0, 0, timezone.Location)
+	return time.Date(year, month, day, 0, 0, 0, 0, s.chrono.Location())
 }
 
 var monthDayRegex = regexp.MustCompile(`([A-Za-z]{3,9}) *(\d{1,2})`)
 var monthDayDayRegex = regexp.MustCompile(`(\w+) *(\d{1,2}) *[^\d\w\s] *(\d{1,2})(?:[^\d]|$)`)
 
-func parseTOCDate(text string) ([]time.Time, error) {
+func (s Scraper) parseTOCDate(text string) ([]time.Time, error) {
 	monthDayDayMatch := monthDayDayRegex.FindStringSubmatch(text)
 	if len(monthDayDayMatch) >= 4 {
 		month := parseMonth(monthDayDayMatch[1])
@@ -74,8 +80,8 @@ func parseTOCDate(text string) ([]time.Time, error) {
 		}
 
 		return []time.Time{
-			resolveTOCMonthDay(month, int(day1)),
-			resolveTOCMonthDay(month, int(day2)),
+			s.resolveTOCMonthDay(month, int(day1)),
+			s.resolveTOCMonthDay(month, int(day2)),
 		}, nil
 	}
 
@@ -91,16 +97,16 @@ func parseTOCDate(text string) ([]time.Time, error) {
 			slog.Warn("failed to parse day", "matches", match, "err", err)
 			continue
 		}
-		dates = append(dates, resolveTOCMonthDay(month, int(day)))
+		dates = append(dates, s.resolveTOCMonthDay(month, int(day)))
 	}
 	return dates, nil
 }
 
 // QueryLessonPlans implements the interface method.
-func (m Moodle) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodlev1.LessonPlansResponse, error) {
-	dbCourses, err := m.db.GetMoodleCourses(ctx, courseIds)
+func (s Scraper) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodlev1.LessonPlansResponse, error) {
+	dbCourses, err := s.db.GetMoodleCourses(ctx, courseIds)
 	if err != nil {
-		m.tel.ReportBroken(report_db_query, err, "GetCourses", courseIds)
+		s.tel.ReportBroken(report_db_query, err, "GetCourses", courseIds)
 		return nil, err
 	}
 
@@ -122,35 +128,39 @@ func (m Moodle) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodl
 
 		var chapters []*moodlev1.LessonPlansResponse_Chapter
 
-		dbSections, err := m.db.GetMoodleCourseSections(ctx, course.ID)
+		dbSections, err := s.db.GetMoodleCourseSections(ctx, course.ID)
 		if err != nil {
-			m.tel.ReportBroken(report_db_query, err, "GetCourseSections", course.ID)
+			s.tel.ReportBroken(report_db_query, err, "GetCourseSections", course.ID)
 			continue
 		}
 		for _, section := range dbSections {
-			dbResources, err := m.db.GetMoodleSectionResources(ctx, db.GetMoodleSectionResourcesParams{
+			dbResources, err := s.db.GetMoodleSectionResources(ctx, db.GetMoodleSectionResourcesParams{
 				CourseID:   course.ID,
 				SectionIdx: section.Idx,
 			})
 			if err != nil {
-				m.tel.ReportBroken(report_db_query, err, "GetSectionResources", course.ID, section.Idx)
+				s.tel.ReportBroken(report_db_query, err, "GetSectionResources", course.ID, section.Idx)
 				continue
 			}
 			for _, resource := range dbResources {
-				dbChapters, err := m.db.GetMoodleResourceChapters(ctx, db.GetMoodleResourceChaptersParams{
+				dbChapters, err := s.db.GetMoodleResourceChapters(ctx, db.GetMoodleResourceChaptersParams{
 					CourseID:    course.ID,
 					SectionIdx:  section.Idx,
 					ResourceIdx: resource.Idx,
 				})
 				if err != nil {
-					m.tel.ReportBroken(report_db_query, err, "GetResourceChapters", course.ID, section.Idx, resource.Idx)
+					s.tel.ReportBroken(report_db_query, err, "GetResourceChapters", course.ID, section.Idx, resource.Idx)
 					continue
 				}
 
 				for _, chapter := range dbChapters {
-					times, err := parseTOCDate(chapter.Name)
+					times, err := s.parseTOCDate(chapter.Name)
 					if err != nil {
-						m.tel.ReportBroken(report_moodle_parse_toc_date, err, chapter.Name)
+						s.tel.ReportWarning(
+							report_query_lesson_plans,
+							fmt.Errorf("parse chapter dates: %w", err),
+							chapter.Name,
+						)
 						continue
 					}
 
@@ -166,9 +176,9 @@ func (m Moodle) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodl
 							resource.ID.Int64, chapter.ID,
 						)
 					} else {
-						m.tel.ReportBroken(
-							report_moodle_query_lesson_plans,
-							fmt.Errorf("resource id null"),
+						s.tel.ReportWarning(
+							report_query_lesson_plans,
+							fmt.Errorf("construct chapter url: resource id null"),
 							resource.Url,
 							resource.CourseID,
 							resource.SectionIdx,
@@ -211,17 +221,17 @@ func (m Moodle) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodl
 			currentChapter = c
 		}
 		if currentChapter == nil {
-			m.tel.ReportWarning(
-				report_moodle_query_lesson_plans,
+			s.tel.ReportWarning(
+				report_query_lesson_plans,
 				fmt.Errorf("lesson plan not found"),
 				courses[i].Url,
 			)
 			continue
 		}
 
-		content, err := m.db.GetMoodleChapterContent(ctx, currentChapter.Id)
+		content, err := s.db.GetMoodleChapterContent(ctx, currentChapter.Id)
 		if err != nil {
-			m.tel.ReportBroken(report_db_query, err, "GetChapterContent", currentChapter.Id)
+			s.tel.ReportBroken(report_db_query, err, "GetChapterContent", currentChapter.Id)
 			continue
 		}
 
@@ -234,20 +244,20 @@ func (m Moodle) QueryLessonPlans(ctx context.Context, courseIds []int64) (*moodl
 }
 
 // QueryChapterContent implements the interface method.
-func (m Moodle) QueryChapterContent(ctx context.Context, chapterId int64) (string, error) {
-	content, err := m.db.GetMoodleChapterContent(ctx, chapterId)
+func (s Scraper) QueryChapterContent(ctx context.Context, chapterId int64) (string, error) {
+	content, err := s.db.GetMoodleChapterContent(ctx, chapterId)
 	if err != nil {
-		m.tel.ReportBroken(report_db_query, err, "GetChapterContent", chapterId)
+		s.tel.ReportBroken(report_db_query, err, "GetChapterContent", chapterId)
 		return "", err
 	}
 	return content, nil
 }
 
 // QueryUserCourseIds implements the interface method.
-func (m Moodle) QueryUserCourseIds(ctx context.Context, accountId int64) ([]int64, error) {
-	courseIds, err := m.db.GetMoodleUserCourses(ctx, accountId)
+func (s Scraper) QueryUserCourseIds(ctx context.Context, accountId int64) ([]int64, error) {
+	courseIds, err := s.db.GetMoodleUserCourses(ctx, accountId)
 	if err != nil {
-		m.tel.ReportBroken(report_db_query, err, "GetUserCourses", accountId)
+		s.tel.ReportBroken(report_db_query, err, "GetUserCourses", accountId)
 		return nil, err
 	}
 	return courseIds, nil

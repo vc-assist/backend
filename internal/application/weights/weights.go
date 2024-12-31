@@ -1,4 +1,4 @@
-package impl
+package weights
 
 import (
 	"context"
@@ -10,6 +10,13 @@ import (
 	"vcassist-backend/internal/components/telemetry"
 
 	"github.com/antzucaro/matchr"
+)
+
+const (
+	report_db_query = "db.query"
+
+	report_weights_implicit_category_resolution = "weights.implicit-category-resolution"
+	report_weights_find_course                  = "weights.find-course"
 )
 
 type Weights struct {

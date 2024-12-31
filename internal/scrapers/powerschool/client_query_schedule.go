@@ -19,17 +19,17 @@ fragment sectionMeetingData on SectionMeetingType {
   stop
 }`
 
-type CourseMeeting struct {
+type courseMeeting struct {
 	CourseGuid string `json:"sectionGuid"`
 	Start      string `json:"start"`
 	Stop       string `json:"stop"`
 }
 
-type GetCourseMeetingListResponse struct {
-	Meetings []CourseMeeting `json:"sectionMeetings"`
+type getCourseMeetingListResponse struct {
+	Meetings []courseMeeting `json:"sectionMeetings"`
 }
 
-type GetCourseMeetingListRequest struct {
+type getCourseMeetingListRequest struct {
 	CourseGuids []string `json:"sectionGuids"`
 	// ISO timestamp
 	Start string `json:"start"`
@@ -37,10 +37,10 @@ type GetCourseMeetingListRequest struct {
 	Stop string `json:"stop"`
 }
 
-func (c *Client) GetCourseMeetingList(ctx context.Context, req GetCourseMeetingListRequest) (*GetCourseMeetingListResponse, error) {
-	res := &GetCourseMeetingListResponse{}
+func (c *client) GetCourseMeetingList(ctx context.Context, req getCourseMeetingListRequest) (*getCourseMeetingListResponse, error) {
+	res := &getCourseMeetingListResponse{}
 	err := graphqlQuery(
-		ctx, c.http, "SectionMeetings", scheduleQuery,
+		ctx, c, "SectionMeetings", scheduleQuery,
 		req, res,
 	)
 	return res, err

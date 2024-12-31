@@ -3,10 +3,13 @@ package telemetry
 import (
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 )
 
 // SlogAPI implements API using the log/slog package.
-type SlogAPI struct{}
+type SlogAPI struct {
+	idcounter *uint64
+}
 
 func (SlogAPI) formatParams(out *[]any, params []any) {
 	for i, p := range params {
@@ -38,4 +41,15 @@ func (s SlogAPI) ReportDebug(message string, params ...any) {
 
 func (s SlogAPI) ReportCount(id string, count int64) {
 	slog.Info("count", "id", id, "n", count)
+}
+
+func (s SlogAPI) StoreLongMessage(message string) (id string) {
+	if s.idcounter == nil {
+		var idcounter uint64
+		s.idcounter = &idcounter
+	}
+
+	idNo := atomic.AddUint64(s.idcounter, 1)
+	slog.Debug(message, "id", idNo)
+	return fmt.Sprint(id)
 }

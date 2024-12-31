@@ -39,7 +39,7 @@ fragment bulletinData on BulletinType {
   body
 }`
 
-type SchoolData struct {
+type schoolData struct {
 	Name          string `json:"name"`
 	Phone         string `json:"phone"`
 	Fax           string `json:"fax"`
@@ -51,30 +51,30 @@ type SchoolData struct {
 	Country       string `json:"country"`
 }
 
-type Bulletin struct {
+type bulletin struct {
 	Title     string `json:"title"`
 	StartDate string `json:"startDate"`
 	EndDate   string `json:"endDate"`
 	Body      string `json:"body"`
 }
 
-type StudentProfile struct {
+type studentProfile struct {
 	Guid       string       `json:"guid"`
 	CurrentGpa string       `json:"currentGPA"`
 	FirstName  string       `json:"firstName"`
 	LastName   string       `json:"lastName"`
-	Schools    []SchoolData `json:"schools"`
-	Bulletins  []Bulletin   `json:"bulletins"`
+	Schools    []schoolData `json:"schools"`
+	Bulletins  []bulletin   `json:"bulletins"`
 }
 
-type GetAllStudentsResponse struct {
-	Profiles []StudentProfile `json:"students"`
+type getAllStudentsResponse struct {
+	Profiles []studentProfile `json:"students"`
 }
 
-func (c *Client) GetAllStudents(ctx context.Context) (*GetAllStudentsResponse, error) {
-	res := &GetAllStudentsResponse{}
+func (c *client) GetAllStudents(ctx context.Context) (*getAllStudentsResponse, error) {
+	res := &getAllStudentsResponse{}
 	err := graphqlQuery(
-		ctx, c.http, "AllStudentsFirstLevel", allStudentsQuery,
+		ctx, c, "AllStudentsFirstLevel", allStudentsQuery,
 		struct{}{}, res,
 	)
 	return res, err
