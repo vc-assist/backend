@@ -3,6 +3,7 @@ package snapshot
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 	"vcassist-backend/internal/components/assert"
 	"vcassist-backend/internal/components/chrono"
@@ -14,17 +15,14 @@ const (
 	report_db_query = "db.query"
 )
 
-// MakeTx is a function that creates a db transaction
-type MakeTx = func() (tx *db.Queries, discard, commit func())
-
 type Snapshot struct {
 	db     *db.Queries
-	makeTx MakeTx
+	makeTx db.MakeTx
 	tel    telemetry.API
 	chrono chrono.API
 }
 
-func NewSnapshot(db *db.Queries, makeTx MakeTx, tel telemetry.API) Snapshot {
+func NewSnapshot(db *db.Queries, makeTx db.MakeTx, tel telemetry.API) Snapshot {
 	assert.NotNil(db)
 	assert.NotNil(makeTx)
 	assert.NotNil(tel)
@@ -68,7 +66,11 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 		s.chrono.Location(),
 	)
 
-	tx, discard, commit := s.makeTx()
+	tx, discard, commit, err := s.makeTx()
+	if err != nil {
+		s.tel.ReportBroken(report_db_query, fmt.Errorf("make tx: %w", err))
+		return err
+	}
 	defer discard()
 
 	paramLatest := db.GetMostRecentSnapshotSeriesParams{

@@ -13,8 +13,9 @@ create table powerschool_account (
     id integer not null primary key autoincrement,
     -- this should be lowercase and space trimmed
     email text not null unique,
-    token text not null,
-    expires_at integer not null
+    access_token text not null,
+    refresh_token text not null,
+    expires_at timestamp not null
 );
 
 -- stores a VC Assist authentication token that can refer to a moodle credential or powerschool credential

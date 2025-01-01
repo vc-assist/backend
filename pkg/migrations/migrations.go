@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
@@ -11,48 +12,63 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func openSqlite(path string) (*sql.DB, error) {
-	os.MkdirAll(filepath.Dir(path), 0777)
+func wrapOpenDB(err error) error {
+	return fmt.Errorf("open db: %w", err)
+}
+
+func OpenDB(path string) (*sql.DB, error) {
+	if path != ":memory:" {
+		os.MkdirAll(filepath.Dir(path), 0777)
+	}
 
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
-		return nil, err
+		return nil, wrapOpenDB(err)
 	}
+
 	// see this stackoverflow post for information on why the following
 	// lines exist: https://stackoverflow.com/questions/35804884/sqlite-concurrent-writing-performance
 	db.SetMaxOpenConns(1)
 	_, err = db.Exec("PRAGMA journal_mode=WAL")
 	if err != nil {
-		return nil, err
+		return nil, wrapOpenDB(err)
 	}
+
 	return db, nil
 }
 
-func OpenDB(schema, path string) (*sql.DB, error) {
-	db, err := openSqlite(path)
+func wrapOpenAndMigrate(err error) error {
+	return fmt.Errorf("open and migrate db: %w", err)
+}
+
+func OpenAndMigrateDB(schema, path string) (*sql.DB, error) {
+	// to ensure that the db actually exists
+	db, err := OpenDB(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapOpenAndMigrate(err)
+	}
+	err = db.Close()
+	if err != nil {
+		return nil, wrapOpenAndMigrate(err)
 	}
 
 	_, err = exec.LookPath("atlas")
 	if os.IsNotExist(err) {
-		slog.Warn(
+		return db, wrapOpenAndMigrate(fmt.Errorf(
 			"could not find 'atlas' executable on path, is it installed? skipping migrations...",
-			"path", path,
-		)
-		return db, nil
+		))
 	}
 
-	slog.Info("running migrations on db", "path", path)
-
-	err = db.Close()
-	if err != nil {
-		return nil, err
-	}
 	err = os.WriteFile("temp_migration_schema.sql", []byte(schema), 0666)
 	if err != nil {
-		return nil, err
+		return nil, wrapOpenAndMigrate(err)
 	}
+	defer func() {
+		err = os.Remove("temp_migration_schema.sql")
+		if err != nil {
+			slog.Warn("could not delete temp_migration_schema.sql", "err", err)
+		}
+	}()
 
 	dbUrl := url.URL{
 		Scheme: "sqlite",
@@ -70,13 +86,8 @@ func OpenDB(schema, path string) (*sql.DB, error) {
 
 	err = cmd.Run()
 	if err != nil {
-		slog.Warn("failed to run migrations", "err", err)
+		return nil, wrapOpenAndMigrate(err)
 	}
 
-	err = os.Remove("temp_migration_schema.sql")
-	if err != nil {
-		slog.Warn("could not delete temp_migration_schema.sql", "err", err)
-	}
-
-	return openSqlite(path)
+	return OpenDB(path)
 }

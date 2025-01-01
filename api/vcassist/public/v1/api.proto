@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package vcassist.public.v1;
 
+import "openid/v1/types.proto";
+
 // LoginMoodle
 message LoginMoodleRequest {
   string username = 1;
@@ -13,7 +15,7 @@ message LoginMoodleResponse {
 
 // LoginPowerschool
 message LoginPowerschoolRequest {
-  string token = 1;
+  openid.v1.Token token = 1;
 }
 message LoginPowerschoolResponse {
   string token = 1;

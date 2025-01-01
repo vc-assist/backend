@@ -15,10 +15,16 @@ import (
 const addMoodleAccount = `-- name: AddMoodleAccount :one
 
 
-insert into moodle_account(username) values (?)
-on conflict do update set username = excluded.username
+insert into moodle_account(username, password) values (?, ?)
+on conflict do update set
+    password = excluded.password
 returning id
 `
+
+type AddMoodleAccountParams struct {
+	Username string
+	Password string
+}
 
 // naming conventions:
 // - "Add" implies an insert with some "on conflict" handling.
@@ -26,11 +32,8 @@ returning id
 // - "Get" implies a select.
 // - "Delete" implies a delete.
 // *** ACCOUNTS ***
-// technically this is a useless update, but on "conflict do nothing" will not
-// return anything when a conflict is encountered so on "conflict do update" is
-// needed to have the updated/inserted row's id returned
-func (q *Queries) AddMoodleAccount(ctx context.Context, username string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, addMoodleAccount, username)
+func (q *Queries) AddMoodleAccount(ctx context.Context, arg AddMoodleAccountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addMoodleAccount, arg.Username, arg.Password)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -147,13 +150,28 @@ func (q *Queries) AddMoodleUserCourse(ctx context.Context, arg AddMoodleUserCour
 }
 
 const addPSAccount = `-- name: AddPSAccount :one
-insert into powerschool_account(email) values (?)
-on conflict do update set email = excluded.email
+insert into powerschool_account(email, access_token, refresh_token, expires_at) values (?, ?, ?, ?)
+on conflict do update set
+    access_token = excluded.access_token,
+    refresh_token = excluded.refresh_token,
+    expires_at = excluded.expires_at
 returning id
 `
 
-func (q *Queries) AddPSAccount(ctx context.Context, email string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, addPSAccount, email)
+type AddPSAccountParams struct {
+	Email        string
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    time.Time
+}
+
+func (q *Queries) AddPSAccount(ctx context.Context, arg AddPSAccountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addPSAccount,
+		arg.Email,
+		arg.AccessToken,
+		arg.RefreshToken,
+		arg.ExpiresAt,
+	)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -369,7 +387,7 @@ func (q *Queries) GetAllMoodleCourses(ctx context.Context) ([]MoodleCourse, erro
 }
 
 const getAllPSAccounts = `-- name: GetAllPSAccounts :many
-select id, email, token, expires_at from powerschool_account
+select id, email, access_token, refresh_token, expires_at from powerschool_account
 `
 
 func (q *Queries) GetAllPSAccounts(ctx context.Context) ([]PowerschoolAccount, error) {
@@ -384,7 +402,8 @@ func (q *Queries) GetAllPSAccounts(ctx context.Context) ([]PowerschoolAccount, e
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,
-			&i.Token,
+			&i.AccessToken,
+			&i.RefreshToken,
 			&i.ExpiresAt,
 		); err != nil {
 			return nil, err
@@ -664,7 +683,7 @@ func (q *Queries) GetMostRecentSnapshotSeries(ctx context.Context, arg GetMostRe
 }
 
 const getPSAccountFromId = `-- name: GetPSAccountFromId :one
-select id, email, token, expires_at from powerschool_account where id = ?
+select id, email, access_token, refresh_token, expires_at from powerschool_account where id = ?
 `
 
 func (q *Queries) GetPSAccountFromId(ctx context.Context, id int64) (PowerschoolAccount, error) {
@@ -673,7 +692,8 @@ func (q *Queries) GetPSAccountFromId(ctx context.Context, id int64) (Powerschool
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.Token,
+		&i.AccessToken,
+		&i.RefreshToken,
 		&i.ExpiresAt,
 	)
 	return i, err

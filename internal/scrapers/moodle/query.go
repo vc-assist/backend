@@ -13,7 +13,6 @@ import (
 	"time"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
 	"vcassist-backend/internal/components/db"
-	"vcassist-backend/lib/timezone"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -204,7 +203,7 @@ func (s Scraper) QueryLessonPlans(ctx context.Context, courseIds []int64) (*mood
 			return 0
 		})
 
-		now := timezone.Now().Unix()
+		now := s.chrono.Now().Unix()
 
 		var currentChapter *moodlev1.LessonPlansResponse_Chapter
 		for _, c := range chapters {

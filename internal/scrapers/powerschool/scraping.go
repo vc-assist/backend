@@ -3,7 +3,6 @@ package powerschool
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
@@ -14,7 +13,6 @@ import (
 	powerschoolv1 "vcassist-backend/api/vcassist/powerschool/v1"
 	"vcassist-backend/internal/components/db"
 
-	"github.com/go-resty/resty/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -235,38 +233,6 @@ func (p Powerschool) QueryData(ctx context.Context, accountId int64) (*powerscho
 		return nil, err
 	}
 	return &res, nil
-}
-
-type googleUserInfo struct {
-	Email string `json:"email"`
-}
-
-var defaultClient = resty.New()
-
-// GetEmail implements its corresponding interface method.
-func (p Powerschool) GetEmail(ctx context.Context, token string) (email string, err error) {
-	res, err := defaultClient.R().
-		SetContext(ctx).
-		SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
-		Get("https://openidconnect.googleapis.com/v1/userinfo")
-	if err != nil {
-		p.tel.ReportBroken(report_ps_get_email, err, "failed to make request", token)
-		return "", err
-	}
-	if res.StatusCode() >= 400 || res.StatusCode() < 500 {
-		p.tel.ReportBroken(report_ps_get_email, err, "invalid token", token)
-		return "", fmt.Errorf("invalid token")
-	}
-	body := res.Body()
-
-	var result googleUserInfo
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		p.tel.ReportBroken(report_ps_get_email, err, "failed to unmarshal", string(body))
-		return "", err
-	}
-
-	return result.Email, nil
 }
 
 var psHomeworkPassKeywords = []string{

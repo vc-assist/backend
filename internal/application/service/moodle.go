@@ -2,27 +2,30 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"strings"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
-	publicv1 "vcassist-backend/api/vcassist/public/v1"
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/components/telemetry"
 
 	"connectrpc.com/connect"
 )
 
+const (
+	report_moodle_user_count            = "moodle.user-count"
+	report_moodle_login                 = "moodle.login"
+	report_moodle_scrape_user           = "moodle.scrape-user"
+	report_moodle_query_user_course_ids = "moodle.query-user-course-ids"
+	report_moodle_query_lesson_plans    = "moodle.query-lesson-plans"
+	report_moodle_query_chapter_content = "moodle.query-chapter-content"
+)
+
 // MoodleAPI describes all the moodle scraping methods (no scraping logic is in the service so the
 // service's logic can be tested individually)
 //
-// note: there should not be any cron jobs running in here, cron jobs should only exist on the very top level
+// note: there should not be any cron jobs running in here
 type MoodleAPI interface {
 	// ScrapeUser updates the "user" information for a specific user.
 	ScrapeUser(ctx context.Context, accountId int64) error
-
-	// TestLogin tests if the user login information is correct.
-	TestLogin(ctx context.Context, username, password string) error
 
 	// QueryLessonPlans transforms the cached moodle data into a *moodlev1.LessonPlansResponse
 	// given a list of course ids.
@@ -33,82 +36,6 @@ type MoodleAPI interface {
 
 	// QueryUserCourseIds returns the ids for the moodle courses available to a given user's account.
 	QueryUserCourseIds(ctx context.Context, accountId int64) ([]int64, error)
-}
-
-const email_suffix = "@warriorlife.net"
-
-// this removes potential formatting inconsistencies from user input (extra spaces,
-// capitalization, adding @warriorlife.net to the end of the username)
-func normalizeMoodleUsername(moodleUsername string) string {
-	username := moodleUsername
-	username = strings.Trim(username, " \n\t")
-	username = strings.ToLower(username)
-	if strings.HasSuffix(username, email_suffix) {
-		username = username[:len(username)-len(email_suffix)]
-	}
-	return username
-}
-
-// LoginMoodle implements the protobuf method.
-func (s MoodleService) LoginMoodle(ctx context.Context, req *connect.Request[publicv1.LoginMoodleRequest]) (*connect.Response[publicv1.LoginMoodleResponse], error) {
-	username := normalizeMoodleUsername(req.Msg.GetUsername())
-	password := req.Msg.GetPassword()
-
-	err := s.api.TestLogin(ctx, username, password)
-	if err != nil {
-		if !strings.Contains(err.Error(), "invalid username or password") {
-			s.tel.ReportBroken(report_moodle_login, err, username, password)
-		}
-		return nil, err
-	}
-
-	tx, discard, commit := s.makeTx()
-	defer discard()
-
-	moodleAccountId, err := tx.AddMoodleAccount(ctx, username)
-	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "AddMoodleAccount", username, password)
-		return nil, err
-	}
-
-	token, err := s.rand.GenerateToken()
-	if err != nil {
-		s.tel.ReportBroken(report_rand_token_generation, err)
-		return nil, err
-	}
-
-	err = tx.CreateMoodleToken(ctx, db.CreateMoodleTokenParams{
-		Token: token,
-		MoodleAccountID: sql.NullInt64{
-			Int64: moodleAccountId,
-			Valid: true,
-		},
-	})
-	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "CreateMoodleToken", moodleAccountId, token)
-		return nil, err
-	}
-
-	commit()
-
-	err = s.api.ScrapeUser(ctx, moodleAccountId)
-	if err != nil {
-		s.tel.ReportBroken(report_moodle_scrape_user, err, username, password)
-		return nil, err
-	}
-
-	userCount, err := s.db.GetMoodleUserCount(ctx)
-	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "GetMoodleUserCount")
-	} else {
-		s.tel.ReportCount(report_moodle_user_count, userCount)
-	}
-
-	return &connect.Response[publicv1.LoginMoodleResponse]{
-		Msg: &publicv1.LoginMoodleResponse{
-			Token: token,
-		},
-	}, nil
 }
 
 var unauthorizedError = fmt.Errorf("unauthorized")

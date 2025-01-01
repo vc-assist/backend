@@ -7,12 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/components/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -21,6 +21,7 @@ const (
 	report_postprocess_scrape_user             = "postprocess.scrape-user"
 	report_postprocess_scrape_chapter          = "postprocess.scrape-chapter"
 	report_postprocess_scrape_book             = "postprocess.scrape-book"
+	report_postprocess_scrape_section          = "postprocess.scrape-section"
 	report_postprocess_scrape_course           = "postprocess.scrape-course"
 	report_postprocess_scrape_dashboard        = "postprocess.scrape-dashboard"
 	report_postprocess_resolve_workaround_link = "postprocess.resolve-workaround-link"
@@ -50,7 +51,14 @@ func (s Scraper) scrapeAllMoodle(ctx context.Context) error {
 		return err
 	}
 
-	tx, discard, commit := s.makeTx()
+	tx, discard, commit, err := s.makeTx()
+	if err != nil {
+		s.tel.ReportBroken(
+			report_db_query,
+			fmt.Errorf("make tx: %w", err),
+		)
+		return err
+	}
 	defer discard()
 
 	err = tx.DeleteAllMoodleChapters(ctx)
@@ -75,15 +83,15 @@ func (s Scraper) scrapeAllMoodle(ctx context.Context) error {
 	}
 
 	r := scrapeReq{
-		Scraper: s,
-		client:  client,
-		wg:      &sync.WaitGroup{},
+		tel:    s.tel,
+		tx:     tx,
+		client: client,
+		wg:     &sync.WaitGroup{},
 	}
 	r.Start(ctx)
 	r.wg.Wait()
 
-	commit()
-	return nil
+	return commit()
 }
 
 func (s Scraper) scrapeUser(ctx context.Context, accountId int64, username, password string) error {
@@ -103,7 +111,14 @@ func (s Scraper) scrapeUser(ctx context.Context, accountId int64, username, pass
 		return err
 	}
 
-	tx, discard, commit := s.makeTx()
+	tx, discard, commit, err := s.makeTx()
+	if err != nil {
+		s.tel.ReportBroken(
+			report_db_query,
+			fmt.Errorf("make tx: %w", err),
+		)
+		return err
+	}
 	defer discard()
 
 	for _, c := range courses {
@@ -137,10 +152,7 @@ func (s Scraper) scrapeUser(ctx context.Context, accountId int64, username, pass
 }
 
 func (s Scraper) scrapeAllMoodleUsers(ctx context.Context) error {
-	tx, discard, commit := s.makeTx()
-	defer discard()
-
-	accounts, err := tx.GetAllMoodleAccounts(ctx)
+	accounts, err := s.db.GetAllMoodleAccounts(ctx)
 	if err != nil {
 		s.tel.ReportBroken(report_db_query, err, "GetAllMoodleAccounts")
 		return err
@@ -154,8 +166,6 @@ func (s Scraper) scrapeAllMoodleUsers(ctx context.Context) error {
 		}()
 	}
 	wg.Wait()
-
-	commit()
 
 	return nil
 }
@@ -184,10 +194,17 @@ func (s Scraper) ScrapeAll(ctx context.Context) error {
 	return s.scrapeAllMoodleUsers(ctx)
 }
 
-func (s Scraper) resolveWorkaroundLink(ctx context.Context, client *client, link string) (string, error) {
+type scrapeReq struct {
+	tel    telemetry.API
+	tx     *db.Queries
+	client *client
+	wg     *sync.WaitGroup
+}
+
+func (r scrapeReq) resolveWorkaroundLink(ctx context.Context, client *client, link string) (string, error) {
 	if !strings.Contains(link, client.Http.BaseURL) ||
 		!(strings.Contains(link, "/mod/url") || strings.Contains(link, "/mod/resource")) {
-		s.tel.ReportDebug("skipped workaround link resolution", link)
+		r.tel.ReportDebug("skipped workaround link resolution", link)
 		return link, nil
 	}
 
@@ -195,36 +212,30 @@ func (s Scraper) resolveWorkaroundLink(ctx context.Context, client *client, link
 		SetContext(ctx).
 		Get(link)
 	if err != nil {
-		s.tel.ReportBroken(report_postprocess_resolve_workaround_link, fmt.Errorf("fetch: %w", err))
+		r.tel.ReportBroken(report_postprocess_resolve_workaround_link, fmt.Errorf("fetch: %w", err))
 		return "", err
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res.Body()))
 	if err != nil {
-		s.tel.ReportBroken(report_postprocess_resolve_workaround_link, fmt.Errorf("parse: %w", err))
+		r.tel.ReportBroken(report_postprocess_resolve_workaround_link, fmt.Errorf("parse: %w", err))
 		return "", err
 	}
 
 	proxied, ok := doc.Find("div.resourceworkaround a").Attr("href")
 	if ok {
-		s.tel.ReportDebug("resolved workaround link", proxied)
+		r.tel.ReportDebug("resolved workaround link", proxied)
 		return proxied, nil
 	}
 	proxied, ok = doc.Find("div.urlworkaround a").Attr("href")
 	if ok {
-		s.tel.ReportDebug("resolved workaround link", proxied)
+		r.tel.ReportDebug("resolved workaround link", proxied)
 		return proxied, nil
 	}
 
 	err = fmt.Errorf("resolve workaround link: could not find target anchor for '%s'", link)
-	s.tel.ReportWarning(report_postprocess_resolve_workaround_link, err, link)
+	r.tel.ReportWarning(report_postprocess_resolve_workaround_link, err, link)
 
 	return "", err
-}
-
-type scrapeReq struct {
-	Scraper
-	client *client
-	wg     *sync.WaitGroup
 }
 
 func (r scrapeReq) handleResource(ctx context.Context, resource Resource, resourceIdx, sectionIdx, courseId int64) {
@@ -307,7 +318,7 @@ func (r scrapeReq) handleResource(ctx context.Context, resource Resource, resour
 		return
 	}
 
-	err = r.db.AddMoodleResource(ctx, params)
+	err = r.tx.AddMoodleResource(ctx, params)
 	if err != nil {
 		r.tel.ReportBroken(
 			report_db_query,
@@ -340,7 +351,7 @@ func (r scrapeReq) scrapeChapter(ctx context.Context, chapter Chapter, courseId,
 		return
 	}
 
-	err = r.db.AddMoodleChapter(ctx, db.AddMoodleChapterParams{
+	err = r.tx.AddMoodleChapter(ctx, db.AddMoodleChapterParams{
 		CourseID:    courseId,
 		SectionIdx:  sectionIdx,
 		ResourceIdx: resourceIdx,
@@ -365,6 +376,12 @@ func (r scrapeReq) scrapeBook(ctx context.Context, resource Resource, courseId, 
 		r.tel.ReportBroken(report_postprocess_scrape_book, err)
 		return
 	}
+	if len(chapterList) == 0 {
+		r.tel.ReportWarning(
+			report_client_get_chapters,
+			fmt.Errorf("get chapters: no chapters found in '%s' (%s)", resource.Name, resource.Url),
+		)
+	}
 
 	for _, chapter := range chapterList {
 		r.wg.Add(1)
@@ -376,21 +393,30 @@ func (r scrapeReq) scrapeBook(ctx context.Context, resource Resource, courseId, 
 }
 
 func (r scrapeReq) scrapeSection(ctx context.Context, section Section, sectionIdx, courseId int64) error {
-	slog.DebugContext(ctx, "scraping section", "idx", sectionIdx, "course_id", courseId)
+	r.tel.ReportDebug("scraping section", section.Name, section.Url)
 
-	err := r.db.AddMoodleSection(ctx, db.AddMoodleSectionParams{
+	err := r.tx.AddMoodleSection(ctx, db.AddMoodleSectionParams{
 		CourseID: courseId,
 		Idx:      sectionIdx,
 		Name:     section.Name,
 	})
 	if err != nil {
+		r.tel.ReportBroken(report_db_query, "AddMoodleSection", err)
 		return err
 	}
 
 	resourceList, err := r.client.Resources(ctx, section)
 	if err != nil {
+		r.tel.ReportBroken(report_postprocess_scrape_section, err)
 		return err
 	}
+	if len(resourceList) == 0 {
+		r.tel.ReportWarning(
+			report_client_get_resources,
+			fmt.Errorf("get resources: no resources found in '%s' (%s)", section.Name, section.Url),
+		)
+	}
+
 	for i, resource := range resourceList {
 		r.wg.Add(1)
 		go func() {
@@ -408,9 +434,10 @@ func (r scrapeReq) scrapeCourse(ctx context.Context, course Course) {
 		r.tel.ReportBroken(report_postprocess_scrape_course, course.Url, course.Name)
 		return
 	}
+
 	r.tel.ReportDebug("scraping course", id, course.Name)
 
-	err = r.db.AddMoodleCourse(ctx, db.AddMoodleCourseParams{
+	err = r.tx.AddMoodleCourse(ctx, db.AddMoodleCourseParams{
 		ID:   id,
 		Name: course.Name,
 	})
@@ -424,6 +451,13 @@ func (r scrapeReq) scrapeCourse(ctx context.Context, course Course) {
 		r.tel.ReportBroken(report_postprocess_scrape_course, err)
 		return
 	}
+	if len(sectionList) == 0 {
+		r.tel.ReportWarning(
+			report_client_get_sections,
+			fmt.Errorf("get sections: no sections found in '%s' (%d)", course.Name, course.Id),
+		)
+	}
+
 	for i, section := range sectionList {
 		r.wg.Add(1)
 		go func() {
@@ -441,6 +475,13 @@ func (r scrapeReq) Start(ctx context.Context) {
 		r.tel.ReportBroken(report_postprocess_scrape_dashboard, err)
 		return
 	}
+	if len(courseList) == 0 {
+		r.tel.ReportBroken(
+			report_client_get_courses,
+			fmt.Errorf("get courses: no courses found for user '%s'", r.adminUser),
+		)
+	}
+
 	for _, course := range courseList {
 		r.wg.Add(1)
 		go func() {

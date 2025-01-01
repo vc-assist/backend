@@ -31,6 +31,8 @@ const (
 	report_client_get_resources           = "client.get-resources"
 	report_client_get_chapters            = "client.get-chapters"
 	report_client_get_chapter_content     = "client.get-chapter-content"
+
+	report_ratelimiter_wait = "ratelimiter.wait"
 )
 
 type client struct {
@@ -43,8 +45,6 @@ type client struct {
 
 func newClient(baseUrl string, tel telemetry.API) (*client, error) {
 	assert.NotNil(tel)
-
-	tel = telemetry.NewScopedAPI("moodle_scraper", tel)
 
 	parsedBaseUrl, err := url.Parse(baseUrl)
 	if err != nil {
@@ -70,6 +70,7 @@ func newClient(baseUrl string, tel telemetry.API) (*client, error) {
 	httpClient.OnBeforeRequest(func(_ *resty.Client, req *resty.Request) error {
 		err = rateLimiter.Wait(req.Context())
 		if err != nil {
+			tel.ReportBroken(report_ratelimiter_wait, err)
 			return err
 		}
 		return nil

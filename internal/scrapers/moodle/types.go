@@ -15,13 +15,10 @@ const (
 	report_db_query = "db.query"
 )
 
-// MakeTx is a function that creates a db transaction
-type MakeTx = func() (tx *db.Queries, discard, commit func())
-
 // Scraper scrapes moodle.
 type Scraper struct {
 	db        *db.Queries
-	makeTx    MakeTx
+	makeTx    db.MakeTx
 	tel       telemetry.API
 	chrono    chrono.API
 	adminUser string
@@ -30,7 +27,7 @@ type Scraper struct {
 
 func NewScraper(
 	db *db.Queries,
-	makeTx MakeTx,
+	makeTx db.MakeTx,
 	chrono chrono.API,
 	tel telemetry.API,
 	adminUser, adminPass string,

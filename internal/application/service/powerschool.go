@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
-	"database/sql"
-	"strings"
 	powerschoolv1 "vcassist-backend/api/vcassist/powerschool/v1"
-	publicv1 "vcassist-backend/api/vcassist/public/v1"
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/components/telemetry"
 
 	"connectrpc.com/connect"
+)
+
+const (
+	report_ps_user_count  = "powerschool.user-count"
+	report_ps_get_email   = "powerschool.get-email"
+	report_ps_scrape_user = "powerschool.scrape-user"
+	report_ps_query_data  = "powerschool.query-data"
 )
 
 // PowerschoolAPI describes all the powerschool scraping methods (no scraping logic is in the service so the
@@ -20,69 +24,8 @@ type PowerschoolAPI interface {
 	// ScrapeUser scrapes a specific user and updates its cache.
 	ScrapeUser(ctx context.Context, accountId int64) error
 
-	// GetEmail gets the email associated with a token (if this succeeds this implies the token is valid).
-	GetEmail(ctx context.Context, token string) (email string, err error)
-
 	// QueryData reads the cached data for a given user.
 	QueryData(ctx context.Context, accountId int64) (*powerschoolv1.DataResponse, error)
-}
-
-func normalizePSEmail(email string) string {
-	email = strings.Trim(email, " \t\n")
-	email = strings.ToLower(email)
-	return email
-}
-
-// LoginPowerschool implements the protobuf method.
-func (s PowerschoolService) LoginPowerschool(ctx context.Context, req *connect.Request[publicv1.LoginPowerschoolRequest]) (*connect.Response[publicv1.LoginPowerschoolResponse], error) {
-	email, err := s.api.GetEmail(ctx, req.Msg.GetToken())
-	if err != nil {
-		s.tel.ReportBroken(report_ps_get_email, err, req.Msg.GetToken())
-		return nil, err
-	}
-	email = normalizePSEmail(email)
-
-	tx, discard, commit := s.makeTx()
-	defer discard()
-
-	psAccountId, err := tx.AddPSAccount(ctx, email)
-	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "SetPSCred")
-		return nil, err
-	}
-
-	token, err := s.rand.GenerateToken()
-	if err != nil {
-		s.tel.ReportBroken(report_rand_token_generation, err)
-		return nil, err
-	}
-
-	err = tx.CreatePSToken(ctx, db.CreatePSTokenParams{
-		Token: token,
-		PowerschoolAccountID: sql.NullInt64{
-			Int64: psAccountId,
-			Valid: true,
-		},
-	})
-	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "CreatePSToken", psAccountId, token)
-		return nil, err
-	}
-
-	commit()
-
-	userCount, err := s.db.GetPSUserCount(ctx)
-	if err != nil {
-		s.tel.ReportBroken(report_db_query, err, "GetPSUserCount")
-	} else {
-		s.tel.ReportCount(report_ps_user_count, userCount)
-	}
-
-	return &connect.Response[publicv1.LoginPowerschoolResponse]{
-		Msg: &publicv1.LoginPowerschoolResponse{
-			Token: token,
-		},
-	}, nil
 }
 
 // Refresh implements the protobuf method.

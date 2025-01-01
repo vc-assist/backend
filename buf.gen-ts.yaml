@@ -9,5 +9,7 @@ plugins:
 inputs:
   - directory: api
     paths:
+      - ./api/openid
+      - ./api/vcassist/public
       - ./api/vcassist/moodle
       - ./api/vcassist/powerschool

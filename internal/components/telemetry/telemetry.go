@@ -43,16 +43,13 @@ type API interface {
 	ReportWarning(id string, params ...any)
 
 	// ReportDebug reports some debug information that will be ignored in production
-	ReportDebug(message string, params ...any)
+	ReportDebug(msg string, params ...any)
 
 	// ReportCount reports the current count of a specific event at the current time, these counts should
 	// not be summed but interpreted as points of data over time.
 	//
 	// For what value to provide as `id` refer to ReportBroken.
 	ReportCount(id string, count int64)
-
-	// StoreLongMessage stores a long string and returns an id that can be used to referred to it
-	StoreLongMessage(message string) (id string)
 }
 
 // ScopedAPI is a telemetry API that attaches a namespace for a given API, kind of like creating a
@@ -68,21 +65,17 @@ func NewScopedAPI(namespace string, inner API) ScopedAPI {
 }
 
 func (s ScopedAPI) ReportBroken(id string, params ...any) {
-	s.inner.ReportBroken(fmt.Sprintf("%s:%s", s.namespace, id), params...)
+	s.inner.ReportBroken(fmt.Sprintf("%s: %s", s.namespace, id), params...)
 }
 
 func (s ScopedAPI) ReportWarning(id string, params ...any) {
-	s.inner.ReportWarning(fmt.Sprintf("%s:%s", s.namespace, id), params...)
+	s.inner.ReportWarning(fmt.Sprintf("%s: %s", s.namespace, id), params...)
 }
 
-func (s ScopedAPI) ReportDebug(id string, params ...any) {
-	s.inner.ReportDebug(fmt.Sprintf("%s:%s", s.namespace, id), params...)
+func (s ScopedAPI) ReportDebug(msg string, params ...any) {
+	s.inner.ReportDebug(fmt.Sprintf("%s: %s", s.namespace, msg), params...)
 }
 
 func (s ScopedAPI) ReportCount(id string, count int64) {
-	s.inner.ReportCount(fmt.Sprintf("%s:%s", s.namespace, id), count)
-}
-
-func (s ScopedAPI) StoreLongMessage(message string) (id string) {
-	return s.inner.StoreLongMessage(message)
+	s.inner.ReportCount(fmt.Sprintf("%s: %s", s.namespace, id), count)
 }

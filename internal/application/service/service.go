@@ -4,8 +4,14 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"vcassist-backend/internal/components/assert"
+	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/components/telemetry"
+)
+
+const (
+	report_db_query              = "db.query"
+	report_rand_token_generation = "rand.token-generation"
 )
 
 // RandomAPI is an abstraction over any code that potentially generates random values.
@@ -27,28 +33,9 @@ func (defaultRandomAPI) GenerateToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(nonce), nil
 }
 
-const (
-	report_moodle_user_count            = "moodle.user-count"
-	report_moodle_login                 = "moodle.login"
-	report_moodle_scrape_user           = "moodle.scrape-user"
-	report_moodle_query_user_course_ids = "moodle.query-user-course-ids"
-	report_moodle_query_lesson_plans    = "moodle.query-lesson-plans"
-	report_moodle_query_chapter_content = "moodle.query-chapter-content"
-
-	report_ps_user_count  = "powerschool.user-count"
-	report_ps_get_email   = "powerschool.get-email"
-	report_ps_scrape_user = "powerschool.scrape-user"
-	report_ps_query_data  = "powerschool.query-data"
-
-	report_db_query              = "db.query"
-	report_rand_token_generation = "rand.token-generation"
-)
-
-type MakeTx = func() (tx *db.Queries, discard, commit func())
-
 type coreAPIs struct {
 	db     *db.Queries
-	makeTx MakeTx
+	makeTx db.MakeTx
 	rand   RandomAPI
 	tel    telemetry.API
 }
@@ -56,7 +43,7 @@ type coreAPIs struct {
 // NewCoreAPIs initializes a collection of common APIs all services need to run.
 func NewCoreAPIs(
 	db *db.Queries,
-	makeTx MakeTx,
+	makeTx db.MakeTx,
 	tel telemetry.API,
 	options ...CoreAPIsOption,
 ) coreAPIs {
@@ -113,11 +100,19 @@ type PowerschoolService struct {
 // PublicService vcassist.public.v1.PublicService
 type PublicService struct {
 	coreAPIs
+
+	api    PublicAPI
+	chrono chrono.API
 }
 
 // NewPublicService creates a PublicService
-func NewPublicService(coreAPIs coreAPIs) PublicService {
-	return PublicService{coreAPIs: coreAPIs}
+func NewPublicService(coreAPIs coreAPIs, chrono chrono.API) PublicService {
+	assert.NotNil(chrono)
+
+	return PublicService{
+		coreAPIs: coreAPIs,
+		chrono:   chrono,
+	}
 }
 
 // NewMoodleService creates a MoodleService
@@ -133,7 +128,11 @@ func NewMoodleService(coreAPIs coreAPIs, api MoodleAPI, ctxKey any) MoodleServic
 }
 
 // NewPowerschoolService creates a PowerschoolService
-func NewPowerschoolService(coreAPIs coreAPIs, api PowerschoolAPI, ctxKey any) PowerschoolService {
+func NewPowerschoolService(
+	coreAPIs coreAPIs,
+	api PowerschoolAPI,
+	ctxKey any,
+) PowerschoolService {
 	assert.NotNil(api)
 	assert.NotNil(ctxKey)
 

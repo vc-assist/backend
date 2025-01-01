@@ -7,11 +7,9 @@
 -- *** ACCOUNTS ***
 
 -- name: AddMoodleAccount :one
-insert into moodle_account(username) values (?)
--- technically this is a useless update, but on "conflict do nothing" will not
--- return anything when a conflict is encountered so on "conflict do update" is
--- needed to have the updated/inserted row's id returned
-on conflict do update set username = excluded.username
+insert into moodle_account(username, password) values (?, ?)
+on conflict do update set
+    password = excluded.password
 returning id;
 
 -- name: CreateMoodleToken :exec
@@ -36,8 +34,11 @@ select * from moodle_account;
 select count(*) from moodle_account;
 
 -- name: AddPSAccount :one
-insert into powerschool_account(email) values (?)
-on conflict do update set email = excluded.email
+insert into powerschool_account(email, access_token, refresh_token, expires_at) values (?, ?, ?, ?)
+on conflict do update set
+    access_token = excluded.access_token,
+    refresh_token = excluded.refresh_token,
+    expires_at = excluded.expires_at
 returning id;
 
 -- name: CreatePSToken :exec

@@ -63,10 +63,11 @@ type MoodleUserCourse struct {
 }
 
 type PowerschoolAccount struct {
-	ID        int64
-	Email     string
-	Token     string
-	ExpiresAt int64
+	ID           int64
+	Email        string
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    time.Time
 }
 
 type PowerschoolDataCache struct {

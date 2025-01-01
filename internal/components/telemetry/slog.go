@@ -3,19 +3,34 @@ package telemetry
 import (
 	"fmt"
 	"log/slog"
-	"sync/atomic"
+	"os"
+
+	"github.com/lmittmann/tint"
 )
 
 // SlogAPI implements API using the log/slog package.
 type SlogAPI struct {
+	logger    *slog.Logger
 	idcounter *uint64
+}
+
+func NewSlogAPI(level slog.Level) SlogAPI {
+	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		Level: level,
+	}))
+
+	var idcounter uint64
+	return SlogAPI{
+		idcounter: &idcounter,
+		logger:    logger,
+	}
 }
 
 func (SlogAPI) formatParams(out *[]any, params []any) {
 	for i, p := range params {
 		*out = append(
 			*out,
-			fmt.Sprintf("params.%d", i),
+			fmt.Sprintf("param.%d", i),
 			p,
 		)
 	}
@@ -24,32 +39,21 @@ func (SlogAPI) formatParams(out *[]any, params []any) {
 func (s SlogAPI) ReportBroken(id string, params ...any) {
 	remainingPairs := []any{"id", id}
 	s.formatParams(&remainingPairs, params)
-	slog.Error("broken component", remainingPairs...)
+	s.logger.Error("broken component", remainingPairs...)
 }
 
 func (s SlogAPI) ReportWarning(id string, params ...any) {
 	remainingPairs := []any{"id", id}
 	s.formatParams(&remainingPairs, params)
-	slog.Warn("warning", remainingPairs...)
+	s.logger.Warn("warning", remainingPairs...)
 }
 
 func (s SlogAPI) ReportDebug(message string, params ...any) {
 	remainingPairs := []any{}
 	s.formatParams(&remainingPairs, params)
-	slog.Debug(message, remainingPairs...)
+	s.logger.Debug(message, remainingPairs...)
 }
 
 func (s SlogAPI) ReportCount(id string, count int64) {
-	slog.Info("count", "id", id, "n", count)
-}
-
-func (s SlogAPI) StoreLongMessage(message string) (id string) {
-	if s.idcounter == nil {
-		var idcounter uint64
-		s.idcounter = &idcounter
-	}
-
-	idNo := atomic.AddUint64(s.idcounter, 1)
-	slog.Debug(message, "id", idNo)
-	return fmt.Sprint(id)
+	s.logger.Info("count", "id", id, "n", count)
 }

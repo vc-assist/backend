@@ -69,14 +69,11 @@ func (i instrumentResty) onAfterResponse(_ *resty.Client, res *resty.Response) e
 
 	duration := end.Sub(reqCtx.startTime)
 
-	messageId := i.tel.StoreLongMessage(formatHttpMessage(res))
-
 	i.tel.ReportDebug(
 		report_resty_response,
 		reqCtx.id,
 		duration.String(),
 		res.Status(),
-		fmt.Sprintf("details at: %s", messageId),
 	)
 
 	return nil
@@ -93,14 +90,12 @@ func (i instrumentResty) onError(req *resty.Request, err error) {
 
 	duration := end.Sub(reqCtx.startTime)
 
-	reqDetailId := i.tel.StoreLongMessage(formatHttpRequest(req))
 	i.tel.ReportBroken(
 		report_resty_response,
 		err,
 		req.Method,
 		req.URL,
 		duration,
-		fmt.Sprintf("details at: %s", reqDetailId),
 	)
 }
 
