@@ -8,7 +8,7 @@ import (
 	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/components/telemetry"
-	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/pkg/htmlutil"
 )
 
 const (

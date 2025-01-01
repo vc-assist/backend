@@ -13,8 +13,6 @@ import (
 	"time"
 	powerschoolv1 "vcassist-backend/api/vcassist/powerschool/v1"
 	"vcassist-backend/internal/components/db"
-	"vcassist-backend/lib/textutil"
-	"vcassist-backend/lib/timezone"
 
 	"github.com/go-resty/resty/v2"
 	"google.golang.org/protobuf/proto"
@@ -41,6 +39,20 @@ const (
 	report_snapshot_make_snapshot = "snapshot.make-snapshot"
 )
 
+var whitespaceRegex = regexp.MustCompile(`\s+`)
+
+func matchName(name string, matchers []string) bool {
+	name = strings.ToLower(name)
+	name = strings.Trim(name, " \n\t")
+	name = whitespaceRegex.ReplaceAllString(name, "")
+	for _, m := range matchers {
+		if strings.Contains(name, m) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p Powerschool) createPSClient(ctx context.Context, token string) (*client, error) {
 	client, err := newClient(powerschool_base_url, p.tel)
 	if err != nil {
@@ -53,6 +65,13 @@ func (p Powerschool) createPSClient(ctx context.Context, token string) (*client,
 		return nil, err
 	}
 	return client, nil
+}
+
+func (p Powerschool) getCurrentWeek() (start time.Time, end time.Time) {
+	now := p.chrono.Now()
+	start = now.Add(-time.Hour * 24 * time.Duration(now.Weekday()))
+	end = now.Add(time.Hour * 24 * time.Duration(time.Saturday-now.Weekday()))
+	return start, end
 }
 
 func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) error {
@@ -89,7 +108,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 	for i, c := range studentData.Student.Courses {
 		guids[i] = c.Guid
 	}
-	start, stop := timezone.GetCurrentWeek(timezone.Now())
+	start, stop := p.getCurrentWeek()
 
 	p.tel.ReportDebug(
 		report_ps_coursemeeting_range,
@@ -271,7 +290,7 @@ func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []c
 			currentDay = matches[2]
 		}
 
-		now := timezone.Now().Unix()
+		now := p.chrono.Now().Unix()
 		var overallGrade int64 = -1
 		for _, term := range course.Terms {
 			start, err := decodeTimestamp(term.Start)
@@ -304,7 +323,7 @@ func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []c
 		var categories []string
 		var assignments []*powerschoolv1.AssignmentData
 		for _, assign := range course.Assignments {
-			if textutil.MatchName(assign.Title, psHomeworkPassKeywords) && assign.PointsEarned != nil {
+			if matchName(assign.Title, psHomeworkPassKeywords) && assign.PointsEarned != nil {
 				homeworkPasses = int(*assign.PointsEarned)
 				continue
 			}

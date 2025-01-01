@@ -1,4 +1,4 @@
-package sqliteutil
+package migrations
 
 import (
 	"database/sql"

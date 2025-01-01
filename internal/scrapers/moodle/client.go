@@ -15,7 +15,7 @@ import (
 	"time"
 	"vcassist-backend/internal/components/assert"
 	"vcassist-backend/internal/components/telemetry"
-	"vcassist-backend/lib/htmlutil"
+	"vcassist-backend/pkg/htmlutil"
 
 	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"
 	"github.com/PuerkitoBio/goquery"

@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
 	"vcassist-backend/services/linker"
@@ -18,7 +18,7 @@ type LinkerConfig struct {
 }
 
 func InitLinker(mux *http.ServeMux, cfg LinkerConfig) (linkerv1connect.InstrumentedLinkerServiceClient, error) {
-	db, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
+	db, err := migrations.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return linkerv1connect.NewInstrumentedLinkerServiceClient(nil), err
 	}

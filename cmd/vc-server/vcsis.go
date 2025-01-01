@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 	gradestoredb "vcassist-backend/lib/gradestore/db"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/proto/vcassist/services/linker/v1/linkerv1connect"
@@ -37,7 +37,7 @@ func InitVCSis(
 	keychain keychainv1connect.KeychainServiceClient,
 	linker linkerv1connect.LinkerServiceClient,
 ) error {
-	database, err := sqliteutil.OpenDB(
+	database, err := migrations.OpenDB(
 		vcsisdb.Schema+"\n"+gradestoredb.Schema,
 		cfg.Database,
 	)

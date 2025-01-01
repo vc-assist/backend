@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 	"vcassist-backend/internal/components/assert"
+	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/components/telemetry"
 )
@@ -36,6 +37,7 @@ type SnapshotAPI interface {
 type Powerschool struct {
 	db       *db.Queries
 	tel      telemetry.API
+	chrono   chrono.API
 	weights  WeightsAPI
 	snapshot SnapshotAPI
 }
@@ -43,11 +45,13 @@ type Powerschool struct {
 func NewPowerschool(
 	db *db.Queries,
 	tel telemetry.API,
+	chrono chrono.API,
 	weights WeightsAPI,
 	snapshot SnapshotAPI,
 ) Powerschool {
 	assert.NotNil(db)
 	assert.NotNil(tel)
+	assert.NotNil(chrono)
 	assert.NotNil(weights)
 	assert.NotNil(snapshot)
 
@@ -56,6 +60,7 @@ func NewPowerschool(
 	return Powerschool{
 		db:       db,
 		tel:      tel,
+		chrono:   chrono,
 		weights:  weights,
 		snapshot: snapshot,
 	}

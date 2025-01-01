@@ -7,7 +7,7 @@ import (
 	"time"
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/lib/timezone"
 	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
@@ -67,7 +67,7 @@ func vcmoodleScrapeWorker(ctx context.Context, db *sql.DB, username, password st
 func InitVCMoodleScraper(ctx context.Context, cfg VCMoodleScraperConfig, initialScrape *bool) error {
 	return nil
 
-	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
+	database, err := migrations.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return err
 	}
