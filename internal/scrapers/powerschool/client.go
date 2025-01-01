@@ -7,7 +7,6 @@ import (
 	"net/http/cookiejar"
 	"time"
 	"vcassist-backend/internal/components/telemetry"
-	"vcassist-backend/lib/oauth"
 
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/time/rate"
@@ -50,10 +49,19 @@ func newClient(baseUrl string, tel telemetry.API) (*client, error) {
 	return &client{http: httpClient, tel: tel}, nil
 }
 
+type openIdToken struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+	IdToken      string `json:"id_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	Scope        string `json:"scope"`
+	TokenType    string `json:"token_type"`
+}
+
 func (c *client) LoginOAuth(ctx context.Context, token string) error {
 	c.tel.ReportDebug(report_client_login_oauth, token)
 
-	var openidToken oauth.OpenIdToken
+	var openidToken openIdToken
 	err := json.Unmarshal([]byte(token), &openidToken)
 	if err != nil {
 		c.tel.ReportBroken(

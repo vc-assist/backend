@@ -74,7 +74,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 	}
 
 	psStudent := allStudents.Profiles[0]
-	studentData, err := client.GetStudentData(ctx, GetStudentDataRequest{
+	studentData, err := client.GetStudentData(ctx, getStudentDataRequest{
 		Guid: psStudent.Guid,
 	})
 	if err != nil {
@@ -96,7 +96,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 		fmt.Sprintf("start: %v", start),
 		fmt.Sprintf("stop: %v", stop),
 	)
-	req := GetCourseMeetingListRequest{
+	req := getCourseMeetingListRequest{
 		CourseGuids: guids,
 		Start:       start.Format(time.RFC3339),
 		Stop:        stop.Format(time.RFC3339),
@@ -143,7 +143,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 // that it is a string with a distinction marker
 const ps_distinction_marker = "​"
 
-func (p Powerschool) applyDisambiguation(courseData []CourseData) {
+func (p Powerschool) applyDisambiguation(courseData []courseData) {
 	for i, src := range courseData {
 		if strings.HasSuffix(src.Name, ps_distinction_marker) {
 			continue
@@ -256,7 +256,7 @@ var psHomeworkPassKeywords = []string{
 }
 var psPeriodRegex = regexp.MustCompile(`(\d+)\((.+)\)`)
 
-func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []CourseData) []*powerschoolv1.CourseData {
+func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []courseData) []*powerschoolv1.CourseData {
 	courses := make([]*powerschoolv1.CourseData, len(input))
 	for i, course := range input {
 		currentDay := ""
@@ -392,7 +392,7 @@ func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []C
 	return courses
 }
 
-func (p Powerschool) patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []CourseMeeting) {
+func (p Powerschool) patchPbCourseMeetings(out []*powerschoolv1.CourseData, input []courseMeeting) {
 	if len(out) == 0 {
 		return
 	}
@@ -433,9 +433,9 @@ func (p Powerschool) patchPbCourseMeetings(out []*powerschoolv1.CourseData, inpu
 func (p Powerschool) toPbData(
 	ctx context.Context,
 	accountId int64,
-	profile StudentProfile,
-	data *GetStudentDataResponse,
-	courseMeetings []CourseMeeting,
+	profile studentProfile,
+	data *getStudentDataResponse,
+	courseMeetings []courseMeeting,
 ) *powerschoolv1.DataResponse {
 	gpa, err := strconv.ParseFloat(profile.CurrentGpa, 32)
 	if err != nil {
