@@ -101,17 +101,17 @@ type PowerschoolService struct {
 type PublicService struct {
 	coreAPIs
 
-	api    PublicAPI
-	chrono chrono.API
+	api  PublicAPI
+	time chrono.TimeAPI
 }
 
 // NewPublicService creates a PublicService
-func NewPublicService(coreAPIs coreAPIs, chrono chrono.API) PublicService {
+func NewPublicService(coreAPIs coreAPIs, time chrono.TimeAPI) PublicService {
 	assert.NotNil(chrono)
 
 	return PublicService{
 		coreAPIs: coreAPIs,
-		chrono:   chrono,
+		time:     time,
 	}
 }
 

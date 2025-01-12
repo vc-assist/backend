@@ -20,7 +20,7 @@ type Scraper struct {
 	db        *db.Queries
 	makeTx    db.MakeTx
 	tel       telemetry.API
-	chrono    chrono.API
+	time      chrono.TimeAPI
 	adminUser string
 	adminPass string
 }
@@ -28,13 +28,13 @@ type Scraper struct {
 func NewScraper(
 	db *db.Queries,
 	makeTx db.MakeTx,
-	chrono chrono.API,
+	time chrono.TimeAPI,
 	tel telemetry.API,
 	adminUser, adminPass string,
 ) Scraper {
 	assert.NotNil(db)
 	assert.NotNil(makeTx)
-	assert.NotNil(chrono)
+	assert.NotNil(time)
 	assert.NotNil(tel)
 	assert.NotEmptyStr(adminUser)
 	assert.NotEmptyStr(adminPass)
@@ -44,7 +44,7 @@ func NewScraper(
 	return Scraper{
 		db:        db,
 		makeTx:    makeTx,
-		chrono:    chrono,
+		time:      time,
 		tel:       tel,
 		adminUser: adminUser,
 		adminPass: adminPass,

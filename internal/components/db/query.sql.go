@@ -150,10 +150,21 @@ func (q *Queries) AddMoodleUserCourse(ctx context.Context, arg AddMoodleUserCour
 }
 
 const addPSAccount = `-- name: AddPSAccount :one
-insert into powerschool_account(email, access_token, refresh_token, expires_at) values (?, ?, ?, ?)
+insert into powerschool_account(
+    email,
+    access_token,
+    refresh_token,
+    id_token,
+    token_type,
+    scope,
+    expires_at
+) values (?, ?, ?, ?, ?, ?, ?)
 on conflict do update set
     access_token = excluded.access_token,
     refresh_token = excluded.refresh_token,
+    id_token = excluded.id_token,
+    token_type = excluded.token_type,
+    scope = excluded.scope,
     expires_at = excluded.expires_at
 returning id
 `
@@ -162,6 +173,9 @@ type AddPSAccountParams struct {
 	Email        string
 	AccessToken  string
 	RefreshToken string
+	IDToken      string
+	TokenType    string
+	Scope        string
 	ExpiresAt    time.Time
 }
 
@@ -170,6 +184,9 @@ func (q *Queries) AddPSAccount(ctx context.Context, arg AddPSAccountParams) (int
 		arg.Email,
 		arg.AccessToken,
 		arg.RefreshToken,
+		arg.IDToken,
+		arg.TokenType,
+		arg.Scope,
 		arg.ExpiresAt,
 	)
 	var id int64
@@ -387,7 +404,7 @@ func (q *Queries) GetAllMoodleCourses(ctx context.Context) ([]MoodleCourse, erro
 }
 
 const getAllPSAccounts = `-- name: GetAllPSAccounts :many
-select id, email, access_token, refresh_token, expires_at from powerschool_account
+select id, email, access_token, refresh_token, id_token, token_type, scope, expires_at from powerschool_account
 `
 
 func (q *Queries) GetAllPSAccounts(ctx context.Context) ([]PowerschoolAccount, error) {
@@ -404,6 +421,9 @@ func (q *Queries) GetAllPSAccounts(ctx context.Context) ([]PowerschoolAccount, e
 			&i.Email,
 			&i.AccessToken,
 			&i.RefreshToken,
+			&i.IDToken,
+			&i.TokenType,
+			&i.Scope,
 			&i.ExpiresAt,
 		); err != nil {
 			return nil, err
@@ -683,7 +703,7 @@ func (q *Queries) GetMostRecentSnapshotSeries(ctx context.Context, arg GetMostRe
 }
 
 const getPSAccountFromId = `-- name: GetPSAccountFromId :one
-select id, email, access_token, refresh_token, expires_at from powerschool_account where id = ?
+select id, email, access_token, refresh_token, id_token, token_type, scope, expires_at from powerschool_account where id = ?
 `
 
 func (q *Queries) GetPSAccountFromId(ctx context.Context, id int64) (PowerschoolAccount, error) {
@@ -694,6 +714,9 @@ func (q *Queries) GetPSAccountFromId(ctx context.Context, id int64) (Powerschool
 		&i.Email,
 		&i.AccessToken,
 		&i.RefreshToken,
+		&i.IDToken,
+		&i.TokenType,
+		&i.Scope,
 		&i.ExpiresAt,
 	)
 	return i, err
@@ -794,6 +817,34 @@ func (q *Queries) GetSnapshotSeriesCount(ctx context.Context, id int64) (int64, 
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const getSnapshotSeriesCourseIds = `-- name: GetSnapshotSeriesCourseIds :many
+select distinct course_id from gradesnapshot_series
+where powerschool_account_id = ?
+`
+
+func (q *Queries) GetSnapshotSeriesCourseIds(ctx context.Context, powerschoolAccountID int64) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getSnapshotSeriesCourseIds, powerschoolAccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var course_id string
+		if err := rows.Scan(&course_id); err != nil {
+			return nil, err
+		}
+		items = append(items, course_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getSnapshotSeriesSnapshots = `-- name: GetSnapshotSeriesSnapshots :many

@@ -1,13 +1,11 @@
-package test
+package main
 
 import (
 	"database/sql"
 	"fmt"
 	"os"
 	"testing"
-	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
 	"vcassist-backend/pkg/migrations"
 )
 
@@ -31,10 +29,15 @@ func OpenInMemoryDB(t *testing.T) *sql.DB {
 	return dbtx
 }
 
-func OpenStdChrono(t *testing.T, tel telemetry.API) chrono.API {
-	chronoapi, err := chrono.NewStandardImpl(tel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return chronoapi
+func runTests(name string, body func(t *testing.T)) {
+	testing.Main(
+		func(pat, str string) (bool, error) {
+			return true, nil
+		},
+		[]testing.InternalTest{
+			{name, body},
+		},
+		nil,
+		nil,
+	)
 }

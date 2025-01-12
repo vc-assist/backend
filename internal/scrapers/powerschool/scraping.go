@@ -51,30 +51,22 @@ func matchName(name string, matchers []string) bool {
 	return false
 }
 
-func (p Powerschool) createPSClient(ctx context.Context, token string) (*client, error) {
-	client, err := newClient(powerschool_base_url, p.tel)
-	if err != nil {
-		p.tel.ReportBroken(report_ps_new_client, err, powerschool_base_url)
-		return nil, err
-	}
-	err = client.LoginOAuth(ctx, token)
-	if err != nil {
-		p.tel.ReportBroken(report_ps_login_oauth, err, token)
-		return nil, err
-	}
-	return client, nil
-}
-
 func (p Powerschool) getCurrentWeek() (start time.Time, end time.Time) {
-	now := p.chrono.Now()
+	now := p.time.Now()
 	start = now.Add(-time.Hour * 24 * time.Duration(now.Weekday()))
 	end = now.Add(time.Hour * 24 * time.Duration(time.Saturday-now.Weekday()))
 	return start, end
 }
 
 func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) error {
-	client, err := p.createPSClient(ctx, acc.Token)
+	client, err := newClient(powerschool_base_url, p.tel)
 	if err != nil {
+		p.tel.ReportBroken(report_ps_new_client, err, powerschool_base_url)
+		return err
+	}
+	err = client.LoginOAuth(ctx, acc.AccessToken, acc.IDToken, acc.TokenType)
+	if err != nil {
+		p.tel.ReportBroken(report_ps_login_oauth, err, acc)
 		return err
 	}
 
@@ -86,7 +78,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 	}
 	if len(allStudents.Profiles) == 0 {
 		err = fmt.Errorf("GetAllStudents: could not find student profile (credentials may be expired)")
-		p.tel.ReportBroken(report_ps_response_data, err, acc.Token)
+		p.tel.ReportBroken(report_ps_response_data, err, acc)
 		return err
 	}
 
@@ -256,7 +248,7 @@ func (p Powerschool) toPbCourses(ctx context.Context, accountId int64, input []c
 			currentDay = matches[2]
 		}
 
-		now := p.chrono.Now().Unix()
+		now := p.time.Now().Unix()
 		var overallGrade int64 = -1
 		for _, term := range course.Terms {
 			start, err := decodeTimestamp(term.Start)

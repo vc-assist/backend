@@ -34,10 +34,21 @@ select * from moodle_account;
 select count(*) from moodle_account;
 
 -- name: AddPSAccount :one
-insert into powerschool_account(email, access_token, refresh_token, expires_at) values (?, ?, ?, ?)
+insert into powerschool_account(
+    email,
+    access_token,
+    refresh_token,
+    id_token,
+    token_type,
+    scope,
+    expires_at
+) values (?, ?, ?, ?, ?, ?, ?)
 on conflict do update set
     access_token = excluded.access_token,
     refresh_token = excluded.refresh_token,
+    id_token = excluded.id_token,
+    token_type = excluded.token_type,
+    scope = excluded.scope,
     expires_at = excluded.expires_at
 returning id;
 
@@ -197,4 +208,8 @@ order by rowid asc;
 select count(gradesnapshot.value) from gradesnapshot_series
 inner join gradesnapshot on gradesnapshot_series.id = gradesnapshot.series_id
 where gradesnapshot_series.id = ?;
+
+-- name: GetSnapshotSeriesCourseIds :many
+select distinct course_id from gradesnapshot_series
+where powerschool_account_id = ?;
 

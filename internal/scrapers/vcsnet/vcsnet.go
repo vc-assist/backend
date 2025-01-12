@@ -31,16 +31,16 @@ func GetYearRange(now time.Time) (int, int) {
 }
 
 type Client struct {
-	http   *resty.Client
-	chrono chrono.API
-	tel    telemetry.API
+	http *resty.Client
+	time chrono.TimeAPI
+	tel  telemetry.API
 }
 
-func NewClient(chrono chrono.API, tel telemetry.API) Client {
+func NewClient(time chrono.TimeAPI, tel telemetry.API) Client {
 	return Client{
-		http:   resty.New(),
-		chrono: chrono,
-		tel:    tel,
+		http: resty.New(),
+		time: time,
+		tel:  tel,
 	}
 }
 
@@ -52,7 +52,7 @@ type SchoolYear struct {
 
 // GetSchoolYear gets the current school year, or if on summer break, the previous school year
 func (c Client) GetSchoolYear() SchoolYear {
-	now := c.chrono.Now()
+	now := c.time.Now()
 	year := now.Year()
 	month := now.Month()
 
@@ -61,7 +61,7 @@ func (c Client) GetSchoolYear() SchoolYear {
 		return SchoolYear{
 			StartYear: year,
 			EndYear:   year + 1,
-			StartTime: time.Date(year, 8, 1, 0, 0, 0, 0, c.chrono.Location()),
+			StartTime: time.Date(year, 8, 1, 0, 0, 0, 0, chrono.LA()),
 		}
 	}
 
@@ -69,7 +69,7 @@ func (c Client) GetSchoolYear() SchoolYear {
 	return SchoolYear{
 		StartYear: year - 1,
 		EndYear:   year,
-		StartTime: time.Date(year-1, 8, 1, 0, 0, 0, 0, c.chrono.Location()),
+		StartTime: time.Date(year-1, 8, 1, 0, 0, 0, 0, chrono.LA()),
 	}
 }
 
@@ -224,7 +224,7 @@ func (c Client) parseCalendar(ctx context.Context, link string) ([]Event, error)
 				Name: name,
 				Date: time.Date(
 					year, time.Month(month), day,
-					0, 0, 0, 0, c.chrono.Location(),
+					0, 0, 0, 0, chrono.LA(),
 				),
 			})
 		})

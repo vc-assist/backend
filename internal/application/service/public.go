@@ -127,7 +127,10 @@ func (s PublicService) LoginPowerschool(ctx context.Context, req *connect.Reques
 		Email:        email,
 		RefreshToken: req.Msg.GetToken().GetRefreshToken(),
 		AccessToken:  req.Msg.GetToken().GetAccessToken(),
-		ExpiresAt: s.chrono.Now().Add(
+		IDToken:      req.Msg.GetToken().GetIdToken(),
+		TokenType:    req.Msg.GetToken().GetTokenType(),
+		Scope:        req.Msg.GetToken().GetScope(),
+		ExpiresAt: s.time.Now().Add(
 			time.Duration(req.Msg.GetToken().GetExpiresIn()) * time.Second,
 		),
 	})

@@ -3,6 +3,7 @@ package snapshot
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 	"vcassist-backend/internal/components/assert"
@@ -19,15 +20,27 @@ type Snapshot struct {
 	db     *db.Queries
 	makeTx db.MakeTx
 	tel    telemetry.API
-	chrono chrono.API
+	time   chrono.TimeAPI
 }
 
-func NewSnapshot(db *db.Queries, makeTx db.MakeTx, tel telemetry.API) Snapshot {
+func NewSnapshot(
+	db *db.Queries,
+	makeTx db.MakeTx,
+	time chrono.TimeAPI,
+	tel telemetry.API,
+) Snapshot {
 	assert.NotNil(db)
 	assert.NotNil(makeTx)
 	assert.NotNil(tel)
 
-	return Snapshot{db: db, makeTx: makeTx, tel: tel}
+	tel = telemetry.NewScopedAPI("snapshot", tel)
+
+	return Snapshot{
+		db:     db,
+		makeTx: makeTx,
+		time:   time,
+		tel:    tel,
+	}
 }
 
 func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId string) (values []float32, times []time.Time, err error) {
@@ -47,6 +60,7 @@ func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId st
 			s.tel.ReportBroken(report_db_query, err, "GetSnapshotSeriesSnapshots", series.ID)
 			continue
 		}
+		// s.tel.ReportDebug("get snapshots", accountId, courseId, series.ID, dbSnapshots)
 		for i, value := range dbSnapshots {
 			values = append(values, float32(value))
 			times = append(times, series.StartTime.Add(time.Duration(i)*24*time.Hour))
@@ -57,13 +71,13 @@ func (s Snapshot) GetSnapshots(ctx context.Context, accountId int64, courseId st
 }
 
 func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId string, value float32) error {
-	now := s.chrono.Now()
+	now := s.time.Now()
 	startOfToday := time.Date(
 		now.Year(),
 		now.Month(),
 		now.Day(),
 		0, 0, 0, 0,
-		s.chrono.Location(),
+		chrono.LA(),
 	)
 
 	tx, discard, commit, err := s.makeTx()
@@ -92,6 +106,12 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 	latestDate := latest.StartTime.AddDate(0, 0, int(latestSnapCount))
 	timeSinceLatest := now.Sub(latestDate)
 
+	if timeSinceLatest.Seconds() < 0 {
+		s.tel.ReportDebug("skipped negative insert", now.Format(time.DateTime), accountId, courseId)
+		return fmt.Errorf("current date is before the most recent snapshot")
+	}
+
+	targetSeriesId := latest.ID
 	if timeSinceLatest >= time.Hour*24 || notFound {
 		param := db.AddSnapshotSeriesParams{
 			PowerschoolAccountID: accountId,
@@ -99,18 +119,16 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 			StartTime:            startOfToday,
 		}
 
-		_, err = tx.AddSnapshotSeries(ctx, param)
-		if err != nil {
+		targetSeriesId, err = tx.AddSnapshotSeries(ctx, param)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			s.tel.ReportBroken(report_db_query, err, "AddSnapshotSeries", param)
 			return err
 		}
-
-		commit()
-		return nil
 	}
 
+	// s.tel.ReportDebug("make snapshot", accountId, courseId, targetSeriesId, float64(value))
 	paramCreateSnap := db.CreateSnapshotParams{
-		SeriesID: latest.ID,
+		SeriesID: targetSeriesId,
 		Value:    float64(value),
 	}
 	err = tx.CreateSnapshot(ctx, paramCreateSnap)

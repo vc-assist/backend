@@ -2,47 +2,37 @@ package chrono
 
 import (
 	"fmt"
-	"time"
 	"vcassist-backend/internal/components/telemetry"
 
 	"github.com/robfig/cron/v3"
 )
 
-type API interface {
-	Now() time.Time
-	Location() *time.Location
+// CronAPI is the interface that anything depending on things to happen on a cron job should use.
+type CronAPI interface {
 	Cron(spec string, callback func()) error
 }
 
-type StandardImpl struct {
-	location *time.Location
-	cron     *cron.Cron
+// StandardCron is the standard implementation of CronAPI using `github.com/robfig/cron/v3`
+type StandardCron struct {
+	cron *cron.Cron
 }
 
-func NewStandardImpl(tel telemetry.API) (StandardImpl, error) {
-	location, err := time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		return StandardImpl{}, err
-	}
-
+// NewStandardCron is the constructor of StandardCron.
+func NewStandardCron(tel telemetry.API) StandardCron {
 	cronner := cron.New(
 		cron.WithLogger(cronLogger{tel: tel}),
-		cron.WithLocation(location),
+		cron.WithLocation(la),
 	)
 	cronner.Start()
 
-	return StandardImpl{
-		location: location,
-		cron:     cronner,
-	}, nil
+	return StandardCron{
+		cron: cronner,
+	}
 }
 
-func (s StandardImpl) Now() time.Time {
-	return s.Now().In(s.location)
-}
-
-func (s StandardImpl) Location() *time.Location {
-	return s.location
+func (s StandardCron) Cron(spec string, callback func()) error {
+	_, err := s.cron.AddFunc(spec, callback)
+	return err
 }
 
 type cronLogger struct {
@@ -73,9 +63,4 @@ func (l cronLogger) Error(err error, msg string, keysAndValues ...any) {
 		fmt.Errorf("%s: %w", msg, err),
 		l.formatParams(keysAndValues),
 	)
-}
-
-func (s StandardImpl) Cron(spec string, callback func()) error {
-	_, err := s.cron.AddFunc(spec, callback)
-	return err
 }

@@ -1,24 +1,21 @@
-package testmoodle
+package main
 
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 	"testing"
+	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
 	"vcassist-backend/internal/scrapers/moodle"
-	"vcassist-backend/test"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestMoodle(t *testing.T) {
-	username := test.MustFindEnv(t, "TEST_MOODLE_USERNAME")
-	password := test.MustFindEnv(t, "TEST_MOODLE_PASSWORD")
-	dbtx := test.OpenInMemoryDB(t)
-	tel := telemetry.NewSlogAPI(slog.LevelDebug)
+func IntegrationTestMoodle(t *testing.T) {
+	username := MustFindEnv(t, "TEST_MOODLE_USERNAME")
+	password := MustFindEnv(t, "TEST_MOODLE_PASSWORD")
+	dbtx := OpenInMemoryDB(t)
 	qry := db.New(dbtx)
 
 	tel.ReportDebug("testing moodle scraping")
@@ -26,7 +23,7 @@ func TestMoodle(t *testing.T) {
 	scraper := moodle.NewScraper(
 		qry,
 		db.NewMakeTx(dbtx),
-		test.OpenStdChrono(t, tel),
+		chrono.NewStandardTime(),
 		tel,
 		username,
 		password,

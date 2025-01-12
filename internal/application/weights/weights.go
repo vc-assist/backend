@@ -28,7 +28,7 @@ func NewWeights(db *db.Queries, tel telemetry.API) Weights {
 	assert.NotNil(db)
 	assert.NotNil(tel)
 
-	tel = telemetry.NewScopedAPI("apis", tel)
+	tel = telemetry.NewScopedAPI("weights", tel)
 
 	return Weights{db: db, tel: tel}
 }

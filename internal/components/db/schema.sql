@@ -15,6 +15,9 @@ create table powerschool_account (
     email text not null unique,
     access_token text not null,
     refresh_token text not null,
+    id_token text not null,
+    token_type text not null,
+    scope text not null,
     expires_at timestamp not null
 );
 

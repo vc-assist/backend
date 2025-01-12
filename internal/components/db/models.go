@@ -67,6 +67,9 @@ type PowerschoolAccount struct {
 	Email        string
 	AccessToken  string
 	RefreshToken string
+	IDToken      string
+	TokenType    string
+	Scope        string
 	ExpiresAt    time.Time
 }
 

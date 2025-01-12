@@ -65,17 +65,17 @@ func NewScopedAPI(namespace string, inner API) ScopedAPI {
 }
 
 func (s ScopedAPI) ReportBroken(id string, params ...any) {
-	s.inner.ReportBroken(fmt.Sprintf("%s: %s", s.namespace, id), params...)
+	s.inner.ReportBroken(fmt.Sprintf("[%s] %s", s.namespace, id), params...)
 }
 
 func (s ScopedAPI) ReportWarning(id string, params ...any) {
-	s.inner.ReportWarning(fmt.Sprintf("%s: %s", s.namespace, id), params...)
+	s.inner.ReportWarning(fmt.Sprintf("[%s] %s", s.namespace, id), params...)
 }
 
 func (s ScopedAPI) ReportDebug(msg string, params ...any) {
-	s.inner.ReportDebug(fmt.Sprintf("%s: %s", s.namespace, msg), params...)
+	s.inner.ReportDebug(fmt.Sprintf("[%s] %s", s.namespace, msg), params...)
 }
 
 func (s ScopedAPI) ReportCount(id string, count int64) {
-	s.inner.ReportCount(fmt.Sprintf("%s: %s", s.namespace, id), count)
+	s.inner.ReportCount(fmt.Sprintf("[%s] %s", s.namespace, id), count)
 }

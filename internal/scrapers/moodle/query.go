@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
+	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -47,7 +48,7 @@ func parseMonth(text string) time.Month {
 }
 
 func (s Scraper) resolveTOCMonthDay(month time.Month, day int) time.Time {
-	now := s.chrono.Now()
+	now := s.time.Now()
 	year := now.Year()
 
 	if (month >= time.August && month <= time.December) &&
@@ -59,7 +60,7 @@ func (s Scraper) resolveTOCMonthDay(month time.Month, day int) time.Time {
 		year++
 	}
 
-	return time.Date(year, month, day, 0, 0, 0, 0, s.chrono.Location())
+	return time.Date(year, month, day, 0, 0, 0, 0, chrono.LA())
 }
 
 var monthDayRegex = regexp.MustCompile(`([A-Za-z]{3,9}) *(\d{1,2})`)
@@ -203,7 +204,7 @@ func (s Scraper) QueryLessonPlans(ctx context.Context, courseIds []int64) (*mood
 			return 0
 		})
 
-		now := s.chrono.Now().Unix()
+		now := s.time.Now().Unix()
 
 		var currentChapter *moodlev1.LessonPlansResponse_Chapter
 		for _, c := range chapters {

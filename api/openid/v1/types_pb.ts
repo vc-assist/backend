@@ -21,18 +21,24 @@ export class Token extends Message<Token> {
   accessToken = "";
 
   /**
-   * string id_token = 3; // currently unused
-   *
+   * @generated from field: string id_token = 3;
+   */
+  idToken = "";
+
+  /**
    * @generated from field: int32 expires_in = 4;
    */
   expiresIn = 0;
 
   /**
-   * string token_type = 6; // currently unused
-   *
    * @generated from field: string scope = 5;
    */
   scope = "";
+
+  /**
+   * @generated from field: string token_type = 6;
+   */
+  tokenType = "";
 
   constructor(data?: PartialMessage<Token>) {
     super();
@@ -44,8 +50,10 @@ export class Token extends Message<Token> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "refresh_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "access_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "id_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "expires_in", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 5, name: "scope", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "token_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Token {

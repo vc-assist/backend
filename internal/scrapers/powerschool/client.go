@@ -58,26 +58,16 @@ type openIdToken struct {
 	TokenType    string `json:"token_type"`
 }
 
-func (c *client) LoginOAuth(ctx context.Context, token string) error {
-	c.tel.ReportDebug(report_client_login_oauth, token)
-
-	var openidToken openIdToken
-	err := json.Unmarshal([]byte(token), &openidToken)
-	if err != nil {
-		c.tel.ReportBroken(
-			report_client_login_oauth,
-			fmt.Errorf("json unmarshal: %w", err),
-		)
-		return err
-	}
+func (c *client) LoginOAuth(ctx context.Context, accessToken, idToken, tokenType string) error {
+	c.tel.ReportDebug(report_client_login_oauth, accessToken, idToken, tokenType)
 
 	c.http.
 		SetHeader("Authorization", fmt.Sprintf(
 			"%s %s",
-			openidToken.TokenType,
-			openidToken.AccessToken,
+			tokenType,
+			accessToken,
 		)).
-		SetHeader("profileUri", openidToken.IdToken).
+		SetHeader("profileUri", idToken).
 		SetHeader("ServerURL", c.http.BaseURL)
 
 	return nil

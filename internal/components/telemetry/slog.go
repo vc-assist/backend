@@ -26,6 +26,10 @@ func NewSlogAPI(level slog.Level) SlogAPI {
 	}
 }
 
+func (s SlogAPI) Logger() *slog.Logger {
+	return s.logger
+}
+
 func (SlogAPI) formatParams(out *[]any, params []any) {
 	for i, p := range params {
 		*out = append(
@@ -37,15 +41,15 @@ func (SlogAPI) formatParams(out *[]any, params []any) {
 }
 
 func (s SlogAPI) ReportBroken(id string, params ...any) {
-	remainingPairs := []any{"id", id}
+	remainingPairs := []any{}
 	s.formatParams(&remainingPairs, params)
-	s.logger.Error("broken component", remainingPairs...)
+	s.logger.Error(id, remainingPairs...)
 }
 
 func (s SlogAPI) ReportWarning(id string, params ...any) {
-	remainingPairs := []any{"id", id}
+	remainingPairs := []any{}
 	s.formatParams(&remainingPairs, params)
-	s.logger.Warn("warning", remainingPairs...)
+	s.logger.Warn(id, remainingPairs...)
 }
 
 func (s SlogAPI) ReportDebug(message string, params ...any) {

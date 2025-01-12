@@ -37,7 +37,7 @@ type SnapshotAPI interface {
 type Powerschool struct {
 	db       *db.Queries
 	tel      telemetry.API
-	chrono   chrono.API
+	time     chrono.TimeAPI
 	weights  WeightsAPI
 	snapshot SnapshotAPI
 }
@@ -45,7 +45,7 @@ type Powerschool struct {
 func NewPowerschool(
 	db *db.Queries,
 	tel telemetry.API,
-	chrono chrono.API,
+	time chrono.TimeAPI,
 	weights WeightsAPI,
 	snapshot SnapshotAPI,
 ) Powerschool {
@@ -60,7 +60,7 @@ func NewPowerschool(
 	return Powerschool{
 		db:       db,
 		tel:      tel,
-		chrono:   chrono,
+		time:     time,
 		weights:  weights,
 		snapshot: snapshot,
 	}

@@ -478,7 +478,7 @@ func (r scrapeReq) Start(ctx context.Context) {
 	if len(courseList) == 0 {
 		r.tel.ReportBroken(
 			report_client_get_courses,
-			fmt.Errorf("get courses: no courses found for user '%s'", r.adminUser),
+			fmt.Errorf("get courses: no courses found"),
 		)
 	}
 
