@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"math/rand"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -41,7 +39,8 @@ type FuzzTarget struct {
 	OnEnd func(ctx context.Context, f *FuzzResults)
 }
 
-type NewFuzzTarget = func(rndm *rand.Rand, tel telemetry.API) (FuzzTarget, error)
+// MkFuzzTarget creates a new fuzz target given the random seed generator and telemetry
+type MkFuzzTarget = func(rndm *rand.Rand, tel telemetry.API) (FuzzTarget, error)
 
 type FuzzResults struct {
 	failures []failure
@@ -69,7 +68,7 @@ func (r *FuzzResults) formatFailures() string {
 func (r *FuzzResults) formatSteps() string {
 	var out strings.Builder
 	for i, step := range r.steps {
-		out.WriteString(fmt.Sprintf("%d. %s\t", i+1, step))
+		out.WriteString(fmt.Sprintf("%d. %s | ", i+1, step))
 	}
 	return out.String()
 }
@@ -97,19 +96,21 @@ func RunFuzzPath(ctx context.Context, target FuzzTarget, rndm *rand.Rand) (*Fuzz
 }
 
 // StartFuzzTest does not block, but spawns various goroutines to start fuzz testing.
-func StartFuzzTest(ctx context.Context, newTarget NewFuzzTarget, tel telemetry.API) {
-	specificSeed := flag.Arg(1)
-	if specificSeed != "" {
-		seed, err := strconv.ParseInt(specificSeed, 10, 64)
-		if err != nil {
-			log.Error("failed to parse seed", "err", err)
-			return
-		}
+//
+//   - if useSeed < 0, it will not use the given seed
+func StartFuzzTest(
+	ctx context.Context,
+	tel telemetry.API,
+	mkTarget MkFuzzTarget,
+	useSeed int64,
+	minSteps uint64,
+	maxSteps uint64,
+) {
+	if useSeed > 0 {
+		log.Debug("running single fuzz target", "seed", useSeed)
 
-		log.Debug("running fuzz target", "seed", seed)
-
-		rndm := rand.New(rand.NewSource(int64(seed)))
-		target, err := newTarget(rndm, tel)
+		rndm := rand.New(rand.NewSource(int64(useSeed)))
+		target, err := mkTarget(rndm, tel)
 		if errors.Is(err, context.Canceled) {
 			return
 		}
@@ -157,7 +158,7 @@ func StartFuzzTest(ctx context.Context, newTarget NewFuzzTarget, tel telemetry.A
 				seed := rand.Int63()
 				rndm := rand.New(rand.NewSource(seed))
 
-				target, err := newTarget(rndm, tel)
+				target, err := mkTarget(rndm, tel)
 				if errors.Is(err, context.Canceled) {
 					return
 				}

@@ -28,16 +28,3 @@ func OpenInMemoryDB(t *testing.T) *sql.DB {
 	}
 	return dbtx
 }
-
-func runTests(name string, body func(t *testing.T)) {
-	testing.Main(
-		func(pat, str string) (bool, error) {
-			return true, nil
-		},
-		[]testing.InternalTest{
-			{name, body},
-		},
-		nil,
-		nil,
-	)
-}

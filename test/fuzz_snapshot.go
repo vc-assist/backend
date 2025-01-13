@@ -72,7 +72,7 @@ func (s timeShim) Now() time.Time {
 	return s.current
 }
 
-func NewSnapshotTarget(rndm *rand.Rand, tel telemetry.API) (target FuzzTarget, err error) {
+func MakeSnapshotFuzzTarget(rndm *rand.Rand, tel telemetry.API) (target FuzzTarget, err error) {
 	dbtx, err := migrations.OpenDB(":memory:")
 	if err != nil {
 		return
