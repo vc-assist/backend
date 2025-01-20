@@ -212,27 +212,6 @@ func (q *Queries) AddPSCachedData(ctx context.Context, arg AddPSCachedDataParams
 	return err
 }
 
-const addSnapshotSeries = `-- name: AddSnapshotSeries :one
-
-insert into gradesnapshot_series(powerschool_account_id, course_id, start_time) values (?, ?, ?)
-on conflict do nothing
-returning id
-`
-
-type AddSnapshotSeriesParams struct {
-	PowerschoolAccountID int64
-	CourseID             string
-	StartTime            time.Time
-}
-
-// *** SNAPSHOT SPECIFIC ***
-func (q *Queries) AddSnapshotSeries(ctx context.Context, arg AddSnapshotSeriesParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, addSnapshotSeries, arg.PowerschoolAccountID, arg.CourseID, arg.StartTime)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
-}
-
 const addWeightCategory = `-- name: AddWeightCategory :exec
 insert into weight_category(weight_course_id, category_name, weight) values (?, ?, ?)
 `
@@ -309,6 +288,26 @@ type CreateSnapshotParams struct {
 func (q *Queries) CreateSnapshot(ctx context.Context, arg CreateSnapshotParams) error {
 	_, err := q.db.ExecContext(ctx, createSnapshot, arg.SeriesID, arg.Value)
 	return err
+}
+
+const createSnapshotSeries = `-- name: CreateSnapshotSeries :one
+
+insert into gradesnapshot_series(powerschool_account_id, course_id, start_time) values (?, ?, ?)
+returning id
+`
+
+type CreateSnapshotSeriesParams struct {
+	PowerschoolAccountID int64
+	CourseID             string
+	StartTime            time.Time
+}
+
+// *** SNAPSHOT SPECIFIC ***
+func (q *Queries) CreateSnapshotSeries(ctx context.Context, arg CreateSnapshotSeriesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createSnapshotSeries, arg.PowerschoolAccountID, arg.CourseID, arg.StartTime)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deleteAllMoodleChapters = `-- name: DeleteAllMoodleChapters :exec
@@ -437,6 +436,31 @@ func (q *Queries) GetAllPSAccounts(ctx context.Context) ([]PowerschoolAccount, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const getLatestSnapshotSeries = `-- name: GetLatestSnapshotSeries :one
+select id, course_id, start_time from gradesnapshot_series
+where powerschool_account_id = ? and course_id = ?
+order by start_time desc 
+limit 1
+`
+
+type GetLatestSnapshotSeriesParams struct {
+	PowerschoolAccountID int64
+	CourseID             string
+}
+
+type GetLatestSnapshotSeriesRow struct {
+	ID        int64
+	CourseID  string
+	StartTime time.Time
+}
+
+func (q *Queries) GetLatestSnapshotSeries(ctx context.Context, arg GetLatestSnapshotSeriesParams) (GetLatestSnapshotSeriesRow, error) {
+	row := q.db.QueryRowContext(ctx, getLatestSnapshotSeries, arg.PowerschoolAccountID, arg.CourseID)
+	var i GetLatestSnapshotSeriesRow
+	err := row.Scan(&i.ID, &i.CourseID, &i.StartTime)
+	return i, err
 }
 
 const getMoodleAccountFromId = `-- name: GetMoodleAccountFromId :one
@@ -675,31 +699,6 @@ func (q *Queries) GetMoodleUserCourses(ctx context.Context, accountID int64) ([]
 		return nil, err
 	}
 	return items, nil
-}
-
-const getMostRecentSnapshotSeries = `-- name: GetMostRecentSnapshotSeries :one
-select id, course_id, start_time from gradesnapshot_series
-where powerschool_account_id = ? and course_id = ?
-order by start_time asc
-limit 1
-`
-
-type GetMostRecentSnapshotSeriesParams struct {
-	PowerschoolAccountID int64
-	CourseID             string
-}
-
-type GetMostRecentSnapshotSeriesRow struct {
-	ID        int64
-	CourseID  string
-	StartTime time.Time
-}
-
-func (q *Queries) GetMostRecentSnapshotSeries(ctx context.Context, arg GetMostRecentSnapshotSeriesParams) (GetMostRecentSnapshotSeriesRow, error) {
-	row := q.db.QueryRowContext(ctx, getMostRecentSnapshotSeries, arg.PowerschoolAccountID, arg.CourseID)
-	var i GetMostRecentSnapshotSeriesRow
-	err := row.Scan(&i.ID, &i.CourseID, &i.StartTime)
-	return i, err
 }
 
 const getPSAccountFromId = `-- name: GetPSAccountFromId :one

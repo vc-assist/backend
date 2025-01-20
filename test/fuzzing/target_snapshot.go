@@ -132,7 +132,7 @@ func (t *snapshotTarget) StepGetSnapshots(ctx context.Context, res *Results) err
 		return err
 	}
 
-	t.tel.ReportDebug("GetSnapshots", accountId, courseId)
+	t.tel.ReportDebug("? snapshots", accountId, courseId)
 
 	t.getSnapshotsCount++
 
@@ -174,7 +174,7 @@ func (t *snapshotTarget) StepMakeSnapshot(ctx context.Context, f *Results) error
 		return err
 	}
 
-	t.tel.ReportDebug("MakeSnapshot", accountId, courseId, value)
+	t.tel.ReportDebug("+ snapshot", accountId, courseId, value)
 
 	t.makeSnapshotCount++
 
@@ -201,7 +201,7 @@ func (t *snapshotTarget) StepAddPSAccount(ctx context.Context, f *Results) error
 	if err != nil {
 		return err
 	}
-	t.tel.ReportDebug("AddPSAccount", accountId)
+	t.tel.ReportDebug("+ powerschool account", accountId)
 	return nil
 }
 

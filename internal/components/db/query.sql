@@ -180,9 +180,8 @@ where weight_course.actual_course_id = ?;
 
 -- *** SNAPSHOT SPECIFIC ***
 
--- name: AddSnapshotSeries :one
+-- name: CreateSnapshotSeries :one
 insert into gradesnapshot_series(powerschool_account_id, course_id, start_time) values (?, ?, ?)
-on conflict do nothing
 returning id;
 
 -- name: CreateSnapshot :exec
@@ -193,10 +192,10 @@ select id, course_id, start_time from gradesnapshot_series
 where powerschool_account_id = ? and course_id = ?
 order by start_time asc;
 
--- name: GetMostRecentSnapshotSeries :one
+-- name: GetLatestSnapshotSeries :one
 select id, course_id, start_time from gradesnapshot_series
 where powerschool_account_id = ? and course_id = ?
-order by start_time asc
+order by start_time desc 
 limit 1;
 
 -- name: GetSnapshotSeriesSnapshots :many
