@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"vcassist-backend/lib/oauth"
+	"vcassist-backend/pkg/openid"
 	"vcassist-backend/lib/restyutil"
 	scraper "vcassist-backend/lib/scrapers/powerschool"
 	"vcassist-backend/lib/telemetry"

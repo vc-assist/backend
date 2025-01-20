@@ -1,4 +1,4 @@
-package main
+package integration
 
 import (
 	"context"
@@ -8,14 +8,15 @@ import (
 	"vcassist-backend/internal/components/chrono"
 	"vcassist-backend/internal/components/db"
 	"vcassist-backend/internal/scrapers/moodle"
+	testutil "vcassist-backend/test/util"
 
 	"github.com/stretchr/testify/require"
 )
 
 func IntegrationTestMoodle(t *testing.T) {
-	username := MustFindEnv(t, "TEST_MOODLE_USERNAME")
-	password := MustFindEnv(t, "TEST_MOODLE_PASSWORD")
-	dbtx := OpenInMemoryDB(t)
+	username := testutil.MustFindEnv(t, "TEST_MOODLE_USERNAME")
+	password := testutil.MustFindEnv(t, "TEST_MOODLE_PASSWORD")
+	dbtx := testutil.OpenInMemoryDB(t)
 	qry := db.New(dbtx)
 
 	tel.ReportDebug("testing moodle scraping")

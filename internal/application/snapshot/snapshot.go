@@ -92,11 +92,11 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 		CourseID:             courseId,
 	}
 	latest, err := tx.GetMostRecentSnapshotSeries(ctx, paramLatest)
-	notFound := err == sql.ErrNoRows
-	if err != nil && !notFound {
+	if err != nil && err != sql.ErrNoRows {
 		s.tel.ReportBroken(report_db_query, err, "GetMostRecentSnapshotSeries", paramLatest)
 		return err
 	}
+	mostRecentNotFound := err == sql.ErrNoRows
 
 	latestSnapCount, err := tx.GetSnapshotSeriesCount(ctx, latest.ID)
 	if err != nil {
@@ -112,7 +112,10 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 	}
 
 	targetSeriesId := latest.ID
-	if timeSinceLatest >= time.Hour*24 || notFound {
+
+	if timeSinceLatest >= time.Hour*24 || mostRecentNotFound {
+		// create new series and make it the target series
+
 		param := db.AddSnapshotSeriesParams{
 			PowerschoolAccountID: accountId,
 			CourseID:             courseId,
@@ -124,9 +127,10 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 			s.tel.ReportBroken(report_db_query, err, "AddSnapshotSeries", param)
 			return err
 		}
+		s.tel.ReportDebug("create new series", courseId, accountId, startOfToday)
 	}
 
-	// s.tel.ReportDebug("make snapshot", accountId, courseId, targetSeriesId, float64(value))
+	// append to target series
 	paramCreateSnap := db.CreateSnapshotParams{
 		SeriesID: targetSeriesId,
 		Value:    float64(value),
@@ -136,6 +140,7 @@ func (s Snapshot) MakeSnapshot(ctx context.Context, accountId int64, courseId st
 		s.tel.ReportBroken(report_db_query, err, "CreateSnapshot", paramCreateSnap)
 		return err
 	}
+	s.tel.ReportDebug("append to series", float64(value), targetSeriesId)
 
 	commit()
 	return nil

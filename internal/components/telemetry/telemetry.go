@@ -52,6 +52,12 @@ type API interface {
 	ReportCount(id string, count int64)
 }
 
+// KV can be passed as a parameter to give a name to a value
+type KV struct {
+	Key   string
+	Value any
+}
+
 // ScopedAPI is a telemetry API that attaches a namespace for a given API, kind of like creating a
 // "sub" logger using things like log.New(), in which you can define the prefix for the logs.
 type ScopedAPI struct {
@@ -78,4 +84,19 @@ func (s ScopedAPI) ReportDebug(msg string, params ...any) {
 
 func (s ScopedAPI) ReportCount(id string, count int64) {
 	s.inner.ReportCount(fmt.Sprintf("[%s] %s", s.namespace, id), count)
+}
+
+// NoopAPI is a telemetry API that does nothing.
+type NoopAPI struct{}
+
+func (NoopAPI) ReportBroken(id string, params ...any) {
+}
+
+func (NoopAPI) ReportWarning(id string, params ...any) {
+}
+
+func (NoopAPI) ReportDebug(msg string, params ...any) {
+}
+
+func (NoopAPI) ReportCount(id string, count int64) {
 }

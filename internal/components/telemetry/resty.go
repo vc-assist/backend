@@ -52,7 +52,12 @@ func (i instrumentResty) onBeforeRequest(_ *resty.Client, req *resty.Request) er
 		id:        id,
 		startTime: start,
 	})
-	i.tel.ReportDebug(report_resty_request, id, req.Method, req.URL)
+	i.tel.ReportDebug(
+		report_resty_request,
+		KV{"id", id},
+		KV{"method", req.Method},
+		KV{"url", req.URL},
+	)
 
 	req.SetContext(ctx)
 	return nil
@@ -71,9 +76,9 @@ func (i instrumentResty) onAfterResponse(_ *resty.Client, res *resty.Response) e
 
 	i.tel.ReportDebug(
 		report_resty_response,
-		reqCtx.id,
-		duration.String(),
-		res.Status(),
+		KV{"id", reqCtx.id},
+		KV{"elapsed_time", duration.String()},
+		KV{"status", res.Status()},
 	)
 
 	return nil

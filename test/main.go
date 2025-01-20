@@ -8,18 +8,19 @@ import (
 	"syscall"
 	"testing"
 	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/test/fuzzing"
+	"vcassist-backend/test/integration"
 
 	"github.com/hujun-open/cobra"
 	"github.com/hujun-open/myflags/v2"
 )
 
 var tel = telemetry.NewSlogAPI(slog.LevelDebug)
-var log = tel.Logger()
 
 type fuzzCli struct {
-	Seed     int64  `short:"s" usage:"replay a fuzzer with a given seed"`
-	MinSteps uint64 `usage:"the fuzzer will generate steps within the interval [min, max)"`
-	MaxSteps uint64 `usage:"the fuzzer will generate steps within the interval [min, max)"`
+	Path     fuzzing.Path `short:"p" usage:"replay a fuzzer with a given fuzzing path"`
+	MinSteps uint64       `usage:"the minimum amount of steps that must be executed on any given fuzz target"`
+	MaxSteps uint64       `usage:"the maximum amount of steps that can be executed on any given fuzz target"`
 
 	Snapshot struct{} `action:"FuzzSnapshot"`
 }
@@ -47,21 +48,24 @@ func (c cli) runTests(name string, body func(t *testing.T)) {
 }
 
 func (c cli) TestIntegrateMoodle(cmd *cobra.Command, args []string) {
-	c.runTests("IntegrationTestMoodle", IntegrationTestMoodle)
+	c.runTests("IntegrationTestMoodle", integration.IntegrationTestMoodle)
 }
 
-func (c cli) runFuzzing(ctx context.Context, mkTarget MkFuzzTarget) {
-	StartFuzzTest(ctx, tel, mkTarget, c.Fuzz.Seed, c.Fuzz.MinSteps, c.Fuzz.MaxSteps)
+func (c cli) runFuzzing(ctx context.Context, provider fuzzing.TargetProvider) {
+	f, err := fuzzing.New(tel, provider, c.Fuzz.MinSteps, c.Fuzz.MaxSteps, c.Fuzz.Path)
+	if err != nil {
+		tel.ReportBroken("fuzzing.New: %w", err)
+	}
+	f.StartFuzzTest(ctx)
 }
 
 func (c cli) FuzzSnapshot(cmd *cobra.Command, args []string) {
-	c.runFuzzing(cmd.Context(), MakeSnapshotFuzzTarget)
+	c.runFuzzing(cmd.Context(), fuzzing.SnapshotProvider{})
 }
 
 func main() {
 	input := cli{
 		Fuzz: fuzzCli{
-			Seed:     -1,
 			MinSteps: 10,
 			MaxSteps: 100,
 		},
@@ -75,7 +79,7 @@ func main() {
 
 	err := filler.Fill(&input)
 	if err != nil {
-		log.Error("cli arguments error", "err", err)
+		tel.ReportBroken("cli arguments error", "err", err)
 		os.Exit(22)
 	}
 
@@ -89,7 +93,7 @@ func main() {
 
 	err = filler.ExecuteContext(ctx)
 	if err != nil {
-		log.Error("exec err", "err", err)
+		tel.ReportBroken("exec err", "err", err)
 		os.Exit(1)
 	}
 }

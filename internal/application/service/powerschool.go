@@ -64,7 +64,7 @@ func (s PowerschoolService) Data(ctx context.Context, req *connect.Request[power
 	}, nil
 }
 
-// NewPowerschoolAuthInterceptor creates a struct that implements connect.Interceptor which will check the Authorization
+// NewPowerschoolAuthInterceptor creates a struct that implements [connect.Interceptor] which will check the Authorization
 // header if a valid token has been provided and return the powerschool account associated with the token.
 func NewPowerschoolAuthInterceptor(ctxKey any, db *db.Queries, tel telemetry.API) genericAuthInterceptor {
 	return newGenericAuthInterceptor(func(ctx context.Context, token string) (context.Context, error) {

@@ -14,7 +14,7 @@ func init() {
 	}
 }
 
-// LA returns a *time.Location for America/Los_Angeles
+// LA returns a [*time.Location] for America/Los_Angeles
 func LA() *time.Location {
 	return la
 }

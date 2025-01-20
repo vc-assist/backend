@@ -103,7 +103,7 @@ func (s MoodleService) ChapterContent(ctx context.Context, req *connect.Request[
 	}, nil
 }
 
-// NewMoodleAuthInterceptor creates a struct that implements connect.Interceptor which will check the Authorization
+// NewMoodleAuthInterceptor creates a struct that implements [connect.Interceptor] which will check the Authorization
 // header if a valid token has been provided and return the moodle account associated with the token.
 func NewMoodleAuthInterceptor(ctxKey any, db *db.Queries, tel telemetry.API) genericAuthInterceptor {
 	return newGenericAuthInterceptor(func(ctx context.Context, token string) (context.Context, error) {

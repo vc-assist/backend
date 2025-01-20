@@ -32,6 +32,11 @@ func (s SlogAPI) Logger() *slog.Logger {
 
 func (SlogAPI) formatParams(out *[]any, params []any) {
 	for i, p := range params {
+		kv, isKv := p.(KV)
+		if isKv {
+			*out = append(*out, kv.Key, kv.Value)
+			continue
+		}
 		*out = append(
 			*out,
 			fmt.Sprintf("param.%d", i),

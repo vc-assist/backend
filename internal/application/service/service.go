@@ -81,7 +81,7 @@ func WithCustomRandomAPI(rand RandomAPI) CoreAPIsOption {
 	}
 }
 
-// MoodleService implements vcassist.moodle.v1.MoodleService
+// MoodleService implements `vcassist.moodle.v1.MoodleService`
 type MoodleService struct {
 	coreAPIs
 
@@ -89,7 +89,7 @@ type MoodleService struct {
 	ctxKey any
 }
 
-// PowerschoolService implements vcassist.powerschool.v1.PowerschoolService
+// PowerschoolService implements `vcassist.powerschool.v1.PowerschoolService`
 type PowerschoolService struct {
 	coreAPIs
 
@@ -97,7 +97,7 @@ type PowerschoolService struct {
 	ctxKey any
 }
 
-// PublicService vcassist.public.v1.PublicService
+// PublicService `vcassist.public.v1.PublicService`
 type PublicService struct {
 	coreAPIs
 
@@ -105,7 +105,7 @@ type PublicService struct {
 	time chrono.TimeAPI
 }
 
-// NewPublicService creates a PublicService
+// NewPublicService creates a [PublicService]
 func NewPublicService(coreAPIs coreAPIs, time chrono.TimeAPI) PublicService {
 	assert.NotNil(chrono)
 
@@ -115,7 +115,7 @@ func NewPublicService(coreAPIs coreAPIs, time chrono.TimeAPI) PublicService {
 	}
 }
 
-// NewMoodleService creates a MoodleService
+// NewMoodleService creates a [MoodleService]
 func NewMoodleService(coreAPIs coreAPIs, api MoodleAPI, ctxKey any) MoodleService {
 	assert.NotNil(api)
 	assert.NotNil(ctxKey)
@@ -127,7 +127,7 @@ func NewMoodleService(coreAPIs coreAPIs, api MoodleAPI, ctxKey any) MoodleServic
 	}
 }
 
-// NewPowerschoolService creates a PowerschoolService
+// NewPowerschoolService creates a [PowerschoolService]
 func NewPowerschoolService(
 	coreAPIs coreAPIs,
 	api PowerschoolAPI,

@@ -1,4 +1,4 @@
-package main
+package testutil
 
 import (
 	"fmt"
@@ -35,7 +35,7 @@ func RandomSwitch(weights ...int) func(rndm *rand.Rand) int {
 			}
 		}
 
-		panic(fmt.Sprintf("random value generated was out of bounds: %f", value))
+		panic(fmt.Sprintf("random value generated was out of bounds: %d", value))
 	}
 }
 

@@ -1,7 +1,7 @@
 package vcsis
 
 import (
-	"vcassist-backend/lib/oauth"
+	"vcassist-backend/pkg/openid"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"
 )
 
