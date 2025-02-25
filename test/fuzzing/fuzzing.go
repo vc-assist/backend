@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/telemetry"
 
 	"github.com/hujun-open/myflags/v2"
 )

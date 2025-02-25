@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http/cookiejar"
 	"time"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/telemetry"
 
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/time/rate"

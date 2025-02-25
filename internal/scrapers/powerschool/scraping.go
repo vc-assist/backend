@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 	powerschoolv1 "vcassist-backend/api/vcassist/powerschool/v1"
-	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/db"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"

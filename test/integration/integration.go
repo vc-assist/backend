@@ -1,6 +1,6 @@
 package integration
 
-import "vcassist-backend/internal/components/telemetry"
+import "vcassist-backend/internal/telemetry"
 
 var tel telemetry.API
 

@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"vcassist-backend/internal/components/chrono"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/chrono"
+	"vcassist-backend/internal/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"

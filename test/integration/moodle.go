@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"vcassist-backend/internal/components/chrono"
-	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/chrono"
+	"vcassist-backend/internal/db"
 	"vcassist-backend/internal/scrapers/moodle"
 	testutil "vcassist-backend/test/util"
 

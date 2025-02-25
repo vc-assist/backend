@@ -6,9 +6,9 @@ import (
 	"math"
 	"math/rand"
 	"time"
-	"vcassist-backend/internal/application/snapshot"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/application/snapshot"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 	"vcassist-backend/pkg/migrations"
 	testutil "vcassist-backend/test/util"
 )

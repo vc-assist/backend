@@ -8,7 +8,7 @@ import (
 	"time"
 	openidv1 "vcassist-backend/api/openid/v1"
 	publicv1 "vcassist-backend/api/vcassist/public/v1"
-	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/db"
 
 	"connectrpc.com/connect"
 )

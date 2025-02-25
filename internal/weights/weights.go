@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"slices"
-	"vcassist-backend/internal/components/assert"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/assert"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 
 	"github.com/antzucaro/matchr"
 )

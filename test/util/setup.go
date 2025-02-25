@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/db"
 	"vcassist-backend/pkg/migrations"
 )
 

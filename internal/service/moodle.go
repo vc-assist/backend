@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 
 	"connectrpc.com/connect"
 )

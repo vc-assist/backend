@@ -1,10 +1,6 @@
 package powerschool
 
-import (
-	"context"
-)
-
-const allStudentsQuery = `query AllStudentsFirstLevel {
+const query_all_students = `query AllStudentsFirstLevel {
   students {
     ...studentData
   }
@@ -69,13 +65,4 @@ type studentProfile struct {
 
 type getAllStudentsResponse struct {
 	Profiles []studentProfile `json:"students"`
-}
-
-func (c *client) GetAllStudents(ctx context.Context) (*getAllStudentsResponse, error) {
-	res := &getAllStudentsResponse{}
-	err := graphqlQuery(
-		ctx, c, "AllStudentsFirstLevel", allStudentsQuery,
-		struct{}{}, res,
-	)
-	return res, err
 }

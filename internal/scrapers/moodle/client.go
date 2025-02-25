@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"vcassist-backend/internal/components/assert"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/assert"
+	"vcassist-backend/internal/telemetry"
 	"vcassist-backend/pkg/htmlutil"
 
 	cloudflarebp "github.com/DaRealFreak/cloudflare-bp-go"

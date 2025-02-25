@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	"testing"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/telemetry"
 	"vcassist-backend/test/fuzzing"
 	"vcassist-backend/test/integration"
 

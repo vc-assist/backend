@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	powerschoolv1 "vcassist-backend/api/vcassist/powerschool/v1"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 
 	"connectrpc.com/connect"
 )

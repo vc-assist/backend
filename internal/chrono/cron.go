@@ -2,7 +2,7 @@ package chrono
 
 import (
 	"fmt"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/telemetry"
 
 	"github.com/robfig/cron/v3"
 )

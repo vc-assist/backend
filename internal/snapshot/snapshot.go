@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"vcassist-backend/internal/components/assert"
-	"vcassist-backend/internal/components/chrono"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/assert"
+	"vcassist-backend/internal/chrono"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 )
 
 const (

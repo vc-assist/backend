@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-const scheduleQuery = `query SectionMeetings(
+const query_schedule = `query SectionMeetings(
   $sectionGuids: [ID]!
   $start: DateTime!
   $stop: DateTime!
@@ -40,7 +40,7 @@ type getCourseMeetingListRequest struct {
 func (c *client) GetCourseMeetingList(ctx context.Context, req getCourseMeetingListRequest) (*getCourseMeetingListResponse, error) {
 	res := &getCourseMeetingListResponse{}
 	err := graphqlQuery(
-		ctx, c, "SectionMeetings", scheduleQuery,
+		ctx, c, "SectionMeetings", query_schedule,
 		req, res,
 	)
 	return res, err

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 	moodlev1 "vcassist-backend/api/vcassist/moodle/v1"
-	"vcassist-backend/internal/components/chrono"
-	"vcassist-backend/internal/components/db"
+	"vcassist-backend/internal/chrono"
+	"vcassist-backend/internal/db"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

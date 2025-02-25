@@ -3,10 +3,10 @@ package powerschool
 import (
 	"context"
 	"time"
-	"vcassist-backend/internal/components/assert"
-	"vcassist-backend/internal/components/chrono"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/assert"
+	"vcassist-backend/internal/chrono"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 )
 
 // WeightsAPI describes all the methods that make up the external assignment weight data

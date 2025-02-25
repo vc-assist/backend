@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"vcassist-backend/internal/components/db"
-	"vcassist-backend/internal/components/telemetry"
+	"vcassist-backend/internal/db"
+	"vcassist-backend/internal/telemetry"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -454,7 +454,7 @@ func (r scrapeReq) scrapeCourse(ctx context.Context, course Course) {
 	if len(sectionList) == 0 {
 		r.tel.ReportWarning(
 			report_client_get_sections,
-			fmt.Errorf("get sections: no sections found in '%s' (%d)", course.Name, course.Id),
+			fmt.Errorf("get sections: no sections found in '%s' (%d)", course.Name, id),
 		)
 	}
 
