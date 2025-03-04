@@ -1,10 +1,6 @@
 package powerschool
 
-import (
-	"context"
-)
-
-const studentDataQuery = `query AllStudentData($guid: ID!) {
+const graphql_student_data = `query AllStudentData($guid: ID!) {
   student(guid: $guid) {
     sections {
       ...sectionData
@@ -88,21 +84,12 @@ type courseData struct {
 	Terms            []termData       `json:"terms"`
 }
 
-type getStudentDataResponse struct {
+type responseStudentData struct {
 	Student struct {
 		Courses []courseData `json:"sections"`
 	} `json:"student"`
 }
 
-type getStudentDataRequest struct {
+type requestStudentData struct {
 	Guid string `json:"guid"`
-}
-
-func (c *client) GetStudentData(ctx context.Context, req getStudentDataRequest) (*getStudentDataResponse, error) {
-	res := &getStudentDataResponse{}
-	err := graphqlQuery(
-		ctx, c, "AllStudentData", studentDataQuery,
-		req, res,
-	)
-	return res, err
 }

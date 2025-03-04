@@ -36,7 +36,7 @@ require (
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/EDDYCJY/fake-useragent v0.2.0 // indirect
-	github.com/LQR471814/scavenge v0.0.0-20250225042032-5406f3c077c6 // indirect
+	github.com/LQR471814/scavenge v0.0.0-20250304055240-188571cfb454 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Microsoft/hcsshim v0.11.4 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect

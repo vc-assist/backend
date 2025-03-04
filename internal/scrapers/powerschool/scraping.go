@@ -83,7 +83,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 	}
 
 	psStudent := allStudents.Profiles[0]
-	studentData, err := client.GetStudentData(ctx, getStudentDataRequest{
+	studentData, err := client.GetStudentData(ctx, requestStudentData{
 		Guid: psStudent.Guid,
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func (p Powerschool) scrapeUser(ctx context.Context, acc db.PowerschoolAccount) 
 		fmt.Sprintf("start: %v", start),
 		fmt.Sprintf("stop: %v", stop),
 	)
-	req := getCourseMeetingListRequest{
+	req := requestSchedule{
 		CourseGuids: guids,
 		Start:       start.Format(time.RFC3339),
 		Stop:        stop.Format(time.RFC3339),
@@ -411,7 +411,7 @@ func (p Powerschool) toPbData(
 	ctx context.Context,
 	accountId int64,
 	profile studentProfile,
-	data *getStudentDataResponse,
+	data *responseStudentData,
 	courseMeetings []courseMeeting,
 ) *powerschoolv1.DataResponse {
 	gpa, err := strconv.ParseFloat(profile.CurrentGpa, 32)

@@ -1,6 +1,6 @@
 package powerschool
 
-const query_all_students = `query AllStudentsFirstLevel {
+const graphql_all_students = `query AllStudentsFirstLevel {
   students {
     ...studentData
   }
@@ -63,6 +63,6 @@ type studentProfile struct {
 	Bulletins  []bulletin   `json:"bulletins"`
 }
 
-type getAllStudentsResponse struct {
+type responseAllStudents struct {
 	Profiles []studentProfile `json:"students"`
 }

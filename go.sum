@@ -16,6 +16,8 @@ github.com/JohannesKaufmann/html-to-markdown v1.6.0 h1:04VXMiE50YYfCfLboJCLcgqF5
 github.com/JohannesKaufmann/html-to-markdown v1.6.0/go.mod h1:NUI78lGg/a7vpEJTz/0uOcYMaibytE4BUOQS8k78yPQ=
 github.com/LQR471814/scavenge v0.0.0-20250225042032-5406f3c077c6 h1:A3+QPCUBU5xy7F26dIYBmCN3/iwAMKR06WfJ3aHMiRk=
 github.com/LQR471814/scavenge v0.0.0-20250225042032-5406f3c077c6/go.mod h1:IxbFgqffFrFMenKZGLyNCez8HfKWg2YMOjngLh05paU=
+github.com/LQR471814/scavenge v0.0.0-20250304055240-188571cfb454 h1:eU9nRAA6ZNZDsuldLsAza8Fo8k0bmzPxEWFBXhSYKlI=
+github.com/LQR471814/scavenge v0.0.0-20250304055240-188571cfb454/go.mod h1:IxbFgqffFrFMenKZGLyNCez8HfKWg2YMOjngLh05paU=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/Microsoft/hcsshim v0.11.4 h1:68vKo2VN8DE9AdN4tnkWnmdhqdbpUFM8OF3Airm7fz8=
