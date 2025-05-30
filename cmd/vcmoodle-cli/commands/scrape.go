@@ -9,7 +9,7 @@ import (
 	"vcassist-backend/lib/scrapers/moodle/core"
 	"vcassist-backend/lib/scrapers/moodle/view"
 	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/services/vcmoodle/db"
 	"vcassist-backend/services/vcmoodle/scraper"
 
@@ -65,7 +65,7 @@ var scrapeCmd = &cobra.Command{
 		slog.Info("scraping using user", "username", cfg.Username)
 		client := createClient(cfg.Username, cfg.Password)
 
-		out, err := sqliteutil.OpenDB(db.Schema, *scrapeDb)
+		out, err := migrations.OpenDB(db.Schema, *scrapeDb)
 		if err != nil {
 			serviceutil.Fatal("failed to open db", err)
 		}

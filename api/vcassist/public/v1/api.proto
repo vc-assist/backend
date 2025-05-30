@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package vcassist.public.v1;
+
+import "openid/v1/types.proto";
+
+// LoginMoodle
+message LoginMoodleRequest {
+  string username = 1;
+  string password = 2;
+}
+message LoginMoodleResponse {
+  string token = 1;
+}
+
+// LoginPowerschool
+message LoginPowerschoolRequest {
+  openid.v1.Token token = 1;
+}
+message LoginPowerschoolResponse {
+  string token = 1;
+}
+
+// PublicService contains any method that doesn't require any sort of authentication to run.
+service PublicService {
+  rpc LoginMoodle(LoginMoodleRequest) returns (LoginMoodleResponse);
+  rpc LoginPowerschool(LoginPowerschoolRequest) returns (LoginPowerschoolResponse);
+}
+

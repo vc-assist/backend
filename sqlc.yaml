@@ -1,44 +1,9 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "services/auth/db/query.sql"
-    schema: "services/auth/db/schema.sql"
+    queries: "internal/db/query.sql"
+    schema: "internal/db/schema.sql"
     gen:
       go:
         package: "db"
-        out: "services/auth/db"
-  - engine: "sqlite"
-    queries: "lib/gradestore/db/query.sql"
-    schema: "lib/gradestore/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "lib/gradestore/db"
-  - engine: "sqlite"
-    queries: "services/linker/db/query.sql"
-    schema: "services/linker/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/linker/db"
-  - engine: "sqlite"
-    queries: "services/keychain/db/query.sql"
-    schema: "services/keychain/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/keychain/db"
-  - engine: "sqlite"
-    queries: "services/vcsis/db/query.sql"
-    schema: "services/vcsis/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/vcsis/db"
-  - engine: "sqlite"
-    queries: "services/vcmoodle/db/query.sql"
-    schema: "services/vcmoodle/db/schema.sql"
-    gen:
-      go:
-        package: "db"
-        out: "services/vcmoodle/db"
+        out: "internal/db"

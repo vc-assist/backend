@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/keychain/v1/keychainv1connect"
 	"vcassist-backend/services/keychain"
@@ -14,7 +14,7 @@ type KeychainConfig struct {
 }
 
 func InitKeychain(ctx context.Context, cfg KeychainConfig) (keychainv1connect.InstrumentedKeychainServiceClient, error) {
-	db, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
+	db, err := migrations.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return keychainv1connect.NewInstrumentedKeychainServiceClient(nil), err
 	}

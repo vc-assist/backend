@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode"
 	"vcassist-backend/lib/serviceutil"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/services/vcmoodle/db"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -34,7 +34,7 @@ var testCmd = &cobra.Command{
 	Use:   "test [--db <path/to/output.db>] [--chapter <chapter_id>]",
 	Short: "Validates the result of a moodle scrape.",
 	Run: func(cmd *cobra.Command, args []string) {
-		database, err := sqliteutil.OpenDB(db.Schema, *targetDb)
+		database, err := migrations.OpenDB(db.Schema, *targetDb)
 		if err != nil {
 			serviceutil.Fatal("failed to open db", err)
 		}

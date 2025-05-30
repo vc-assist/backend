@@ -1,15 +1,15 @@
 version: v2
 plugins:
   - remote: buf.build/bufbuild/es:v1.7.2
-    out: proto
+    out: api
     opt: target=ts
   - remote: buf.build/connectrpc/es:v1.4.0
-    out: proto
+    out: api
     opt: target=ts
 inputs:
-  - directory: proto
+  - directory: api
     paths:
-      - ./proto/vcassist/services/auth
-      - ./proto/vcassist/services/sis
-      - ./proto/vcassist/services/vcmoodle
-      - ./proto/vcassist/services/keychain
+      - ./api/openid
+      - ./api/vcassist/public
+      - ./api/vcassist/moodle
+      - ./api/vcassist/powerschool

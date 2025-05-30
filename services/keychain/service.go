@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"vcassist-backend/lib/oauth"
+	"vcassist-backend/pkg/openid"
 	"vcassist-backend/lib/restyutil"
 	"vcassist-backend/lib/timezone"
 	keychainv1 "vcassist-backend/proto/vcassist/services/keychain/v1"

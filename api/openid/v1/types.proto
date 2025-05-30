@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package openid.v1;
+
+message Token {
+  string refresh_token = 1;
+  string access_token = 2;
+  string id_token = 3;
+  int32 expires_in = 4;
+  string scope = 5;
+  string token_type = 6;
+}
+

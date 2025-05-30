@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"vcassist-backend/lib/sqliteutil"
+	"vcassist-backend/pkg/migrations"
 	"vcassist-backend/lib/telemetry"
 	"vcassist-backend/proto/vcassist/services/auth/v1/authv1connect"
 	"vcassist-backend/services/auth"
@@ -28,7 +28,7 @@ type AuthConfig struct {
 }
 
 func InitAuth(mux *http.ServeMux, cfg AuthConfig) (verifier.Verifier, error) {
-	database, err := sqliteutil.OpenDB(db.Schema, cfg.Database)
+	database, err := migrations.OpenDB(db.Schema, cfg.Database)
 	if err != nil {
 		return verifier.Verifier{}, err
 	}

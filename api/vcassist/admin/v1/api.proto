@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+message Log {
+  string id = 1;
+  repeated string params = 2;
+  google.protobuf.Timestamp time = 3;
+}
+
+service AdminService {
+}
